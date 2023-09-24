@@ -11642,6 +11642,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
         case RightId.INVITE_USERS:
         case RightId.MANAGE_VIDEO_CHATS:
         case RightId.MANAGE_OR_CREATE_TOPICS:
+        case RightId.MANAGE_TOPICS:
         case RightId.MANAGE_DIRECT_MESSAGES:
         case RightId.POST_STORIES:
         case RightId.EDIT_STORIES:
@@ -11733,6 +11734,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
       case RightId.INVITE_USERS:
       case RightId.MANAGE_VIDEO_CHATS:
       case RightId.MANAGE_OR_CREATE_TOPICS:
+      case RightId.MANAGE_TOPICS:
       case RightId.MANAGE_DIRECT_MESSAGES:
       case RightId.POST_STORIES:
       case RightId.EDIT_STORIES:

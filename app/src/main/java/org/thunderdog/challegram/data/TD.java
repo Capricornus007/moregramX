@@ -162,6 +162,7 @@ public class TD {
       case RightId.PIN_MESSAGES:
       case RightId.MANAGE_VIDEO_CHATS:
       case RightId.MANAGE_OR_CREATE_TOPICS:
+      case RightId.MANAGE_TOPICS:
       case RightId.POST_STORIES:
       case RightId.EDIT_STORIES:
       case RightId.DELETE_STORIES:
@@ -265,6 +266,7 @@ public class TD {
       case RightId.DELETE_MESSAGES:
       case RightId.EDIT_MESSAGES:
       case RightId.MANAGE_VIDEO_CHATS:
+      case RightId.MANAGE_TOPICS:
       case RightId.POST_STORIES:
       case RightId.EDIT_STORIES:
       case RightId.DELETE_STORIES:
