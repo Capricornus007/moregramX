@@ -1070,7 +1070,6 @@ public class EditRightsController extends EditBaseController<EditRightsControlle
       if (isForum || getValueForId(RightId.MANAGE_OR_CREATE_TOPICS)) {
         rightIdOptions.add(new RightOption(RightId.MANAGE_OR_CREATE_TOPICS));
       }
-<<<<<<< HEAD
     } else if (args.mode == MODE_RESTRICTION) {
       if (args.senderId.getConstructor() == TdApi.MessageSenderUser.CONSTRUCTOR) {
         rightIdOptions.add(new RightOption(RightId.READ_MESSAGES));
@@ -1476,7 +1475,6 @@ public class EditRightsController extends EditBaseController<EditRightsControlle
       case RightId.MANAGE_VIDEO_CHATS:
         targetAdmin.rights.canManageVideoChats = newValue;
         break;
-<<<<<<< HEAD
       case RightId.MANAGE_DIRECT_MESSAGES:
         targetAdmin.rights.canManageDirectMessages = newValue;
         break;
@@ -1486,10 +1484,11 @@ public class EditRightsController extends EditBaseController<EditRightsControlle
         } else {
           targetRestrict.permissions.canCreateTopics = newValue;
         }
-=======
       case RightId.MANAGE_TOPICS:
         targetAdmin.rights.canManageTopics = newValue;
 >>>>>>> 54685ab3 (Added missing admin flags checks in recent actions + Supported `canManageTopics` permission)
+          targetRestrict.permissions.canManageTopics = newValue;
+        }
         break;
       case RightId.POST_STORIES:
         targetAdmin.rights.canPostStories = newValue;
@@ -1628,7 +1627,6 @@ public class EditRightsController extends EditBaseController<EditRightsControlle
         return targetAdmin.rights.canPromoteMembers;
       case RightId.MANAGE_VIDEO_CHATS:
         return targetAdmin.rights.canManageVideoChats;
-<<<<<<< HEAD
       case RightId.MANAGE_DIRECT_MESSAGES:
         return targetAdmin.rights.canManageDirectMessages;
       case RightId.MANAGE_OR_CREATE_TOPICS:
@@ -1637,10 +1635,11 @@ public class EditRightsController extends EditBaseController<EditRightsControlle
         } else {
           return canViewMessages && targetRestrict.permissions.canCreateTopics;
         }
-=======
       case RightId.MANAGE_TOPICS:
         return targetAdmin.rights.canManageTopics;
 >>>>>>> 54685ab3 (Added missing admin flags checks in recent actions + Supported `canManageTopics` permission)
+          return canViewMessages && targetRestrict.permissions.canManageTopics;
+        }
       case RightId.POST_STORIES:
         return targetAdmin.rights.canPostStories;
       case RightId.EDIT_STORIES:
@@ -1695,15 +1694,15 @@ public class EditRightsController extends EditBaseController<EditRightsControlle
         return R.string.RightEditMessages;
       case RightId.MANAGE_VIDEO_CHATS:
         return isChannel ? R.string.RightLiveStreams : R.string.RightVoiceChats;
-<<<<<<< HEAD
       case RightId.MANAGE_DIRECT_MESSAGES:
         return R.string.RightDirectMessages;
       case RightId.MANAGE_OR_CREATE_TOPICS:
         return getArgumentsStrict().mode == MODE_ADMIN_PROMOTION ? R.string.RightTopics : R.string.RightTopicsCreate;
-=======
       case RightId.MANAGE_TOPICS:
         return R.string.RightTopics;
 >>>>>>> 54685ab3 (Added missing admin flags checks in recent actions + Supported `canManageTopics` permission)
+      case RightId.MANAGE_OR_CREATE_TOPICS:
+        return getArgumentsStrict().mode == MODE_ADMIN_PROMOTION ? R.string.RightTopics : R.string.RightTopicsCreate;
       case RightId.POST_STORIES:
         return R.string.RightStoriesPost;
       case RightId.EDIT_STORIES:
