@@ -3721,7 +3721,7 @@ public class TD {
     }
 
     public static DownloadedFile valueOf (TdApi.VideoNote videoNote) {
-      return new DownloadedFile(videoNote.video, "video.mp4", null, new TdApi.FileTypeVideoNote());
+      return new DownloadedFile(videoNote.video, "video.mp4", "video/mp4", new TdApi.FileTypeVideoNote());
     }
 
     public int getFileId () {
