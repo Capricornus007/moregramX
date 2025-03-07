@@ -7983,8 +7983,8 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
   // Icons
 
-  private static Drawable iQuickTranslate, iQuickStopTranslate, iQuickReply, iQuickShare, iBadge;
-  private static String shareText, replyText, translateText, translateStopText;
+  private static Drawable iQuickTranslate, iQuickStopTranslate, iQuickReply, iQuickEdit, iQuickShare, iQuickFeatured, iBadge;
+  private static String editText, shareText, featuredText, replyText, translateText, translateStopText;
   private static boolean initialized;
 
   private static void initResources () {
@@ -7992,6 +7992,8 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     iBadge = Drawables.get(res, R.drawable.baseline_keyboard_arrow_down_20);
     iQuickReply = Drawables.get(res, R.drawable.baseline_reply_24);
     iQuickShare = Drawables.get(res, R.drawable.baseline_forward_24);
+    iQuickEdit = Drawables.get(res, R.drawable.baseline_edit_24);
+    iQuickFeatured = Drawables.get(res, R.drawable.baseline_bookmark_24);
     iQuickTranslate = Drawables.get(res, R.drawable.baseline_translate_24);
     iQuickStopTranslate = Drawables.get(res, R.drawable.baseline_translate_off_24);
     initBubbleResources();
@@ -8000,6 +8002,8 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   private static void initTexts () {
     if (mQuickText != null) {
       shareText = Lang.getString(R.string.SwipeShare);
+      editText = Lang.getString(R.string.edit);
+      featuredText = Lang.getString(R.string.SavedMessages);
       replyText = Lang.getString(R.string.SwipeReply);
       translateText = Lang.getString(R.string.Translate);
       translateStopText = Lang.getString(R.string.TranslateOff);
@@ -8011,7 +8015,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   }
 
   private static boolean isStaticText (int res) {
-    return res == R.string.SwipeShare || res == R.string.SwipeReply;
+    return res == R.string.SwipeShare || res == R.string.edit || res == R.string.SavedMessages || res == R.string.SwipeReply;
   }
 
   public static void processLanguageEvent (@Lang.EventType int eventType, int arg1) {
@@ -8815,6 +8819,8 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
     final boolean canReply = Settings.instance().needChatQuickReply() && messagesController().canWriteMessages() && !messagesController().needTabs() && canReplyTo();
     final boolean canShare = Settings.instance().needChatQuickShare() && !messagesController().isSecretChat() && canBeForwarded();
+    final boolean canFeatured = Settings.instance().needChatQuickFeatured() && !messagesController().isSecretChat() && canBeForwarded();
+    final boolean canEdit = Settings.instance().needChatQuickEdit() && canEditText();
 
     leftActions.clear();
     rightActions.clear();
@@ -8876,11 +8882,21 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       }
     }
 
-
-
     if (canShare) {
       leftActions.add(new SwipeQuickAction(shareText, iQuickShare, () -> {
         messagesController().shareMessages(getAllMessages(), false);
+      }, true, false));
+    }
+
+    if (canEdit) {
+      rightActions.add(new SwipeQuickAction(editText, iQuickEdit, () -> {
+        getMessageWithProperties(msg -> messagesController().editMessage(msg));
+      }, true, false));
+    }
+
+    if (canFeatured) {
+      leftActions.add(new SwipeQuickAction(featuredText, iQuickFeatured, () -> {
+        tdlib.forwardMessage(tdlib.selfChatId(), 0, getChatId(), getId(), null);
       }, true, false));
     }
   }

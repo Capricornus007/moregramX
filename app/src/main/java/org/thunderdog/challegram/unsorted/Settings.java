@@ -404,6 +404,8 @@ public class Settings {
   private static final int FLAG_OTHER_START_ROUND_REAR = 1 << 28;
   private static final int FLAG_OTHER_DISABLE_BIG_EMOJI = 1 << 29;
   private static final int FLAG_OTHER_DISABLE_SECRET_LINK_PREVIEWS = 1 << 30;
+  private static final int FLAG_OTHER_NO_CHAT_QUICK_EDIT = 1 << 31;
+  private static final int FLAG_OTHER_NO_CHAT_QUICK_FEATURED = 1 << 1;
 
   public static final long SETTING_FLAG_BATMAN_POLL_TRANSITIONS = 1 << 1;
   public static final long SETTING_FLAG_EDIT_MARKDOWN = 1 << 2;
@@ -1472,6 +1474,10 @@ public class Settings {
     /*disableChatQuickShare = true;
     disableChatQuickShare = (settings & FLAG_OTHER_NO_CHAT_QUICK_SHARE) != 0;*/
     defaultSettings |= FLAG_OTHER_NO_CHAT_QUICK_SHARE;
+
+    defaultSettings |= FLAG_OTHER_NO_CHAT_QUICK_EDIT;
+
+    defaultSettings |= FLAG_OTHER_NO_CHAT_QUICK_FEATURED;
 
     /*disableChatQuickReply = false;
     disableChatQuickReply = (settings & FLAG_OTHER_NO_CHAT_QUICK_REPLY) != 0;*/
@@ -3025,13 +3031,23 @@ public class Settings {
     return checkNegativeSetting(FLAG_OTHER_NO_CHAT_QUICK_SHARE);
   }
 
+  public boolean needChatQuickEdit () {
+    return checkNegativeSetting(FLAG_OTHER_NO_CHAT_QUICK_EDIT);
+  }
+
+  public boolean needChatQuickFeatured () {
+    return checkNegativeSetting(FLAG_OTHER_NO_CHAT_QUICK_FEATURED);
+  }
+
   public boolean needChatQuickReply () {
     return checkNegativeSetting(FLAG_OTHER_NO_CHAT_QUICK_REPLY);
   }
 
-  public void setDisableChatQuickActions (boolean disableChatQuickShare, boolean disableChatQuickReply) {
+  public void setDisableChatQuickActions (boolean disableChatQuickEdit, boolean disableChatQuickShare, boolean disableChatQuickFeatured, boolean disableChatQuickReply) {
     int newSettings = getSettings();
     newSettings = BitwiseUtils.setFlag(newSettings, FLAG_OTHER_NO_CHAT_QUICK_SHARE, disableChatQuickShare);
+    newSettings = BitwiseUtils.setFlag(newSettings, FLAG_OTHER_NO_CHAT_QUICK_EDIT, disableChatQuickEdit);
+    newSettings = BitwiseUtils.setFlag(newSettings, FLAG_OTHER_NO_CHAT_QUICK_FEATURED, disableChatQuickFeatured);
     newSettings = BitwiseUtils.setFlag(newSettings, FLAG_OTHER_NO_CHAT_QUICK_REPLY, disableChatQuickReply);
     setSettings(newSettings);
   }

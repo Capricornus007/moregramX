@@ -286,6 +286,18 @@ public class SettingsThemeController extends RecyclerViewController<SettingsThem
           if (Settings.instance().needChatQuickShare()) {
             b.append(Lang.getString(R.string.QuickActionSettingShare));
           }
+          if (Settings.instance().needChatQuickEdit()) {
+            if (b.length() > 0) {
+              b.append(Lang.getConcatSeparator());
+            }
+            b.append(Lang.getString(R.string.edit));
+          }
+          if (Settings.instance().needChatQuickFeatured()) {
+            if (b.length() > 0) {
+              b.append(Lang.getConcatSeparator());
+            }
+            b.append(Lang.getString(R.string.SavedMessages));
+          }
           if (Settings.instance().needChatQuickReply()) {
             if (b.length() > 0) {
               b.append(Lang.getConcatSeparator());
@@ -1192,9 +1204,12 @@ public class SettingsThemeController extends RecyclerViewController<SettingsThem
     } else if (viewId == R.id.btn_chatSwipes) {
       showSettings(R.id.btn_chatSwipes, new ListItem[] {
         new ListItem(ListItem.TYPE_CHECKBOX_OPTION, R.id.btn_messageShare, 0, R.string.Share, R.id.btn_messageShare, Settings.instance().needChatQuickShare()),
+        new ListItem(ListItem.TYPE_CHECKBOX_OPTION, R.id.btn_messageEdit, 0, R.string.edit, R.id.btn_messageEdit, Settings.instance().needChatQuickEdit()),
+        new ListItem(ListItem.TYPE_CHECKBOX_OPTION, R.id.btn_savedMessages, 0, R.string.SavedMessages, R.id.btn_savedMessages, Settings.instance().needChatQuickFeatured()),
         new ListItem(ListItem.TYPE_CHECKBOX_OPTION, R.id.btn_messageReply, 0, R.string.Reply, R.id.btn_messageReply, Settings.instance().needChatQuickReply())
       }, (id, result) -> {
-        Settings.instance().setDisableChatQuickActions(result.get(R.id.btn_messageShare) != R.id.btn_messageShare, result.get(R.id.btn_messageReply) != R.id.btn_messageReply);
+        Settings.instance().setDisableChatQuickActions(result.get(R.id.btn_messageEdit) != R.id.btn_messageEdit, result.get(R.id.btn_messageShare) != R.id.btn_messageShare,
+          result.get(R.id.btn_savedMessages) != R.id.btn_savedMessages, result.get(R.id.btn_messageReply) != R.id.btn_messageReply);
         adapter.updateValuedSettingById(R.id.btn_chatSwipes);
       });
     } else if (viewId == R.id.btn_systemEmoji) {
