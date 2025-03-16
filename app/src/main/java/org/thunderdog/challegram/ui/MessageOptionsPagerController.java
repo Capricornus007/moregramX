@@ -79,7 +79,8 @@ import me.vkryl.android.animator.FactorAnimator;
 import me.vkryl.android.widget.FrameLayoutFix;
 import me.vkryl.core.MathUtils;
 import me.vkryl.core.StringUtils;
-import me.vkryl.td.Td;
+import tgx.td.Td;
+import tgx.td.TdExt;
 
 public class MessageOptionsPagerController extends BottomSheetViewController<OptionDelegate> implements
   FactorAnimator.Target, View.OnClickListener, Menu, DrawableProvider, PopupLayout.TouchDownInterceptor,
@@ -325,6 +326,7 @@ public class MessageOptionsPagerController extends BottomSheetViewController<Opt
 
   @Override
   public void onPageScrolled (int position, float positionOffset, int positionOffsetPixels) {
+    positionOffset = ViewPager.clampPositionOffset(positionOffset);
     if (this.checkedBasePosition != position) {
       checkedBasePosition = position;
       checkContentScrollY(position);

@@ -41,7 +41,6 @@ import org.thunderdog.challegram.telegram.TGLegacyManager;
 import org.thunderdog.challegram.telegram.TdlibAccount;
 import org.thunderdog.challegram.telegram.TdlibBadgeCounter;
 import org.thunderdog.challegram.telegram.TdlibManager;
-import org.thunderdog.challegram.telegram.TdlibUi;
 import org.thunderdog.challegram.theme.ColorId;
 import org.thunderdog.challegram.theme.Theme;
 import org.thunderdog.challegram.tool.Drawables;
@@ -53,7 +52,6 @@ import org.thunderdog.challegram.unsorted.Settings;
 import org.thunderdog.challegram.util.EmojiStatusHelper;
 import org.thunderdog.challegram.util.text.Text;
 import org.thunderdog.challegram.util.text.TextColorSet;
-import org.thunderdog.challegram.util.text.TextPart;
 import org.thunderdog.challegram.widget.ExpanderView;
 
 import me.vkryl.android.AnimatorUtils;
@@ -117,7 +115,7 @@ public class DrawerHeaderView extends View implements Destroyable, GlobalAccount
     });
   }
 
-  public boolean onEmojiStatusClick (View v, Text text, TextPart part, @Nullable TdlibUi.UrlOpenParameters openParameters, EmojiStatusHelper emojiStatusHelper) {
+  public boolean onEmojiStatusClick (View v, EmojiStatusHelper emojiStatusHelper) {
     int[] pos = new int[2];
     getLocationOnScreen(pos);
     EmojiStatusSelectorEmojiPage.Wrapper c = new EmojiStatusSelectorEmojiPage.Wrapper(parent.context, currentAccount.tdlib(), parent, new EmojiStatusSelectorEmojiPage.AnimationsEmojiStatusSetDelegate() {
@@ -503,8 +501,8 @@ public class DrawerHeaderView extends View implements Destroyable, GlobalAccount
     EmojiStatusHelper emojiStatusHelper;
     if (account.isPremium()) {
       emojiStatusHelper = new EmojiStatusHelper(parent.tdlib, this, null);
-      emojiStatusHelper.setClickListener((v, text, part, openParameters) ->
-        onEmojiStatusClick(v, text, part, openParameters, emojiStatusHelper)
+      emojiStatusHelper.setClickListener(v ->
+        onEmojiStatusClick(v, emojiStatusHelper)
       );
       emojiStatusHelper.setSharedUsageId("account_" + account.id);
     } else {

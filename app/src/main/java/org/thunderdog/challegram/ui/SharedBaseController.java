@@ -61,6 +61,7 @@ import org.thunderdog.challegram.widget.SmallChatView;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -73,9 +74,10 @@ import me.vkryl.android.widget.FrameLayoutFix;
 import me.vkryl.core.ArrayUtils;
 import me.vkryl.core.StringUtils;
 import me.vkryl.core.lambda.CancellableRunnable;
-import me.vkryl.td.ChatId;
-import me.vkryl.td.MessageId;
-import me.vkryl.td.Td;
+import tgx.td.ChatId;
+import tgx.td.MessageId;
+import tgx.td.Td;
+import tgx.td.data.MessageWithProperties;
 
 public abstract class SharedBaseController <T extends MessageSourceProvider> extends ViewController<SharedBaseController.Args> implements View.OnClickListener, View.OnLongClickListener, FactorAnimator.Target, MessageListener, MediaCollectorDelegate, MediaViewDelegate {
   public static class Args {
@@ -915,7 +917,7 @@ public abstract class SharedBaseController <T extends MessageSourceProvider> ext
   }
 
   private boolean inSelectMode;
-  private Map<String, TdApi.Message> selectedMessages;
+  private Map<String, MessageWithProperties> selectedMessages;
 
   public final int getSelectedMediaCount () {
     return selectedMessages != null ? selectedMessages.size() : 0;
@@ -1009,44 +1011,47 @@ public abstract class SharedBaseController <T extends MessageSourceProvider> ext
     } else {
       isSelected = selectedMessages.containsKey(key);
     }
-    if (isSelected) {
-      selectedMessages.remove(key);
-    } else {
-      selectedMessages.put(key, data.getMessage());
-    }
-    if (setInMediaSelectMode(selectedMessages.size() > 0)) {
-      if (inSelectMode) {
+
+    tdlib.getMessageProperties(message, properties -> runOnUiThreadOptional(() -> {
+      if (isSelected) {
+        selectedMessages.remove(key);
+      } else {
+        selectedMessages.put(key, new MessageWithProperties(message, properties));
+      }
+      if (setInMediaSelectMode(!selectedMessages.isEmpty())) {
+        if (inSelectMode) {
+          if (parent != null) {
+            parent.updateItemsAbility(canCopyMessages(), canDeleteMessages(), canShareMessages(), canClearMessages(), selectedMessages.size() == 1);
+          } else if (alternateParent != null) {
+            alternateParent.updateSelectButtons();
+          }
+        }
+      } else {
         if (parent != null) {
+          parent.setSelectedMediaCount(getSelectedMediaCount(), getSelectedMediaSuffixRes());
           parent.updateItemsAbility(canCopyMessages(), canDeleteMessages(), canShareMessages(), canClearMessages(), selectedMessages.size() == 1);
         } else if (alternateParent != null) {
+          alternateParent.setSelectedCount(selectedMessages.size());
           alternateParent.updateSelectButtons();
         }
       }
-    } else {
-      if (parent != null) {
-        parent.setSelectedMediaCount(getSelectedMediaCount(), getSelectedMediaSuffixRes());
-        parent.updateItemsAbility(canCopyMessages(), canDeleteMessages(), canShareMessages(), canClearMessages(), selectedMessages.size() == 1);
-      } else if (alternateParent != null) {
-        alternateParent.setSelectedCount(selectedMessages.size());
-        alternateParent.updateSelectButtons();
-      }
-    }
-    item.setSelected(!isSelected);
+      item.setSelected(!isSelected);
 
-    int i = adapter.indexOfViewByLongId(messageId);
-    if (i != -1) {
-      adapter.setIsSelected(i, !isSelected, -1);
-    }
+      int i = adapter.indexOfViewByLongId(messageId);
+      if (i != -1) {
+        adapter.setIsSelected(i, !isSelected, -1);
+      }
+    }));
   }
 
-  protected boolean supportsMessageClearing () {
+  protected boolean supportsMessageClearing (MessageWithProperties message) {
     return true;
   }
 
   public boolean canShareMessages () {
     if (selectedMessages != null && !selectedMessages.isEmpty()) {
-      for (TdApi.Message message : selectedMessages.values()) {
-        if (!message.canBeForwarded)
+      for (MessageWithProperties message : selectedMessages.values()) {
+        if (!message.properties.canBeForwarded)
           return false;
       }
       return true;
@@ -1056,8 +1061,8 @@ public abstract class SharedBaseController <T extends MessageSourceProvider> ext
 
   public boolean canDeleteMessages () {
     if (selectedMessages != null && !selectedMessages.isEmpty()) {
-      for (TdApi.Message message : selectedMessages.values()) {
-        if (!message.canBeDeletedOnlyForSelf && !message.canBeDeletedForAllUsers)
+      for (MessageWithProperties message : selectedMessages.values()) {
+        if (!message.properties.canBeDeletedOnlyForSelf && !message.properties.canBeDeletedForAllUsers)
           return false;
       }
       return true;
@@ -1067,18 +1072,18 @@ public abstract class SharedBaseController <T extends MessageSourceProvider> ext
 
   public void deleteMessages () {
     if (canDeleteMessages()) {
-      tdlib.ui().showDeleteOptions(this, selectedMessages.values().toArray(new TdApi.Message[0]), () -> setInMediaSelectMode(false));
+      tdlib.ui().showDeleteOptions(this, selectedMessages.values().toArray(new MessageWithProperties[0]), () -> setInMediaSelectMode(false));
     }
   }
 
   public boolean canCopyMessages () {
-    return selectedMessages != null && selectedMessages.size() == 1 && selectedMessages.values().iterator().next().canBeSaved && provideSearchFilter().getConstructor() == TdApi.SearchMessagesFilterUrl.CONSTRUCTOR;
+    return selectedMessages != null && selectedMessages.size() == 1 && selectedMessages.values().iterator().next().properties.canBeSaved && provideSearchFilter().getConstructor() == TdApi.SearchMessagesFilterUrl.CONSTRUCTOR;
   }
 
   public void copyMessages () {
     if (selectedMessages != null && selectedMessages.size() == 1) {
-      for (TdApi.Message message : selectedMessages.values()) {
-        TdApi.FormattedText text = Td.textOrCaption(message.content);
+      for (MessageWithProperties message : selectedMessages.values()) {
+        TdApi.FormattedText text = Td.textOrCaption(message.message.content);
         String link = TD.findLink(text);
         if (!StringUtils.isEmpty(link)) {
           UI.copyText(link, R.string.CopiedLink);
@@ -1089,38 +1094,43 @@ public abstract class SharedBaseController <T extends MessageSourceProvider> ext
   }
 
   public boolean canClearMessages () {
-    if (selectedMessages != null && supportsMessageClearing()) {
-      if (!selectedMessages.isEmpty()) {
-        for (TdApi.Message message : selectedMessages.values()) {
-          TdApi.File file = TD.getFile(message);
-          if (file == null || !file.local.canBeDeleted || file.local.downloadedSize == 0) {
-            return false;
-          }
+    boolean hasSomethingToClear = false;
+    if (selectedMessages != null && !selectedMessages.isEmpty()) {
+      for (MessageWithProperties message : selectedMessages.values()) {
+        if (supportsMessageClearing(message) && TD.canDeleteFiles(tdlib(), message.message)) {
+          hasSomethingToClear = true;
+          break;
         }
-        return true;
       }
     }
-    return false;
+    return hasSomethingToClear;
   }
 
   public void clearMessages () {
     if (canClearMessages()) {
       final SparseArrayCompat<TdApi.File> files = new SparseArrayCompat<>(selectedMessages.size());
-      for (TdApi.Message message : selectedMessages.values()) {
-        TdApi.File file = TD.getFile(message);
-        if (file != null && file.local.canBeDeleted && file.local.downloadedSize > 0) {
-          files.put(file.id, file);
+      for (MessageWithProperties message : selectedMessages.values()) {
+        if (!supportsMessageClearing(message)) {
+          continue;
+        }
+        List<TdApi.File> filesList = TD.getFiles(message.message);
+        if (filesList != null) {
+          for (TdApi.File file : filesList) {
+            if (TD.canDeleteFile(message.message, file)) {
+              files.put(file.id, file);
+            }
+          }
         }
       }
-      TD.deleteFiles(this, ArrayUtils.asArray(files, new TdApi.File[files.size()]), () -> setInMediaSelectMode(false));
+      TD.deleteFiles(getParentOrSelf(), ArrayUtils.asArray(files, new TdApi.File[files.size()]), () -> setInMediaSelectMode(false));
     }
   }
 
   @Nullable
   public MessageId getSingularMessageId () {
     if (selectedMessages != null && selectedMessages.size() == 1) {
-      for (TdApi.Message message : selectedMessages.values()) {
-        return new MessageId(message.chatId, message.id);
+      for (MessageWithProperties message : selectedMessages.values()) {
+        return new MessageId(message.message.chatId, message.message.id);
       }
     }
     return null;
@@ -1135,9 +1145,15 @@ public abstract class SharedBaseController <T extends MessageSourceProvider> ext
 
   public void shareMessages () {
     TdApi.Chat chat = tdlib.chat(chatId);
-    if (chat != null && selectedMessages != null && selectedMessages.size() > 0) {
+    if (chat != null && selectedMessages != null && !selectedMessages.isEmpty()) {
       ShareController c = new ShareController(context, tdlib);
-      TdApi.Message[] messages = selectedMessages.values().toArray(new TdApi.Message[0]);
+      Collection<MessageWithProperties> messagesWithProperties = selectedMessages.values();
+      TdApi.Message[] messages = new TdApi.Message[messagesWithProperties.size()];
+      int index = 0;
+      for (MessageWithProperties message : messagesWithProperties) {
+        messages[index] = message.message;
+        index++;
+      }
       Arrays.sort(messages, (a, b) -> Long.compare(a.id, b.id));
       c.setArguments(new ShareController.Args(messages).setAfter(() -> {
         if (parent != null) {

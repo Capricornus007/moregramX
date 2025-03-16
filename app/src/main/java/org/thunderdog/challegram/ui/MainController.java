@@ -156,10 +156,10 @@ import me.vkryl.core.collection.IntList;
 import me.vkryl.core.collection.LongSparseIntArray;
 import me.vkryl.core.lambda.CancellableRunnable;
 import me.vkryl.core.lambda.FutureBool;
-import me.vkryl.td.ChatId;
-import me.vkryl.td.ChatPosition;
-import me.vkryl.td.Td;
-import me.vkryl.td.TdConstants;
+import tgx.td.ChatId;
+import tgx.td.ChatPosition;
+import tgx.td.Td;
+import tgx.td.TdConstants;
 import moe.kirao.mgx.MoexConfig;
 
 public class MainController extends ViewPagerController<Void> implements Menu, MoreDelegate, OverlayButtonWrap.Callback, TdlibOptionListener, AppUpdater.Listener, ChatFoldersListener, GlobalCountersListener, Settings.ChatFolderSettingsListener, MoexConfig.SettingsChangeListener {
@@ -494,7 +494,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     if (!hasFolders()) {
       getDefaultSectionItems().set(0, item);
     }
-    headerCell.getTopView().setItemAt(pagerItemPosition, item);
+    headerCell.getTopView().setItemAt(pagerItemPosition, item, isFocused());
   }
 
   private @Nullable ViewPagerTopView.Item buildSectionItem (long pagerItemId, int pagerItemPosition) {
@@ -605,7 +605,8 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
       return;
     float x = getX(view, headerCell.getView());
     boolean displayTabsAtBottom = displayTabsAtBottom();
-    float translationX = x - menuWidth / 2 + view.getMeasuredWidth() / 2;
+    int viewWidth = headerCell.getTopView().getItemWidth(view);
+    float translationX = x - menuWidth / 2 + viewWidth / 2;
     int dx = displayTabsAtBottom ? 0 : Screen.dp(7f);
     menu.setTranslationX(MathUtils.clamp(translationX, dx, Screen.currentWidth() - menuWidth - dx));
     int cornerCenterX = menuWidth / 2 + Math.round(translationX - menu.getTranslationX());
@@ -1569,11 +1570,11 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     return selectedFilter == FILTER_NONE ? R.string.CategoryArchive : getFilterName(selectedFilter);
   }
 
-  private CharSequence getFolderSectionName (long pagerItemId, String folderName, @ChatFolderStyle int chatFolderStyle) {
+  private CharSequence getFolderSectionName (long pagerItemId, CharSequence folderName, @ChatFolderStyle int chatFolderStyle) {
     int selectedFilter = getSelectedFilter(pagerItemId);
     CharSequence sectionName;
     if (selectedFilter != FILTER_NONE) {
-      String source = chatFolderStyle == ChatFolderStyle.ICON_ONLY ? "" : folderName;
+      CharSequence source = chatFolderStyle == ChatFolderStyle.ICON_ONLY ? "" : folderName;
       if (useGlobalFilter() && selectedFilter == globalFilter) {
         sectionName = source;
       } else {
@@ -1586,8 +1587,8 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   }
 
   @CheckResult
-  private CharSequence appendFilterIcon (String source, @Filter int selectedFilter) {
-    SpannableString string = new SpannableString(source + (source.isEmpty() ? "∇" : " ∇"));
+  private CharSequence appendFilterIcon (CharSequence source, @Filter int selectedFilter) {
+    SpannableString string = new SpannableString(source + (StringUtils.isEmpty(source) ? "∇" : " ∇"));
     int filterIcon = getFilterVariantIcon(selectedFilter);
     string.setSpan(new IconSpan(filterIcon, ColorId.NONE), string.length() - 1, string.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
     return string;
@@ -2221,7 +2222,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
 
           U.closeRetriever(media);
 
-          out.add(new TdApi.InputMessageVideo(inputVideo, null, null, duration, width, height, U.canStreamVideo(inputVideo), messageCaption, false, null, false));
+          out.add(new TdApi.InputMessageVideo(inputVideo, null, null, 0, null, duration, width, height, U.canStreamVideo(inputVideo), messageCaption, false, null, false));
           return messageCaption != null;
         }
       }
@@ -2336,7 +2337,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     boolean isArchive = TD.isChatListArchive(chatList);
     int chatFolderId = isFolder ? ((TdApi.ChatListFolder) chatList).chatFolderId : 0;
     TdApi.ChatFolderInfo chatFolderInfo;
-    String title;
+    CharSequence title;
     if (isMain) {
       title = Lang.getString(R.string.CategoryMain);
       chatFolderInfo = null;
@@ -2345,7 +2346,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
       chatFolderInfo = null;
     } else if (isFolder) {
       chatFolderInfo = tdlib.chatFolderInfo(chatFolderId);
-      title = chatFolderInfo != null ? chatFolderInfo.title : null;
+      title = chatFolderInfo != null ? TD.toCharSequence(chatFolderInfo.name) : null;
     } else {
       title = null;
       chatFolderInfo = null;
@@ -2698,6 +2699,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     ViewPagerHeaderViewCompact headerCellView = (ViewPagerHeaderViewCompact) headerCell.getView();
     boolean hasFolders = hasFolders();
     boolean displayTabsAtBottom = displayTabsAtBottom();
+    headerCell.getTopView().setAnimateItemChanges(!Settings.instance().needReduceMotion());
     headerCell.getTopView().setShowLabelOnActiveOnly(hasFolders && tdlib.settings().chatFolderStyle() == ChatFolderStyle.ICON_WITH_LABEL_ON_ACTIVE_FOLDER);
     headerCell.getTopView().setUseDarkBackground(displayTabsAtBottom);
     headerCell.getTopView().setDrawSelectionAtTop(displayTabsAtBottom);
@@ -2895,7 +2897,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   }
 
   private ViewPagerTopView.Item buildSectionItem (long pagerItemId, int pagerItemPosition, TdApi.ChatList chatList, TdApi.ChatFolderInfo chatFolderInfo, @ChatFolderStyle int chatFolderStyle) {
-    CharSequence sectionName = getFolderSectionName(pagerItemId, chatFolderInfo.title, chatFolderStyle);
+    CharSequence sectionName = getFolderSectionName(pagerItemId, TD.toCharSequence(chatFolderInfo.name), chatFolderStyle);
     int iconResource = TD.findFolderIcon(chatFolderInfo.icon, R.drawable.baseline_folder_24);
     return buildSectionItem(pagerItemId, pagerItemPosition, chatList, sectionName, iconResource, chatFolderStyle);
   }

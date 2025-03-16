@@ -23,8 +23,8 @@ import org.thunderdog.challegram.loader.ImageFile;
 import org.thunderdog.challegram.util.text.Letters;
 
 import me.vkryl.core.BitwiseUtils;
-import me.vkryl.td.ChatId;
-import me.vkryl.td.Td;
+import tgx.td.ChatId;
+import tgx.td.Td;
 
 public class TdlibSender {
   private static final int FLAG_BOT = 1;
@@ -92,8 +92,8 @@ public class TdlibSender {
 
         flags = BitwiseUtils.setFlag(flags, FLAG_BOT, TD.isBot(user));
         flags = BitwiseUtils.setFlag(flags, FLAG_SERVICE_ACCOUNT, tdlib.isServiceNotificationsChat(ChatId.fromUserId(userId)));
-        flags = BitwiseUtils.setFlag(flags, FLAG_SCAM, user != null && user.isScam);
-        flags = BitwiseUtils.setFlag(flags, FLAG_FAKE, user != null && user.isFake);
+        flags = BitwiseUtils.setFlag(flags, FLAG_SCAM, Td.isScam(user));
+        flags = BitwiseUtils.setFlag(flags, FLAG_FAKE, Td.isFake(user));
 
         break;
       }

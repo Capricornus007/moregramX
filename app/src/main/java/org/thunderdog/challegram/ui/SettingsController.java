@@ -97,7 +97,8 @@ import me.vkryl.core.StringUtils;
 import me.vkryl.core.collection.IntList;
 import me.vkryl.core.lambda.CancellableRunnable;
 import me.vkryl.core.reference.ReferenceList;
-import me.vkryl.td.Td;
+import tgx.td.ChatId;
+import tgx.td.Td;
 
 import moe.kirao.mgx.MoexConfig;
 import moe.kirao.mgx.ui.SettingsMoexController;
@@ -399,7 +400,7 @@ public class SettingsController extends ViewController<Void> implements
     this.headerCell.initWithController(this, true);
     this.headerCell.setInnerMargins(Screen.dp(56f), Screen.dp(49f));
     this.headerCell.setPhotoOpenCallback(this);
-    this.headerCell.setOnEmojiStatusClickListener((v, text, part, openParameters) -> {
+    this.headerCell.setOnEmojiStatusClickListener(v -> {
       EmojiStatusSelectorEmojiPage.Wrapper c = new EmojiStatusSelectorEmojiPage.Wrapper(context, tdlib, SettingsController.this, new EmojiStatusSelectorEmojiPage.AnimationsEmojiStatusSetDelegate() {
         @Override
         public void onAnimationStart () {
@@ -422,7 +423,6 @@ public class SettingsController extends ViewController<Void> implements
         }
       });
       c.show();
-      return false;
     });
     updateHeader();
 
@@ -543,7 +543,7 @@ public class SettingsController extends ViewController<Void> implements
               view.setText(obtainWrapper(Lang.getString(R.string.ReminderSetBirthdateText), action.getConstructor()));
               break;
             default:
-              Td.assertSuggestedAction_96dcb962();
+              Td.assertSuggestedAction_5f4bf3f7();
               throw Td.unsupported(action);
           }
         } else if (itemId == R.id.btn_birthdate) {
@@ -857,7 +857,7 @@ public class SettingsController extends ViewController<Void> implements
         item = new ListItem(ListItem.TYPE_INFO_MULTILINE, R.id.btn_suggestion, R.drawable.baseline_cake_variant_24, R.string.ReminderSetBirthdate);
         break;
       default:
-        Td.assertSuggestedAction_96dcb962();
+        Td.assertSuggestedAction_5f4bf3f7();
         throw Td.unsupported(action);
     }
     item
@@ -924,9 +924,11 @@ public class SettingsController extends ViewController<Void> implements
   private void updateHeader () {
     TdApi.User user = tdlib.myUser();
     if (headerCell != null) {
+      long chatId = user != null ? ChatId.fromUserId(user.id) : 0;
       headerCell.getAvatarReceiver().requestUser(tdlib, tdlib.myUserId(), AvatarReceiver.Options.FULL_SIZE);
       headerCell.setText(user != null ? TD.getUserName(user) : Lang.getString(R.string.LoadingUser), getSubtext());
       headerCell.setEmojiStatus(user);
+      headerCell.setAllowTitleClick(chatId);
       headerCell.invalidate();
     }
   }
@@ -1226,7 +1228,7 @@ public class SettingsController extends ViewController<Void> implements
         showBuildOptions(true);
       } else {
         tdlib.getTesterLevel(testerLevel -> runOnUiThreadOptional(() ->
-          showBuildOptions(testerLevel >= Tdlib.TESTER_LEVEL_TESTER)
+          showBuildOptions(testerLevel >= Tdlib.TesterLevel.TESTER)
         ));
       }
     }
@@ -1283,7 +1285,7 @@ public class SettingsController extends ViewController<Void> implements
         return;
       }
       default: {
-        Td.assertSuggestedAction_96dcb962();
+        Td.assertSuggestedAction_5f4bf3f7();
         throw Td.unsupported(suggestedAction);
       }
     }

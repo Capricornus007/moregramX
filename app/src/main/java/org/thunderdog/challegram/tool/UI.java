@@ -489,7 +489,7 @@ public class UI {
     if (string != null) {
       Log.critical("TDLib Error: %s", Log.generateException(2), string);
       int errorCode = TD.errorCode(obj);
-      if (errorCode != 401 && !(errorCode == 500 && "Client is closed".equals(TD.errorText(obj)))) {
+      if (errorCode != 401 && errorCode != 406 && !(errorCode == 500 && "Client is closed".equals(TD.errorText(obj)))) {
         showToast(string, Toast.LENGTH_SHORT);
       }
     }
@@ -796,6 +796,7 @@ public class UI {
 
   // todo: move to other place?
 
+  @SuppressWarnings("deprecation")
   private static String toLanguageCode (InputMethodSubtype ims) {
     if (ims != null) {
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {

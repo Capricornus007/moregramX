@@ -32,7 +32,7 @@ import me.vkryl.core.reference.ReferenceIntMap;
 import me.vkryl.core.reference.ReferenceList;
 import me.vkryl.core.reference.ReferenceLongMap;
 import me.vkryl.core.reference.ReferenceMap;
-import me.vkryl.td.Td;
+import tgx.td.Td;
 
 public class TdlibListeners {
   private final Tdlib tdlib;
@@ -52,7 +52,6 @@ public class TdlibListeners {
   final ReferenceList<CleanupStartupDelegate> componentDelegates;
   final ReferenceList<TdlibOptionListener> optionListeners;
   final ReferenceList<CounterChangeListener> totalCountersListeners;
-  final ReferenceList<ChatsNearbyListener> chatsNearbyListeners;
   final ReferenceList<PrivacySettingsListener> privacySettingsListeners;
   final ReferenceList<PrivateCallListener> privateCallListeners;
   final ReferenceIntMap<PrivateCallListener> specificPrivateCallListeners;
@@ -94,7 +93,6 @@ public class TdlibListeners {
     this.componentDelegates = new ReferenceList<>(true);
     this.optionListeners = new ReferenceList<>(true);
     this.totalCountersListeners = new ReferenceList<>(true);
-    this.chatsNearbyListeners = new ReferenceList<>(true);
     this.privacySettingsListeners = new ReferenceList<>();
     this.privateCallListeners = new ReferenceList<>(true);
     this.specificPrivateCallListeners = new ReferenceIntMap<>(true);
@@ -165,9 +163,6 @@ public class TdlibListeners {
       if (globalListener instanceof CounterChangeListener) {
         totalCountersListeners.add((CounterChangeListener) globalListener);
       }
-      if (globalListener instanceof ChatsNearbyListener) {
-        chatsNearbyListeners.add((ChatsNearbyListener) globalListener);
-      }
       if (globalListener instanceof AnimatedEmojiListener) {
         animatedEmojiListeners.add((AnimatedEmojiListener) globalListener);
       }
@@ -215,9 +210,6 @@ public class TdlibListeners {
       }
       if (globalListener instanceof CounterChangeListener) {
         totalCountersListeners.remove((CounterChangeListener) globalListener);
-      }
-      if (globalListener instanceof ChatsNearbyListener) {
-        chatsNearbyListeners.remove((ChatsNearbyListener) globalListener);
       }
       if (globalListener instanceof AnimatedEmojiListener) {
         animatedEmojiListeners.remove((AnimatedEmojiListener) globalListener);
@@ -1495,20 +1487,6 @@ public class TdlibListeners {
     });
   }
 
-  // updateUsersNearby
-
-  private static void updateUsersNearby (TdApi.ChatNearby[] usersNearby, @Nullable Iterator<ChatsNearbyListener> list) {
-    if (list != null) {
-      while (list.hasNext()) {
-        list.next().onUsersNearbyUpdated(usersNearby);
-      }
-    }
-  }
-
-  void updateUsersNearby (TdApi.UpdateUsersNearby update) {
-    updateUsersNearby(update.usersNearby, chatsNearbyListeners.iterator());
-  }
-
   // updateChatIsMarkedAsUnread
 
   void updateChatIsMarkedAsUnread (TdApi.UpdateChatIsMarkedAsUnread update) {
@@ -1907,7 +1885,13 @@ public class TdlibListeners {
 
   void updateChatRevenueAmount (TdApi.UpdateChatRevenueAmount update) {
     for (TdlibOptionListener listener : optionListeners) {
-      listener.onChatRevenueUpdated();
+      listener.onChatRevenueUpdated(update.chatId, update.revenueAmount);
+    }
+  }
+
+  void updateStarRevenueStatus (TdApi.UpdateStarRevenueStatus update) {
+    for (TdlibOptionListener listener : optionListeners) {
+      listener.onStarRevenueStatusUpdated(update.ownerId, update.status);
     }
   }
 

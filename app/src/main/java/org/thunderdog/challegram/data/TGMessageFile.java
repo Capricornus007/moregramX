@@ -57,8 +57,8 @@ import me.vkryl.android.animator.VariableFloat;
 import me.vkryl.core.BitwiseUtils;
 import me.vkryl.core.ColorUtils;
 import me.vkryl.core.MathUtils;
-import me.vkryl.td.Td;
-import me.vkryl.td.TdConstants;
+import tgx.td.Td;
+import tgx.td.TdConstants;
 
 public class TGMessageFile extends TGMessage {
   private int objectCount;
@@ -373,6 +373,12 @@ public class TGMessageFile extends TGMessage {
     }
 
     return null;
+  }
+
+  @Nullable
+  public FileComponent findFileComponent (long messageId) {
+    CaptionedFile file = findCaptionedFile(messageId);
+    return file != null ? file.component : null;
   }
 
   private static final int FLAG_CHANGED_LAYOUT = 1;

@@ -27,6 +27,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import tgx.td.Td;
+
 public final class TDLib {
   private static String format (String format, Object... formatArgs) {
     if (formatArgs != null && formatArgs.length > 0) {
@@ -88,19 +90,32 @@ public final class TDLib {
   }
 
   public static final class Tag {
+    private static void internal (String tag, String format, Object[] formatArgs) {
+      i("[%s]: %s", tag, format(format, formatArgs));
+    }
     public static void safetyNet (String format, Object... formatArgs) {
-      i("[safetynet]: %s", format(format, formatArgs));
+      internal("safetynet", format, formatArgs);
     }
 
     public static void playIntegrity (String format, Object... formatArgs) {
-      i("[play-integrity]: %s", format(format, formatArgs));
+      internal("play-integrity", format, formatArgs);
     }
 
-    public static void integrity (boolean isPlay, String format, Object... formatArgs) {
-      if (isPlay) {
-        playIntegrity(format, formatArgs);
-      } else {
-        safetyNet(format, formatArgs);
+    public static void recaptcha (String format, Object... formatArgs) {
+      internal("recaptcha", format, formatArgs);
+    }
+
+    public static void integrity (TdApi.FirebaseDeviceVerificationParameters parameters, String format, Object... formatArgs) {
+      switch (parameters.getConstructor()) {
+        case TdApi.FirebaseDeviceVerificationParametersSafetyNet.CONSTRUCTOR:
+          safetyNet(format, formatArgs);
+          break;
+        case TdApi.FirebaseDeviceVerificationParametersPlayIntegrity.CONSTRUCTOR:
+          playIntegrity(format, formatArgs);
+          break;
+        default:
+          Td.assertFirebaseDeviceVerificationParameters_21a9fc9c();
+          throw Td.unsupported(parameters);
       }
     }
 

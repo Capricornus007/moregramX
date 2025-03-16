@@ -91,8 +91,8 @@ import me.vkryl.core.MathUtils;
 import me.vkryl.core.StringUtils;
 import me.vkryl.core.collection.IntList;
 import me.vkryl.core.lambda.CancellableRunnable;
-import me.vkryl.td.ChatId;
-import me.vkryl.td.ChatPosition;
+import tgx.td.ChatId;
+import tgx.td.ChatPosition;
 import moe.kirao.mgx.MoexConfig;
 
 public class DrawerController extends ViewController<Void> implements View.OnClickListener, Settings.ProxyChangeListener, GlobalAccountListener, GlobalCountersListener, BaseView.CustomControllerProvider, BaseView.ActionListProvider, View.OnLongClickListener, TdlibSettingsManager.NotificationProblemListener, TdlibOptionListener, SessionListener, GlobalTokenStateListener {
@@ -347,7 +347,7 @@ public class DrawerController extends ViewController<Void> implements View.OnCli
         if (!showingAccounts) {
           return 0;
         }
-        int position = viewHolder.getAdapterPosition();
+        int position = viewHolder.getBindingAdapterPosition();
         int accountsNum = TdlibManager.instance().getActiveAccounts().size();
         if (accountsNum <= 1) {
           return 0;
@@ -380,8 +380,8 @@ public class DrawerController extends ViewController<Void> implements View.OnCli
           return false;
         }
 
-        int fromPosition = viewHolder.getAdapterPosition();
-        int toPosition = target.getAdapterPosition();
+        int fromPosition = viewHolder.getBindingAdapterPosition();
+        int toPosition = target.getBindingAdapterPosition();
 
         int accountsNum = TdlibManager.instance().getActiveAccounts().size();
 
@@ -792,15 +792,11 @@ public class DrawerController extends ViewController<Void> implements View.OnCli
     final int itemId = item.getId();
     if (itemId != R.id.account) {
       if (itemId == R.id.btn_addAccount) {
-        if (Config.ALLOW_DEBUG_DC || MoexConfig.enableTestFeatures) {
-          context.currentTdlib().ui().addAccount(context, true, true);
-        } else {
-          context.currentTdlib().getTesterLevel(level -> {
-            if (level >= Tdlib.TESTER_LEVEL_ADMIN) {
-              context.currentTdlib().ui().addAccount(context, true, true);
-            }
-          });
-        }
+        context.currentTdlib().getTesterLevel(level -> {
+          if (Config.ALLOW_DEBUG_DC || level >= Tdlib.TesterLevel.MIN_LEVEL_FOR_DEBUG_DC || MoexConfig.enableTestFeatures) {
+            context.currentTdlib().ui().addAccount(context, true, true);
+          }
+        });
       }
       return false;
     }

@@ -41,8 +41,9 @@ import java.util.concurrent.TimeUnit;
 import me.vkryl.core.ColorUtils;
 import me.vkryl.core.CurrencyUtils;
 import me.vkryl.core.StringUtils;
-import me.vkryl.td.ChatId;
-import me.vkryl.td.Td;
+import tgx.td.ChatId;
+import tgx.td.MediaType;
+import tgx.td.Td;
 
 public final class TGMessageService extends TGMessageServiceImpl {
   public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageContactRegistered contactRegistered) {
@@ -71,23 +72,38 @@ public final class TGMessageService extends TGMessageServiceImpl {
 
   public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageGiftedPremium giftedPremium) {
     super(context, msg);
+    String amount = CurrencyUtils.buildAmount(giftedPremium.currency, giftedPremium.amount);
     setTextCreator(() -> {
-      if (msg.isOutgoing) {
-        return getPlural(
-          R.string.YouGiftedPremium,
-          giftedPremium.monthCount,
-          new BoldArgument(CurrencyUtils.buildAmount(giftedPremium.currency, giftedPremium.amount))
-        );
-      } else {
+      if (giftedPremium.receiverUserId != 0) {
+        if (msg.chatId == ChatId.fromUserId(giftedPremium.receiverUserId)) {
+          return getPlural(
+            R.string.YouGiftedPremium,
+            giftedPremium.monthCount,
+            new BoldArgument(amount)
+          );
+        } else {
+          return getPlural(
+            R.string.YouGiftedPremiumTo,
+            giftedPremium.monthCount,
+            new BoldArgument(amount),
+            new SenderArgument(new TdlibSender(tdlib, msg.chatId, new TdApi.MessageSenderUser(giftedPremium.receiverUserId)))
+          );
+        }
+      } else if (giftedPremium.gifterUserId != 0) {
         return getPlural(
           R.string.GiftedPremium,
           giftedPremium.monthCount,
-          new SenderArgument(sender, isUserChat()),
-          new BoldArgument(CurrencyUtils.buildAmount(giftedPremium.currency, giftedPremium.amount))
+          new SenderArgument(new TdlibSender(tdlib, msg.chatId, new TdApi.MessageSenderUser(giftedPremium.gifterUserId)), isUserChat()),
+          new BoldArgument(amount)
+        );
+      } else {
+        return getPlural(
+          R.string.AnonymousGiftedPremium,
+          giftedPremium.monthCount,
+          new BoldArgument(amount)
         );
       }
     });
-    // TODO design for giftedPremium.sticker
   }
 
   public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessagePremiumGiftCode premiumGiftCode) {
@@ -98,11 +114,16 @@ public final class TGMessageService extends TGMessageServiceImpl {
           R.string.YouGiftedPremiumCode,
           premiumGiftCode.monthCount
         );
-      } else {
+      } else if (premiumGiftCode.creatorId != null) {
         return getPlural(
           R.string.GiftedPremiumCode,
           premiumGiftCode.monthCount,
           new SenderArgument(new TdlibSender(tdlib, msg.chatId, premiumGiftCode.creatorId), isUserChat())
+        );
+      } else {
+        return getPlural(
+          R.string.AnonymousGiftedPremiumCode,
+          premiumGiftCode.monthCount
         );
       }
     });
@@ -110,7 +131,29 @@ public final class TGMessageService extends TGMessageServiceImpl {
     // TODO show details of the gift code
   }
 
-  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessagePremiumGiveawayCreated giveawayCreated) {
+  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageGiftedStars giftedStars) {
+    super(context, msg);
+    String amount = CurrencyUtils.buildAmount(giftedStars.currency, giftedStars.amount);
+    setTextCreator(() -> {
+      if (giftedStars.receiverUserId == 0 || tdlib.isSelfUserId(giftedStars.receiverUserId)) {
+        return getPlural(
+          R.string.YouReceivedXStars,
+          giftedStars.starCount,
+          new BoldArgument(amount)
+        );
+      } else {
+        return getPlural(
+          R.string.ReceivedXStars,
+          giftedStars.starCount,
+          new BoldArgument(amount),
+          new SenderArgument(new TdlibSender(tdlib, msg.chatId, new TdApi.MessageSenderUser(giftedStars.receiverUserId)))
+        );
+      }
+    });
+    // TODO design for giftedStars.sticker
+  }
+
+  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageGiveawayCreated giveawayCreated) {
     super(context, msg);
     setTextCreator(() ->
       getText(
@@ -120,7 +163,7 @@ public final class TGMessageService extends TGMessageServiceImpl {
     );
   }
 
-  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessagePremiumGiveawayCompleted giveawayCompleted) {
+  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageGiveawayCompleted giveawayCompleted) {
     super(context, msg);
     setTextCreator(() ->
       getPlural(
@@ -284,6 +327,7 @@ public final class TGMessageService extends TGMessageServiceImpl {
               new MessageArgument(message, Td.ellipsize(formattedText, MAX_PINNED_MESSAGE_PREVIEW_LENGTH))
             );
           }
+          String format = null;
           @StringRes int staticResId;
           switch (message.content.getConstructor()) {
             case TdApi.MessageGame.CONSTRUCTOR:
@@ -354,6 +398,29 @@ public final class TGMessageService extends TGMessageServiceImpl {
             case TdApi.MessageStory.CONSTRUCTOR:
               staticResId = R.string.ActionPinnedStory;
               break;
+            case TdApi.MessagePaidMedia.CONSTRUCTOR: {
+              TdApi.MessagePaidMedia paidMedia = (TdApi.MessagePaidMedia) message.content;
+              MediaType type = MediaType.valueOf(paidMedia);
+              if (paidMedia.media.length == 1) {
+                switch (type) {
+                  case PHOTOS: staticResId = R.string.ActionPinnedPaidPhoto; break;
+                  case VIDEOS: staticResId = R.string.ActionPinnedPaidVideo; break;
+                  case MIXED: staticResId = isChannel() ? R.string.ActionPinnedPaidPost : R.string.ActionPinnedPaidContent; break;
+                  default: throw new UnsupportedOperationException();
+                }
+              } else {
+                int pluralRes;
+                switch (type) {
+                  case PHOTOS: pluralRes = R.string.ActionPinnedXPaidPhotos; break;
+                  case VIDEOS: pluralRes = R.string.ActionPinnedXPaidVideos; break;
+                  case MIXED: pluralRes = R.string.ActionPinnedXPaidMedia; break;
+                  default: throw new UnsupportedOperationException();
+                }
+                format = Lang.plural(pluralRes, paidMedia.media.length);
+                staticResId = 0;
+              }
+              break;
+            }
             case TdApi.MessageDice.CONSTRUCTOR: // TODO?
               // unreachable
             case TdApi.MessageAnimatedEmoji.CONSTRUCTOR:
@@ -376,15 +443,17 @@ public final class TGMessageService extends TGMessageServiceImpl {
             case TdApi.MessageContactRegistered.CONSTRUCTOR:
             case TdApi.MessageGameScore.CONSTRUCTOR:
             case TdApi.MessageGiftedPremium.CONSTRUCTOR:
+            case TdApi.MessageGiftedStars.CONSTRUCTOR:
             case TdApi.MessagePremiumGiftCode.CONSTRUCTOR:
-            case TdApi.MessagePremiumGiveawayCreated.CONSTRUCTOR:
-            case TdApi.MessagePremiumGiveawayCompleted.CONSTRUCTOR:
-            case TdApi.MessagePremiumGiveawayWinners.CONSTRUCTOR:
-            case TdApi.MessagePremiumGiveaway.CONSTRUCTOR:
+            case TdApi.MessageGiveawayCreated.CONSTRUCTOR:
+            case TdApi.MessageGiveawayCompleted.CONSTRUCTOR:
+            case TdApi.MessageGiveawayWinners.CONSTRUCTOR:
+            case TdApi.MessageGiveaway.CONSTRUCTOR:
             case TdApi.MessageInviteVideoChatParticipants.CONSTRUCTOR:
             case TdApi.MessagePassportDataReceived.CONSTRUCTOR:
             case TdApi.MessagePassportDataSent.CONSTRUCTOR:
             case TdApi.MessagePaymentSuccessful.CONSTRUCTOR:
+            case TdApi.MessagePaymentRefunded.CONSTRUCTOR:
             case TdApi.MessagePaymentSuccessfulBot.CONSTRUCTOR:
             case TdApi.MessagePinMessage.CONSTRUCTOR:
             case TdApi.MessageProximityAlertTriggered.CONSTRUCTOR:
@@ -404,13 +473,20 @@ public final class TGMessageService extends TGMessageServiceImpl {
             case TdApi.MessageUsersShared.CONSTRUCTOR:
             case TdApi.MessageChatShared.CONSTRUCTOR:
             case TdApi.MessageBotWriteAccessAllowed.CONSTRUCTOR:
+            case TdApi.MessageChatBoost.CONSTRUCTOR:
+            case TdApi.MessageGiveawayPrizeStars.CONSTRUCTOR:
+            case TdApi.MessageGift.CONSTRUCTOR:
+            case TdApi.MessageUpgradedGift.CONSTRUCTOR:
+            case TdApi.MessageRefundedUpgradedGift.CONSTRUCTOR:
               staticResId = R.string.ActionPinnedNoText;
               break;
             default:
-              Td.assertMessageContent_4113f183();
+              Td.assertMessageContent_640c68ad();
               throw Td.unsupported(message.content);
           }
-          String format = Lang.getString(staticResId);
+          if (format == null) {
+            format = Lang.getString(staticResId);
+          }
           int startIndex = format.indexOf("**");
           int endIndex = startIndex != -1 ? format.indexOf("**", startIndex + 2) : -1;
           if (startIndex != -1 && endIndex != -1) {
@@ -887,6 +963,20 @@ public final class TGMessageService extends TGMessageServiceImpl {
     }
   }
 
+  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessagePaymentRefunded paymentRefunded) {
+    super(context, msg);
+    // TODO (?) more info on click
+    String amount = CurrencyUtils.buildAmount(paymentRefunded.currency, paymentRefunded.totalAmount);
+    TdlibSender targetSender = new TdlibSender(tdlib, msg.chatId, paymentRefunded.ownerId);
+    setTextCreator(() ->
+      getText(
+        R.string.PaymentRefunded,
+        new SenderArgument(targetSender),
+        new BoldArgument(amount)
+      )
+    );
+  }
+
   public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageWebAppDataSent webAppDataSent) {
     super(context, msg);
     setTextCreator(() ->
@@ -1113,6 +1203,18 @@ public final class TGMessageService extends TGMessageServiceImpl {
         signMessagesToggled.signMessages ?
           R.string.EventLogToggledSignaturesOn :
           R.string.EventLogToggledSignaturesOff,
+        new SenderArgument(sender)
+      )
+    );
+  }
+
+  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.ChatEventShowMessageSenderToggled showMessageSenderToggled) {
+    super(context, msg);
+    setTextCreator(() ->
+      getText(
+        showMessageSenderToggled.showMessageSender ?
+          R.string.EventLogToggledShowSenderOn :
+          R.string.EventLogToggledShowSenderOff,
         new SenderArgument(sender)
       )
     );
@@ -1820,8 +1922,8 @@ public final class TGMessageService extends TGMessageServiceImpl {
       if (emojiStatusChanged.oldEmojiStatus == null || emojiStatusChanged.newEmojiStatus == null) {
         boolean isUnset = emojiStatusChanged.newEmojiStatus == null;
         long backgroundCustomEmojiId = isUnset ?
-          (emojiStatusChanged.oldEmojiStatus != null ? emojiStatusChanged.oldEmojiStatus.customEmojiId : 0) :
-          emojiStatusChanged.newEmojiStatus.customEmojiId;
+          Td.customEmojiId(emojiStatusChanged.oldEmojiStatus) :
+          Td.customEmojiId(emojiStatusChanged.newEmojiStatus);
         if (msg.isOutgoing) {
           return getText(
             (isUnset ? R.string.EventLogEmojiStatusUnsetYou : R.string.EventLogEmojiStatusSetYou),
@@ -1835,8 +1937,8 @@ public final class TGMessageService extends TGMessageServiceImpl {
           );
         }
       } else {
-        long oldBackgroundCustomEmojiId = emojiStatusChanged.oldEmojiStatus.customEmojiId;
-        long newBackgroundCustomEmojiId = emojiStatusChanged.newEmojiStatus.customEmojiId;
+        long oldBackgroundCustomEmojiId = Td.customEmojiId(emojiStatusChanged.oldEmojiStatus);
+        long newBackgroundCustomEmojiId = Td.customEmojiId(emojiStatusChanged.newEmojiStatus);
         if (msg.isOutgoing) {
           return getText(
             R.string.EventLogEmojiStatusChangedYou,
@@ -2019,6 +2121,26 @@ public final class TGMessageService extends TGMessageServiceImpl {
             new SenderArgument(approvedBy)
           );
         }
+      }
+    });
+  }
+
+  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.ChatEventMemberSubscriptionExtended memberSubscriptionExtended) {
+    super(context, msg);
+    TdlibSender sender = new TdlibSender(tdlib(), msg.chatId, new TdApi.MessageSenderUser(memberSubscriptionExtended.userId));
+    setTextCreator(() -> {
+      int date = Td.getMemberUntilDate(memberSubscriptionExtended.newStatus);
+      if (date != 0) {
+        return getText(
+          R.string.RenewedSubscriptionUntilX,
+          new SenderArgument(sender),
+          new BoldArgument(Lang.getDatestamp(date, TimeUnit.SECONDS))
+        );
+      } else {
+        return getText(
+          R.string.RenewedSubscription,
+          new SenderArgument(sender)
+        );
       }
     });
   }

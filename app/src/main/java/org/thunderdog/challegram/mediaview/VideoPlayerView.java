@@ -18,6 +18,7 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.os.Build;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
 import android.text.TextUtils;
 import android.view.TextureView;
@@ -35,7 +36,6 @@ import androidx.media3.common.VideoSize;
 import androidx.media3.exoplayer.ExoPlayer;
 import androidx.media3.exoplayer.analytics.AnalyticsListener;
 import androidx.media3.exoplayer.source.ClippingMediaSource;
-import androidx.media3.exoplayer.source.LoopingMediaSource;
 import androidx.media3.exoplayer.source.MediaSource;
 
 import org.drinkless.tdlib.TdApi;
@@ -45,12 +45,15 @@ import org.thunderdog.challegram.R;
 import org.thunderdog.challegram.U;
 import org.thunderdog.challegram.config.Config;
 import org.thunderdog.challegram.core.Lang;
+import org.thunderdog.challegram.data.TD;
 import org.thunderdog.challegram.mediaview.crop.CropEffectFactory;
 import org.thunderdog.challegram.mediaview.crop.CropState;
 import org.thunderdog.challegram.mediaview.crop.CroppedLayout;
 import org.thunderdog.challegram.mediaview.data.MediaItem;
 import org.thunderdog.challegram.telegram.CallManager;
 import org.thunderdog.challegram.telegram.Tdlib;
+import org.thunderdog.challegram.telegram.TdlibDataSource;
+import org.thunderdog.challegram.telegram.TdlibFilesManager;
 import org.thunderdog.challegram.telegram.TdlibManager;
 import org.thunderdog.challegram.theme.Theme;
 import org.thunderdog.challegram.tool.UI;
@@ -59,20 +62,16 @@ import org.thunderdog.challegram.tool.Views;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import me.vkryl.android.widget.FrameLayoutFix;
 import me.vkryl.core.StringUtils;
 import me.vkryl.core.lambda.CancellableRunnable;
+import tgx.td.data.HlsVideo;
 
 public class VideoPlayerView implements Player.Listener, CallManager.CurrentCallListener, Runnable {
-  private static class SeekHandler extends Handler {
-    @Override
-    public void handleMessage (Message msg) {
-      ((VideoPlayerView) msg.obj).updateTimes();
-    }
-  }
   private final Context context;
-  private final SeekHandler seekHandler;
+  private final Handler seekHandler;
   // private final TrackSelector selector;
   // private final LoadControl loadControl;
   private @Nullable ExoPlayer player;
@@ -92,7 +91,10 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
     this.context = context;
     this.parentView = parentView;
     this.addIndex = addIndex;
-    this.seekHandler = new SeekHandler();
+    this.seekHandler = new Handler(Looper.getMainLooper(), msg -> {
+      updateTimes();
+      return false;
+    });
     this.enableCropping = !APPLY_CROP_EFFECTS && enableCropping;
   }
 
@@ -143,7 +145,7 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
     }
     prepareTextureView();
     setMuted(mediaItem != null && mediaItem.needMute());
-    setLooping(forceLooping || (mediaItem != null && mediaItem.isSecret()));
+    setLooping(forceLooping || (mediaItem != null && (mediaItem.isSecret() || mediaItem.isGifType())));
     setNoProgressUpdates(mediaItem != null && mediaItem.isSecret());
     if (mediaItem != null) {
       TdlibManager.instance().calls().addCurrentCallListener(this);
@@ -175,13 +177,17 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
     boolean forcePlay = false;
 
     switch (mediaItem.getType()) {
-      case MediaItem.TYPE_VIDEO: {
-        source = U.newMediaSource(mediaItem.tdlib().id(), mediaItem.getTargetFile());
-        break;
-      }
+      case MediaItem.TYPE_VIDEO:
       case MediaItem.TYPE_GIF: {
-        source = new LoopingMediaSource(U.newMediaSource(mediaItem.tdlib().id(), mediaItem.getTargetFile()));
-        forcePlay = true;
+        HlsVideo hlsVideo = mediaItem.getHslVideo();
+        TdApi.File targetFile = mediaItem.getTargetFile();
+        if (hlsVideo == null || TD.isFileLoaded(targetFile) || targetFile.local.isDownloadingActive) {
+          long durationMs = mediaItem.getVideoDuration(false, TimeUnit.MILLISECONDS);
+          source = U.newMediaSource(mediaItem.tdlib().id(), targetFile, TdlibFilesManager.PRIORITY_STREAMING_VIDEO, TdlibDataSource.Flag.OPTIMIZE_CHUNKS, durationMs);
+        } else {
+          source = U.newMediaSource(mediaItem.tdlib().id(), hlsVideo);
+        }
+        forcePlay = mediaItem.getType() == MediaItem.TYPE_GIF;
         break;
       }
       case MediaItem.TYPE_GALLERY_VIDEO: {
@@ -208,7 +214,7 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
       // setLongStreamingAlertHandler(true);
       this.player.addAnalyticsListener(new AnalyticsListener() {
         @Override
-        public void onRenderedFirstFrame (EventTime eventTime, Object output, long renderTimeMs) {
+        public void onRenderedFirstFrame (@NonNull EventTime eventTime, @NonNull Object output, long renderTimeMs) {
           setLongStreamingAlertHandler(false);
         }
       });
@@ -372,11 +378,9 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
 
   private void setDataSource (MediaSource mediaSource) {
     if (player != null && this.mediaSource != mediaSource) {
-      if (this.mediaSource != null && this.mediaSource instanceof ClippingMediaSource) {
-        // this.mediaSource.releaseSource();
-      }
       this.mediaSource = mediaSource;
       player.setMediaSource(mediaSource);
+      player.setRepeatMode(isLooping ? Player.REPEAT_MODE_ONE : Player.REPEAT_MODE_OFF);
       player.prepare();
     }
   }
@@ -438,14 +442,6 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
     }
   }
 
-  // utils
-
-  private MediaCellView boundCell;
-
-  public void setBoundCell (MediaCellView boundCell) {
-    this.boundCell = boundCell;
-  }
-
   // ExoPlayer listener
 
   @Override
@@ -458,14 +454,11 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
       callback.onBufferingStateChanged(playbackState == Player.STATE_BUFFERING);
     }
 
-    switch (playbackState) {
-      case Player.STATE_ENDED: {
-        if (isLooping && player != null) {
-          player.seekTo(0);
-        } else {
-          reset();
-        }
-        break;
+    if (playbackState == Player.STATE_ENDED) {
+      if (isLooping && player != null) {
+        player.seekTo(0);
+      } else {
+        reset();
       }
     }
   }
@@ -473,7 +466,7 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
   private boolean preferExtensions = Config.PREFER_RENDER_EXTENSIONS;
 
   @Override
-  public void onPlayerError (PlaybackException error) {
+  public void onPlayerError (@NonNull PlaybackException error) {
     if (U.isRenderError(error) && preferExtensions == Config.PREFER_RENDER_EXTENSIONS) {
       Log.w(Log.TAG_VIDEO, "Unable to play video, but trying to retry, preferExtensions:%b", error, preferExtensions);
       preferExtensions = !preferExtensions;

@@ -70,7 +70,7 @@ import me.vkryl.core.BitwiseUtils;
 import me.vkryl.core.ColorUtils;
 import me.vkryl.core.StringUtils;
 import me.vkryl.core.lambda.Destroyable;
-import me.vkryl.td.Td;
+import tgx.td.Td;
 
 public class FileProgressComponent implements TdlibFilesManager.FileListener, FactorAnimator.Target, TGPlayerController.TrackListener, Destroyable {
   public static final float DEFAULT_RADIUS = 28f;
@@ -108,6 +108,9 @@ public class FileProgressComponent implements TdlibFilesManager.FileListener, Fa
   public static final @DrawableRes int PLAY_ICON = R.drawable.baseline_play_arrow_36_white;
 
   public interface SimpleListener {
+    default boolean onPlayPauseClick (FileProgressComponent context, View view, TdApi.File file, long messageId) {
+      return false;
+    }
     default boolean onClick (FileProgressComponent context, View view, TdApi.File file, long messageId) {
       return false;
     }
@@ -138,6 +141,7 @@ public class FileProgressComponent implements TdlibFilesManager.FileListener, Fa
   private boolean isLocal;
 
   private boolean ignoreLoaderClicks;
+  private boolean ignorePlayPauseClicks;
   private boolean noCloud;
 
   private final Rect vsDownloadRect = new Rect();
@@ -187,6 +191,10 @@ public class FileProgressComponent implements TdlibFilesManager.FileListener, Fa
 
   public void setIgnoreLoaderClicks (boolean ignoreLoaderClicks) {
     this.ignoreLoaderClicks = ignoreLoaderClicks;
+  }
+
+  public void setIgnorePlayPauseClicks (boolean ignorePlayPauseClicks) {
+    this.ignorePlayPauseClicks = ignorePlayPauseClicks;
   }
 
   public void setVideoStreaming (boolean isVideoStreaming) {
@@ -547,38 +555,32 @@ public class FileProgressComponent implements TdlibFilesManager.FileListener, Fa
           runOnUiThreadOptional(c, defaultOpen);
           return true;
         }
-        tdlib.files().downloadFile(file, TdlibFilesManager.DEFAULT_DOWNLOAD_PRIORITY, 0, 0, result -> {
-          switch (result.getConstructor()) {
-            case TdApi.File.CONSTRUCTOR: {
-              TdApi.File downloadedFile = (TdApi.File) result;
-              if (TD.isFileLoaded(downloadedFile)) {
-                if (BitwiseUtils.hasFlag(flags, FLAG_THEME)) {
-                  runOnUiThreadOptional(c, () -> {
-                    c.tdlib().ui().readCustomTheme(c, file, null, defaultOpen);
-                  });
-                } else if (BitwiseUtils.hasFlag(flags, FLAG_MEDIA_DOCUMENT)) {
-                  Background.instance().post(() -> {
-                    MediaItem item = MediaItem.valueOf(context, tdlib, originalDocument, null);
-                    if (item != null) {
-                      runOnUiThreadOptional(c, () -> {
-                        item.setSourceMessageId(chatId, messageId);
-                        MediaViewController.openFromMedia(c, item, new TdApi.SearchMessagesFilterDocument(), true);
-                      });
-                    } else {
-                      runOnUiThreadOptional(c, defaultOpen);
-                    }
-                  });
-                } else {
-                  runOnUiThreadOptional(c, defaultOpen);
-                }
+        tdlib.files().downloadFile(file, TdlibFilesManager.PRIORITY_USER_REQUEST_DOWNLOAD, (downloadedFile, error) -> {
+          if (error != null) {
+            UI.showError(error);
+            return;
+          }
+          if (!TD.isFileLoaded(downloadedFile)) {
+            return;
+          }
+          if (BitwiseUtils.hasFlag(flags, FLAG_THEME)) {
+            runOnUiThreadOptional(c, () -> {
+              c.tdlib().ui().readCustomTheme(c, file, null, defaultOpen);
+            });
+          } else if (BitwiseUtils.hasFlag(flags, FLAG_MEDIA_DOCUMENT)) {
+            Background.instance().post(() -> {
+              MediaItem item = MediaItem.valueOf(context, tdlib, originalDocument, null);
+              if (item != null) {
+                runOnUiThreadOptional(c, () -> {
+                  item.setSourceMessageId(chatId, messageId);
+                  MediaViewController.openFromMedia(c, item, new TdApi.SearchMessagesFilterDocument(), true);
+                });
+              } else {
+                runOnUiThreadOptional(c, defaultOpen);
               }
-              break;
-            }
-            case TdApi.Error.CONSTRUCTOR: {
-              // TODO show tooltip instead
-              UI.showError(result);
-              break;
-            }
+            });
+          } else {
+            runOnUiThreadOptional(c, defaultOpen);
           }
         });
       }
@@ -770,7 +772,13 @@ public class FileProgressComponent implements TdlibFilesManager.FileListener, Fa
         TGDownloadManager.instance().downloadFile(file);
       }*/
       if (file.remote.isUploadingCompleted || file.id == -1) {
-        TdlibManager.instance().player().playPauseMessage(tdlib, playPauseFile, playListBuilder);
+        if (ignorePlayPauseClicks) {
+          if (listener != null) {
+            listener.onPlayPauseClick(this, view, file, messageId);
+          }
+        } else {
+          TdlibManager.instance().player().playPauseMessage(tdlib, playPauseFile, playListBuilder);
+        }
       }
       return true;
     }

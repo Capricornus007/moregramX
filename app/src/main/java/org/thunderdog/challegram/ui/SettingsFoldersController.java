@@ -81,8 +81,8 @@ import me.vkryl.core.MathUtils;
 import me.vkryl.core.ObjectUtils;
 import me.vkryl.core.collection.IntList;
 import me.vkryl.core.lambda.RunnableBool;
-import me.vkryl.td.ChatPosition;
-import me.vkryl.td.Td;
+import tgx.td.ChatPosition;
+import tgx.td.Td;
 
 public class SettingsFoldersController extends RecyclerViewController<Void> implements View.OnClickListener, View.OnLongClickListener, ChatFoldersListener, TdlibSettingsManager.ChatListPositionListener {
   private static final long MAIN_CHAT_FOLDER_ID = Long.MIN_VALUE;
@@ -733,7 +733,7 @@ public class SettingsFoldersController extends RecyclerViewController<Void> impl
     for (int index = 0; index < recommendedChatFolders.length; index++) {
       TdApi.RecommendedChatFolder recommendedChatFolder = recommendedChatFolders[index];
       if (index > 0) {
-        itemList.add(new ListItem(ListItem.TYPE_SEPARATOR).setStringValue(recommendedChatFolder.folder.title));
+        itemList.add(new ListItem(ListItem.TYPE_SEPARATOR).setStringValue(TD.toCharSequence(recommendedChatFolder.folder.name)));
       }
       itemList.add(recommendedChatFolderItem(recommendedChatFolder));
     }
@@ -761,7 +761,7 @@ public class SettingsFoldersController extends RecyclerViewController<Void> impl
 
   private ListItem chatFolderItem (TdApi.ChatFolderInfo chatFolderInfo) {
     int iconRes = TD.findFolderIcon(chatFolderInfo.icon, R.drawable.baseline_folder_24);
-    ListItem item = new ListItem(ListItem.TYPE_CUSTOM - TYPE_CHAT_FOLDER, R.id.chatFolder, iconRes, Emoji.instance().replaceEmoji(chatFolderInfo.title));
+    ListItem item = new ListItem(ListItem.TYPE_CUSTOM - TYPE_CHAT_FOLDER, R.id.chatFolder, iconRes, TD.toCharSequence(chatFolderInfo.name));
     item.setIntValue(chatFolderInfo.id);
     item.setLongId(chatFolderInfo.id);
     item.setData(chatFolderInfo);
@@ -771,7 +771,7 @@ public class SettingsFoldersController extends RecyclerViewController<Void> impl
   private ListItem recommendedChatFolderItem (TdApi.RecommendedChatFolder recommendedChatFolder) {
     ListItem item = new ListItem(ListItem.TYPE_CUSTOM - TYPE_RECOMMENDED_CHAT_FOLDER, R.id.recommendedChatFolder);
     item.setData(recommendedChatFolder.folder);
-    item.setString(recommendedChatFolder.folder.title);
+    item.setString(TD.toCharSequence(recommendedChatFolder.folder.name));
     item.setStringValue(recommendedChatFolder.description);
     item.setIconRes(tdlib.chatFolderIconDrawable(recommendedChatFolder.folder, R.drawable.baseline_folder_24));
     return item;

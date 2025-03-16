@@ -156,7 +156,10 @@ import me.vkryl.core.lambda.RunnableData;
 import me.vkryl.core.reference.ReferenceList;
 import me.vkryl.core.reference.ReferenceUtils;
 import nl.dionsegijn.konfetti.xml.KonfettiView;
+import tgx.app.RecaptchaContext;
+import tgx.app.RecaptchaProviderRegistry;
 
+@SuppressWarnings("deprecation")
 public abstract class BaseActivity extends ComponentActivity implements View.OnTouchListener, FactorAnimator.Target, Keyboard.OnStateChangeListener, ThemeChangeListener, SensorEventListener, TGPlayerController.TrackChangeListener, TGLegacyManager.EmojiLoadListener, Lang.Listener, Handler.Callback {
   public static final long POPUP_SHOW_SLOW_DURATION = 240l;
 
@@ -172,6 +175,7 @@ public abstract class BaseActivity extends ComponentActivity implements View.OnT
   protected @Nullable DrawerController drawer;
   protected OverlayView overlayView;
   protected Invalidator invalidator;
+  protected RecaptchaContext recaptcha;
 
   private final ReferenceList<ActivityListener> activityListeners = new ReferenceList<>();
 
@@ -341,7 +345,15 @@ public abstract class BaseActivity extends ComponentActivity implements View.OnT
       }
       onTdlibChanged();
       runEmulatorChecks();
+      if (tdlib.isUnauthorized()) {
+        // Pre-initialize recaptcha to possibly save some initialization time.
+        recaptcha.initialize();
+      }
     }
+  }
+
+  public final RecaptchaContext recaptche () {
+    return recaptcha;
   }
 
   private boolean ranEmulatorChecks, emulatorChecksFinished;
@@ -453,6 +465,9 @@ public abstract class BaseActivity extends ComponentActivity implements View.OnT
 
     AppState.initApplication();
     AppState.ensureReady();
+
+    recaptcha = new RecaptchaContext(getApplication());
+    RecaptchaProviderRegistry.INSTANCE.addProvider(recaptcha);
 
     appUpdater = new AppUpdater(this);
     roundVideoController = new RoundVideoController(this);
@@ -1314,6 +1329,7 @@ public abstract class BaseActivity extends ComponentActivity implements View.OnT
   }
 
   @Override
+  @SuppressWarnings("deprecation")
   public void onBackPressed () {
     if (isPasscodeShowing) {
       super.onBackPressed();
@@ -1322,6 +1338,7 @@ public abstract class BaseActivity extends ComponentActivity implements View.OnT
     }
   }
 
+  @SuppressWarnings("deprecation")
   public void onBackPressed (boolean fromTop) {
     if (isProgressShowing) {
       if (progressListener != null) {
@@ -1938,7 +1955,7 @@ public abstract class BaseActivity extends ComponentActivity implements View.OnT
 
   private PopupLayout stickerPreviewWindow;
   private StickerPreviewView stickerPreview;
-  private StickerSmallView stickerPreviewControllerView;
+  private View stickerPreviewControllerView;
 
   public void openStickerPreview (Tdlib tdlib, StickerSmallView stickerView, TGStickerObj sticker, int cx, int cy, int maxWidth, int viewportHeight, boolean disableEmojis) {
     if (stickerPreview != null) {
@@ -1948,7 +1965,7 @@ public abstract class BaseActivity extends ComponentActivity implements View.OnT
     stickerPreviewControllerView = stickerView;
 
     stickerPreview = new StickerPreviewView(this);
-    stickerPreview.setControllerView(stickerPreviewControllerView);
+    stickerPreview.setControllerView(stickerView);
     stickerPreview.setSticker(tdlib, sticker, cx, cy, maxWidth, viewportHeight, disableEmojis);
 
     stickerPreviewWindow = new PopupLayout(this);
@@ -1959,7 +1976,26 @@ public abstract class BaseActivity extends ComponentActivity implements View.OnT
     stickerPreviewWindow.showAnimatedPopupView(stickerPreview, stickerPreview);
   }
 
-  public void openStickerMenu (StickerSmallView stickerView, TGStickerObj sticker) {
+  public void openStickerPreview (Tdlib tdlib, View viewHolder, StickerPreviewView.PreviewCallback callback, TGStickerObj sticker, int cx, int cy, int maxWidth, int viewportHeight, boolean disableEmojis) {
+    if (stickerPreview != null) {
+      return;
+    }
+
+    stickerPreviewControllerView = viewHolder;
+
+    stickerPreview = new StickerPreviewView(this);
+    stickerPreview.setPreviewCallback(viewHolder, callback);
+    stickerPreview.setSticker(tdlib, sticker, cx, cy, maxWidth, viewportHeight, disableEmojis);
+
+    stickerPreviewWindow = new PopupLayout(this);
+    stickerPreviewWindow.setBackListener(stickerPreview);
+    stickerPreviewWindow.setOverlayStatusBar(true);
+    stickerPreviewWindow.init(true);
+    stickerPreviewWindow.setNeedRootInsets();
+    stickerPreviewWindow.showAnimatedPopupView(stickerPreview, stickerPreview);
+  }
+
+  public void openStickerMenu (View stickerView, TGStickerObj sticker) {
     if (this.stickerPreview != null && stickerPreviewControllerView == stickerView) {
       stickerPreview.openMenu(sticker);
     }
@@ -1995,7 +2031,7 @@ public abstract class BaseActivity extends ComponentActivity implements View.OnT
     stickerPreviewControllerView = stickerView;
 
     stickerPreview = new StickerPreviewView(this);
-    stickerPreview.setControllerView(stickerPreviewControllerView);
+    stickerPreview.setControllerView(stickerView);
     stickerPreview.setReaction(tdlib, reaction, effectAnimation, cx, cy, maxWidth, viewportHeight, disableEmojis);
 
     stickerPreviewWindow = new PopupLayout(this);

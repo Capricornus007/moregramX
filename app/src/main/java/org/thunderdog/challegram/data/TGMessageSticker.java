@@ -59,8 +59,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import me.vkryl.core.MathUtils;
 import me.vkryl.core.collection.IntSet;
 import me.vkryl.core.collection.LongSet;
-import me.vkryl.td.Td;
-import me.vkryl.td.TdConstants;
+import tgx.td.Td;
+import tgx.td.TdConstants;
 
 import moe.kirao.mgx.MoexConfig;
 
@@ -206,7 +206,7 @@ public class TGMessageSticker extends TGMessage implements AnimatedEmojiListener
         outline.reset();
       }
       if (sticker != null) {
-        outline = Td.buildOutline(sticker, width, height, outline);
+        // FIXME outline = Td.buildOutline(sticker, width, height, outline);
         if (staticFile != null) {
           staticFile.setSize(Math.max(width, height));
         }

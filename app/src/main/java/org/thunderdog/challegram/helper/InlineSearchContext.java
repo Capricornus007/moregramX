@@ -61,8 +61,8 @@ import java.util.Set;
 
 import me.vkryl.core.StringUtils;
 import me.vkryl.core.lambda.CancellableRunnable;
-import me.vkryl.td.ChatId;
-import me.vkryl.td.Td;
+import tgx.td.ChatId;
+import tgx.td.Td;
 
 public class InlineSearchContext implements LocationHelper.LocationChangeListener, InlineResultsWrap.LoadMoreCallback {
   public interface Callback {
@@ -433,7 +433,7 @@ public class InlineSearchContext implements LocationHelper.LocationChangeListene
     final TdApi.StickerType type = isEmoji ? new TdApi.StickerTypeCustomEmoji() : new TdApi.StickerTypeRegular();
     TdApi.Function<?> function;
     if (more) {
-      function = new TdApi.SearchStickers(type, emoji, 1000);
+      function = new TdApi.SearchStickers(type, emoji, null, U.getInputLanguages(), 0, 1000);
     } else {
       function = new TdApi.GetStickers(type, emoji, 1000, chatId);
     }

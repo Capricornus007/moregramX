@@ -42,8 +42,8 @@ import java.util.List;
 
 import me.vkryl.core.ColorUtils;
 import me.vkryl.core.lambda.Destroyable;
-import me.vkryl.td.Td;
-import me.vkryl.td.TdConstants;
+import tgx.td.Td;
+import tgx.td.TdConstants;
 
 public class TextMedia implements Destroyable, TdlibEmojiManager.Watcher {
   private final Text source;
@@ -145,7 +145,7 @@ public class TextMedia implements Destroyable, TdlibEmojiManager.Watcher {
     if (sticker == null)
       return;
 
-    this.outline = Td.buildOutline(sticker, width, height);
+    // FIXME this.outline = Td.buildOutline(sticker, width, height);
 
     thumbnail = TD.toImageFile(tdlib, sticker.thumbnail);
     if (thumbnail != null) {
@@ -219,6 +219,11 @@ public class TextMedia implements Destroyable, TdlibEmojiManager.Watcher {
 
   public boolean isAnimatedCustomEmoji () {
     return customEmoji != null && customEmoji.value != null && Td.isAnimated(customEmoji.value.format);
+  }
+
+  @Nullable
+  public TdApi.Sticker getSticker () {
+    return customEmoji != null ? customEmoji.value : null;
   }
 
   public static float getScale (TdApi.Sticker sticker, int size) {

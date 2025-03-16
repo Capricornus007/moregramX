@@ -50,8 +50,8 @@ import me.vkryl.core.BitwiseUtils;
 import me.vkryl.core.StringUtils;
 import me.vkryl.core.collection.LongSet;
 import me.vkryl.core.lambda.Filter;
-import me.vkryl.td.ChatId;
-import me.vkryl.td.Td;
+import tgx.td.ChatId;
+import tgx.td.Td;
 
 public class TdlibNotification implements Comparable<TdlibNotification> {
   private static final int FLAG_EDITED = 1;
@@ -386,7 +386,7 @@ public class TdlibNotification implements Comparable<TdlibNotification> {
 
   private CharSequence getPreview (ContentPreview content) {
     TdApi.FormattedText formattedText = content.buildFormattedText(false);
-    CharSequence text = TD.toCharSequence(formattedText, false, false);
+    CharSequence text = TD.toCharSequence(formattedText, TD.TextEntityOption.NONE, false);
     if (text instanceof Spanned) {
       Spanned spanned = (Spanned) text;
       URLSpan[] spans = spanned.getSpans(0, text.length(), URLSpan.class);
@@ -529,7 +529,7 @@ public class TdlibNotification implements Comparable<TdlibNotification> {
     CountDownLatch downloadLatch = new CountDownLatch(files.size());
     for (int i = 0; i < files.size(); i++) {
       TdApi.File file = files.valueAt(i).getFile();
-      tdlib.client().send(new TdApi.DownloadFile(file.id, 32, 0, 0, true), result -> {
+      tdlib.client().send(new TdApi.DownloadFile(file.id, TdlibFilesManager.PRIORITY_NOTIFICATION_MEDIA, 0, 0, true), result -> {
         switch (result.getConstructor()) {
           case TdApi.File.CONSTRUCTOR:
             synchronized (file) {

@@ -83,8 +83,8 @@ import me.vkryl.core.collection.IntList;
 import me.vkryl.core.lambda.CancellableRunnable;
 import me.vkryl.core.lambda.Destroyable;
 import me.vkryl.core.lambda.RunnableData;
-import me.vkryl.td.ChatId;
-import me.vkryl.td.Td;
+import tgx.td.ChatId;
+import tgx.td.Td;
 
 public class MessageView extends SparseDrawableView implements Destroyable, DrawableProvider, MessagesManager.MessageProvider {
   private static final int FLAG_USE_COMMON_RECEIVER = 1;
@@ -94,6 +94,7 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
   private static final int FLAG_LONG_PRESSED = 1 << 4;
   private static final int FLAG_DISABLE_MEASURE = 1 << 6;
   private static final int FLAG_USE_COMPLEX_RECEIVER = 1 << 7;
+  private static final int FLAG_IGNORE_PARENT_ON_MEASURE = 1 << 8;
 
   private @Nullable TGMessage msg;
 
@@ -165,6 +166,10 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
 
   public void setCustomMeasureDisabled (boolean disabled) {
     this.flags = BitwiseUtils.setFlag(this.flags, FLAG_DISABLE_MEASURE, disabled);
+  }
+
+  public void setParentOnMeasureDisabled (boolean disabled) {
+    this.flags = BitwiseUtils.setFlag(this.flags, FLAG_IGNORE_PARENT_ON_MEASURE, disabled);
   }
 
   @Override
@@ -383,7 +388,9 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
     if ((flags & FLAG_DISABLE_MEASURE) != 0) {
       super.onMeasure(widthMeasureSpec, heightMeasureSpec);
     } else {
-      int width = ((View) getParent()).getMeasuredWidth();
+      int width = BitwiseUtils.hasFlag(flags, FLAG_IGNORE_PARENT_ON_MEASURE) ?
+        MeasureSpec.getSize(widthMeasureSpec) :
+        ((View) getParent()).getMeasuredWidth();
       if (msg != null) {
         msg.buildLayout(width);
       }
@@ -523,6 +530,10 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
     }
   }
 
+  public boolean isAttached () {
+    return isAttached;
+  }
+
   private float touchX, touchY;
 
   private static void selectMessage (MessagesController m, TGMessage msg, float touchX, float touchY) {
@@ -638,6 +649,13 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
       ids.append(R.id.btn_messageSponsorInfo);
       strings.append(R.string.SponsoredInfoMenu);
       icons.append(R.drawable.baseline_info_24);
+
+      if (msg.canBeReported()) {
+        ids.append(R.id.btn_messageReport);
+        strings.append(R.string.ReportAd);
+        icons.append(R.drawable.baseline_report_24);
+      }
+
       return null;
     }
 
@@ -684,7 +702,7 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
               icons.append(isQuiz ? R.drawable.baseline_help_24 : R.drawable.baseline_poll_24);
               strings.append(R.string.RetractVote);
             }
-            if (msg.getMessage().canBeEdited) {
+            if (msg.lastMessageProperties().canBeEdited) {
               ids.append(R.id.btn_messagePollStop);
               icons.append(isQuiz ? R.drawable.baseline_help_24 : R.drawable.baseline_poll_24);
               strings.append(isQuiz ? R.string.StopQuiz : R.string.StopPoll);
@@ -862,8 +880,7 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
       icons.append(R.drawable.baseline_link_24);
     }
 
-    if (!isMore && msg.canBeSaved() && TD.canCopyText(newestMessage)) {
-
+    if (!isMore && msg.canBeSaved() && msg.canCopyText()) {
       if (msg.isTranslated()) {
         ids.append(R.id.btn_copyTranslation);
         strings.append(R.string.TranslationCopy);
@@ -908,11 +925,11 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
 
       List<TD.DownloadedFile> downloadedFiles = TD.getDownloadedFiles(allMessages);
       if (downloadedFiles.isEmpty() && singleMessage.content.getConstructor() == TdApi.MessageText.CONSTRUCTOR && msg instanceof TGMessageText) {
-        TGWebPage webPage = ((TGMessageText) msg).getParsedWebPage();
+        TGWebPage webPage = ((TGMessageText) msg).getParsedLinkPreview();
         if (webPage != null) {
-          TD.DownloadedFile downloadedFile = TD.getDownloadedFile(webPage);
-          if (downloadedFile != null) {
-            downloadedFiles.add(downloadedFile);
+          List<TD.DownloadedFile> linkPreviewFiles = TD.getDownloadedFiles(webPage);
+          if (linkPreviewFiles != null && !linkPreviewFiles.isEmpty()) {
+            downloadedFiles.addAll(linkPreviewFiles);
           }
         }
       }
@@ -1010,22 +1027,26 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
     TdApi.File file = TD.getFile(msg.getMessage());
     if (file != null && !file.remote.isUploadingActive) {
       if (Config.useCloudPlayback(msg.getMessage()) && !file.local.isDownloadingCompleted) {
-        if (isMore) {
-          if (file.local.isDownloadingActive && !TdlibManager.instance().player().isPlayingFileId(file.id)) {
+        if (file.local.isDownloadingActive && !TdlibManager.instance().player().isPlayingFileId(file.id)) {
+          if (isMore) {
             ids.append(R.id.btn_pauseFile);
             strings.append(R.string.CloudPause);
             icons.append(R.drawable.baseline_cloud_pause_24);
+          } else {
+            moreOptions++;
           }
-          if (!file.local.isDownloadingActive) {
+        }
+        if (!file.local.isDownloadingActive) {
+          if (isMore) {
             ids.append(R.id.btn_downloadFile);
             if (file.local.downloadedSize > 0)
               strings.append(R.string.CloudResume);
             else
               strings.append(Lang.getString(R.string.CloudDownload, Strings.buildSize(file.size)));
             icons.append(R.drawable.baseline_cloud_download_24);
+          } else {
+            moreOptions++;
           }
-        } else {
-          moreOptions++;
         }
       }
     }
@@ -1034,7 +1055,7 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
       boolean hasFilesToRemove = false;
       TdApi.Message[] allMessages = msg.getAllMessages();
       for (TdApi.Message message : allMessages) {
-        if (TD.canDeleteFile(message)) {
+        if (TD.canDeleteFiles(m.tdlib(), message)) {
           hasFilesToRemove = true;
           break;
         }
@@ -1152,8 +1173,6 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
             }
           }
         }
-      } else if (!isMore) {
-        moreOptions += 2;
       }
     }
 
@@ -1512,7 +1531,7 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
     }
     if (touchX > MessagesController.getSlideBackBound()) {
       msg.checkTranslatableText(() -> {
-        msg.checkAvailableReactions(() -> {
+        msg.loadAvailableReactions(() -> {
           if ((msg.getRightQuickReactions().size() > 0 && diffX < 0) || (msg.getLeftQuickReactions().size() > 0 && diffX > 0)) {
             m.startSwipe(findTargetView());
           }

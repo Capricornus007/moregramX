@@ -42,8 +42,8 @@ import java.util.List;
 
 import me.vkryl.core.StringUtils;
 import me.vkryl.core.collection.IntList;
-import me.vkryl.td.ChatId;
-import me.vkryl.td.Td;
+import tgx.td.ChatId;
+import tgx.td.Td;
 
 public class SharedMembersController extends SharedBaseController<DoubleTextWrapper> implements
   TdlibCache.BasicGroupDataChangeListener,
@@ -206,7 +206,7 @@ public class SharedMembersController extends SharedBaseController<DoubleTextWrap
         return DoubleTextWrapper.valueOf(tdlib, (TdApi.ChatMember) object, needFullMemberDescription(), needAdminSign());
       }
       case TdApi.User.CONSTRUCTOR: {
-        return new DoubleTextWrapper(tdlib, ((TdApi.User) object).id, true);
+        return new DoubleTextWrapper(tdlib, ((TdApi.User) object).id, true, DoubleTextWrapper.SubtitleOption.SHOW_ACCESS_TO_MESSAGE_PRIVACY);
       }
     }
     return null;

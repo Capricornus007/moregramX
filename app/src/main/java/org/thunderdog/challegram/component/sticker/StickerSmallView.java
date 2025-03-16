@@ -51,11 +51,10 @@ import me.vkryl.android.ViewUtils;
 import me.vkryl.android.animator.FactorAnimator;
 import me.vkryl.core.lambda.CancellableRunnable;
 import me.vkryl.core.lambda.Destroyable;
-import me.vkryl.td.Td;
-
+import tgx.td.Td;
 import moe.kirao.mgx.MoexConfig;
 
-public class StickerSmallView extends View implements FactorAnimator.Target, Destroyable {
+public class StickerSmallView extends View implements FactorAnimator.Target, StickerPreviewView.PreviewCallback, Destroyable {
   public static final float PADDING = 8f;
   private static final Interpolator OVERSHOOT_INTERPOLATOR = new OvershootInterpolator(3.2f);
 
@@ -218,6 +217,7 @@ public class StickerSmallView extends View implements FactorAnimator.Target, Des
     }
   }
 
+  @Override
   public @PorterDuffColorId int getThemedColorId () {
     return themedColorId;
   }
@@ -582,6 +582,7 @@ public class StickerSmallView extends View implements FactorAnimator.Target, Des
     return sticker;
   }
 
+  @Override
   public void closePreviewIfNeeded () {
     if (ignoreNextStickerChanges) {
       ignoreNextStickerChanges = false;
@@ -605,6 +606,7 @@ public class StickerSmallView extends View implements FactorAnimator.Target, Des
 
   private StickerPreviewView.MenuStickerPreviewCallback menuStickerPreviewCallback;
 
+  @Override
   public StickerPreviewView.MenuStickerPreviewCallback getMenuStickerPreviewCallback () {
     return menuStickerPreviewCallback;
   }
