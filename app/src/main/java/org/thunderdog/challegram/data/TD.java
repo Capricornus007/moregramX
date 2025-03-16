@@ -4308,16 +4308,20 @@ public class TD {
         }
         return null;
       }
-      case TdApi.MessageVoiceNote.CONSTRUCTOR:
+      case TdApi.MessageVoiceNote.CONSTRUCTOR: {
         TdApi.VoiceNote voiceNote = ((TdApi.MessageVoiceNote) msg.content).voiceNote;
         if (voiceNote != null && TD.isFileLoaded(voiceNote.voice)) {
           return DownloadedFile.valueOf(voiceNote);
         }
-      case TdApi.MessageVideoNote.CONSTRUCTOR:
+        return null;
+      }
+      case TdApi.MessageVideoNote.CONSTRUCTOR: {
         TdApi.VideoNote videoNote = ((TdApi.MessageVideoNote) msg.content).videoNote;
         if (videoNote != null && TD.isFileLoaded(videoNote.video)) {
           return DownloadedFile.valueOf(videoNote);
         }
+        return null;
+      }
     }
     return null;
   }
