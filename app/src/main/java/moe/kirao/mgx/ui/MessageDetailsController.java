@@ -49,13 +49,14 @@ import org.thunderdog.challegram.ui.SettingsAdapter;
 import org.thunderdog.challegram.util.StringList;
 import org.thunderdog.challegram.v.CustomRecyclerView;
 
+import tgx.td.MessageId;
+
 import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
 import me.vkryl.core.StringUtils;
 import me.vkryl.core.collection.IntList;
 import me.vkryl.core.lambda.RunnableData;
-import me.vkryl.td.MessageId;
 import moe.kirao.mgx.utils.ChatUtils;
 import moe.kirao.mgx.utils.SystemUtils;
 

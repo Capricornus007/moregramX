@@ -6,9 +6,10 @@ import androidx.annotation.Nullable;
 import org.drinkless.tdlib.TdApi;
 import org.thunderdog.challegram.telegram.Tdlib;
 
+import tgx.td.Td;
+
 import me.vkryl.core.StringUtils;
 import me.vkryl.core.lambda.RunnableData;
-import me.vkryl.td.Td;
 
 public class ChatUtils {
   @Nullable
