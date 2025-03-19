@@ -24,7 +24,6 @@
   <string name="PhoneHidden">Telefon ukryty</string>
   <string name="showIdProfile">Pokaż ID użytkowników w profilach</string>
   <string name="DisableSendAsButton">Ukryj przycisk \"Wyślij jako kanał\"</string>
-  <string name="MobileHidden">Telefon ukryty</string>
   <string name="MoexAbout">O aplikacji</string>
   <string name="MoexAboutText" formatted="true">**moeGramX** jest słodkim, bogatym w funkcje i nieco eksperymentalnym klientem bazującym na oficjalnym kodzie źródłowym i TDLib. Zaproponuj funkcje, zgłoś problemy lub po prostu porozmawiaj na naszym czacie!</string>
   <string name="HideCameraButtonInfo">Ta opcja przynosi przycisk aparatu z panelu wiadomości do menu załączania</string>

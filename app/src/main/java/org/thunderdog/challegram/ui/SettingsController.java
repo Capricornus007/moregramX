@@ -1017,7 +1017,7 @@ public class SettingsController extends ViewController<Void> implements
     if (user != null) {
       displayPhoneNumber = originalPhoneNumber = Strings.formatPhone(user.phoneNumber);
       if (MoexConfig.hidePhoneNumber) {
-        displayPhoneNumber = Lang.getString(R.string.MobileHidden);
+        displayPhoneNumber = Lang.getString(R.string.PhoneHidden);
       } else if (Settings.instance().needHidePhoneNumber()) {
         displayPhoneNumber = Strings.replaceNumbers(displayPhoneNumber);
       }

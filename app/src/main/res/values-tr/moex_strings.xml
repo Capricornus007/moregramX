@@ -25,7 +25,6 @@
   <string name="PhoneHidden">Telefon gizlendi</string>
   <string name="showIdProfile">Profilde ID Göster</string>
   <string name="DisableSendAsButton">Kanallar</string>
-  <string name="MobileHidden">Numara gizli</string>
   <string name="MoexAbout">Hakkında</string>
   <string name="MoexAboutText" formatted="true">**moeGramX** — resmi kaynaklara ve TDlib\'e dayalı sevimli, zengin özelliklere sahip biraz deneysel bir istemcidir. Bazı özellikler önermekten, sorunları bildirmekten veya Tartışma grubumuzda sohbet etmekten çekinmeyin!</string>
   <string name="HideCameraButtonInfo">Kamera tuşunu gizleme özelliği aynı zamanda ekleme menüsünün altına bir kamera tuşu ekler</string>

@@ -62,4 +62,5 @@
   <item name="btn_storyId" type="id" />
   <item name="btn_darkenDrawer" type="id" />
   <item name="btn_saveDocument" type="id" />
+  <item name="btn_MiscMoexSettings" type="id" />
 </resources>

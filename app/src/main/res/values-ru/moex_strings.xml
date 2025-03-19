@@ -25,7 +25,6 @@
   <string name="PhoneHidden">Телефон скрыт</string>
   <string name="showIdProfile">Показывать ID в профиле</string>
   <string name="DisableSendAsButton">Каналы</string>
-  <string name="MobileHidden">Номер скрыт</string>
   <string name="MoexAbout">О нас</string>
   <string name="MoexAboutText" formatted="true">**moeGramX** — это милый клиент c расширенной функциональностью, основанный на официальном исходном коде и TDlib. Присоединяйтесь к нашему чату, где вы можете предложить новые функции или указать на ошибки!</string>
   <string name="HideCameraButtonInfo">Скрытие кнопки камеры на самом деле просто перемещает её в экран прикрепления вложения</string>

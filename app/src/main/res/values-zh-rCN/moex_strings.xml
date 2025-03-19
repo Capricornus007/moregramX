@@ -25,7 +25,6 @@
   <string name="PhoneHidden">号码已隐藏</string>
   <string name="showIdProfile">在个人资料页显示 ID</string>
   <string name="DisableSendAsButton">频道</string>
-  <string name="MobileHidden">号码已隐藏</string>
   <string name="MoexAbout">关于</string>
   <string name="MoexAboutText" formatted="true">**moeGramX** — 是一款基于官方源代码和 TDlib 的可爱且功能丰富的实验性客户端。欢迎您提出功能建议，报告问题，或在我们的讨论组聊天！</string>
   <string name="HideCameraButtonInfo">隐藏相机按钮选项也将相机按钮添加到附件菜单底部.</string>

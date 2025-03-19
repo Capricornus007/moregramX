@@ -25,7 +25,6 @@
   <string name="PhoneHidden">Номер телефону приховано</string>
   <string name="showIdProfile">Відображати ID користувача в профілях</string>
   <string name="DisableSendAsButton">Приховати кнопку \"Надіслати як канал\"</string>
-  <string name="MobileHidden">Номер приховано</string>
   <string name="MoexAbout">Про додаток</string>
   <string name="MoexAboutText" formatted="true">**moeGramX** - це симпатичний, багатий на експериментальні функції клієнт, що базується на офіційних джерелах і TDlib. Не соромтеся пропонувати функції, повідомляти про проблеми або просто спілкуватися в нашій групі!</string>
   <string name="HideCameraButtonInfo">Опція \"Приховати кнопку камери\" також додає кнопку камери в нижню частину меню вкладених файлів</string>

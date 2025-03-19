@@ -30,7 +30,6 @@
   <string name="PhoneHidden">Phone hidden</string>
   <string name="showIdProfile">Show User ID in profiles</string>
   <string name="DisableSendAsButton">Channels</string>
-  <string name="MobileHidden">Mobile hidden</string>
   <string name="MoexAbout">About</string>
   <string name="MoexAboutText" formatted="true">**moeGramX** — is a cute features rich a bit experimental client based on the official sources and TDlib. Feel free to suggest some features, report problems or just chat in our Discuss group!</string>
   <string name="MoexVer" translatable="false">moeGramX v1.4-release (Anmitsu)</string>

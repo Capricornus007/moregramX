@@ -33,6 +33,7 @@ public class SettingsMoexController extends RecyclerViewController<SettingsMoexC
   public static final int CATEGORY_GENERAL = 1;
   public static final int CATEGORY_INTERFACE = 2;
   public static final int CATEGORY_CHATS = 3;
+  public static final int CATEGORY_MISC = 4;
 
   private int category;
 
@@ -51,7 +52,11 @@ public class SettingsMoexController extends RecyclerViewController<SettingsMoexC
   }
 
   @Override public CharSequence getName () {
-    return category == CATEGORY_GENERAL ? Lang.getString(R.string.GeneralMoexSettings) : category == CATEGORY_CHATS ? Lang.getString(R.string.Chats) : category == CATEGORY_INTERFACE ? Lang.getString(R.string.InterfaceMoexSettings) : Lang.getString(R.string.MoexSettings) ;
+    return category == CATEGORY_GENERAL
+      ? Lang.getString(R.string.GeneralMoexSettings) : category == CATEGORY_CHATS
+      ? Lang.getString(R.string.Chats) : category == CATEGORY_INTERFACE
+      ? Lang.getString(R.string.InterfaceMoexSettings) : category == CATEGORY_MISC
+      ? Lang.getString(R.string.Other) : Lang.getString(R.string.MoexSettings);
   }
 
   private SettingsAdapter adapter;
@@ -68,6 +73,9 @@ public class SettingsMoexController extends RecyclerViewController<SettingsMoexC
       navigateTo(c);
     } else if (viewId == R.id.btn_ChatsMoexSettings) {
       c.setArguments(new SettingsMoexController.Args(SettingsMoexController.CATEGORY_CHATS));
+      navigateTo(c);
+    } else if (viewId == R.id.btn_MiscMoexSettings) {
+      c.setArguments(new SettingsMoexController.Args(SettingsMoexController.CATEGORY_MISC));
       navigateTo(c);
     } else if (viewId == R.id.btn_moexCrowdinLink) {
       tdlib.ui().openUrl(this, Lang.getString(R.string.MoexCrowdinLink), new TdlibUi.UrlOpenParameters());
@@ -324,22 +332,16 @@ public class SettingsMoexController extends RecyclerViewController<SettingsMoexC
         items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.GeneralMoexSettings));
         items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
         items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_hideMessagesBadge, 0, R.string.hideMessagesBadge));
+        items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
+        items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_headerText, 0, R.string.changeHeaderText));
         items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
 
         items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.ProfileOptions));
         items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
         items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_showIdProfile, 0, R.string.showIdProfile));
+        items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
+        items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_hidePhone, 0, R.string.hidePhoneNumber));
         items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
-
-        items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.ExperimentalOptions));
-        items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
-        items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_changeSizeLimit, 0, R.string.changeSizeLimit));
-        items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
-        items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, Lang.getMarkdownString(this, R.string.changeSizeLimitInfo), false));
-        items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
-        items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_enableFeaturesButton, 0, R.string.EnableFeatures));
-        items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
-        items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, Lang.getMarkdownString(this, R.string.FeaturesButtonInfo), false));
         break;
       case CATEGORY_INTERFACE:
         items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.DrawerOptions));
@@ -347,14 +349,10 @@ public class SettingsMoexController extends RecyclerViewController<SettingsMoexC
         items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_blurDrawer, 0, R.string.MoexBlurDrawer));
         items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
         items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_darkenDrawer, 0, R.string.MoexDarkenDrawer));
-        items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
-        items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_hidePhone, 0, R.string.hidePhoneNumber));
         items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
 
         items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.MoexChatsHeader));
         items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
-        items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_headerText, 0, R.string.changeHeaderText));
-        items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
         items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_squareAvatar, 0, R.string.SquareAvatar));
         items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
         items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_disableReactions, 0, R.string.DisableReactions));
@@ -386,6 +384,16 @@ public class SettingsMoexController extends RecyclerViewController<SettingsMoexC
         items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
         items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, Lang.getMarkdownString(this, R.string.TypingInsteadInfo), false));
         break;
+      case CATEGORY_MISC:
+        items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.ExperimentalOptions));
+        items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
+        items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_changeSizeLimit, 0, R.string.changeSizeLimit));
+        items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
+        items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, Lang.getMarkdownString(this, R.string.changeSizeLimitInfo), false));
+        items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
+        items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_enableFeaturesButton, 0, R.string.EnableFeatures));
+        items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
+        break;
       default:
         items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.MoexAbout));
         items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
@@ -399,6 +407,8 @@ public class SettingsMoexController extends RecyclerViewController<SettingsMoexC
         items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_InterfaceMoexSettings, R.drawable.baseline_extension_24, R.string.InterfaceMoexSettings));
         items.add(new ListItem(ListItem.TYPE_SEPARATOR));
         items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_ChatsMoexSettings, R.drawable.baseline_chat_bubble_24, R.string.ChatsMoexSettings));
+        items.add(new ListItem(ListItem.TYPE_SEPARATOR));
+        items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_MiscMoexSettings, R.drawable.baseline_layers_24, R.string.Other));
         items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
 
         items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.MoexLinks));

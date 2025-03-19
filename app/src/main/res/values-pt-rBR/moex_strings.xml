@@ -25,7 +25,6 @@
   <string name="PhoneHidden">Telefone oculto</string>
   <string name="showIdProfile">Mostrar o ID do usuário nos perfis</string>
   <string name="DisableSendAsButton">Canais</string>
-  <string name="MobileHidden">Número oculto</string>
   <string name="MoexAbout">Sobre</string>
   <string name="MoexAboutText" formatted="true">**moeGramX** — é um recurso bonito rico em um pouco experimental com base nas fontes oficiais e TDlib. Sinta-se à vontade para sugerir alguns recursos, relatar problemas ou apenas conversar no nosso grupo de discussões!</string>
   <string name="HideCameraButtonInfo">Ocultar a opção do botão da câmera também adiciona um botão da câmera ao menu de anexo</string>
