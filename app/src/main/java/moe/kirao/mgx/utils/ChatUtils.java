@@ -39,4 +39,16 @@ public class ChatUtils {
       }
     });
   }
+
+  public static long extractAuthorId (long setId) {
+    long authorId = setId >> 32;
+
+    if (((setId >> 16) & 0xff) == 0x3f) {
+      authorId |= 0x800000000L;
+    }
+    if (((setId >> 24) & 0xff) != 0) {
+      authorId += 0x100000000L;
+    }
+    return authorId;
+  }
 }

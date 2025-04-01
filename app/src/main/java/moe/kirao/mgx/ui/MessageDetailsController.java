@@ -390,14 +390,14 @@ public class MessageDetailsController extends RecyclerViewController<MessageDeta
     }
   }
 
-  private long getAuthorId (boolean int32) {
+  private long getAuthorId () {
     switch (getConstructor()) {
       case TdApi.MessageSticker.CONSTRUCTOR:
         TdApi.Sticker sticker = ((TdApi.MessageSticker) args.msg.content).sticker;
-        return int32 ? sticker.setId >> 32 : 0x100000000L + (sticker.setId >> 32);
+        return ChatUtils.extractAuthorId(sticker.setId);
       case TdApi.MessageAnimatedEmoji.CONSTRUCTOR:
         TdApi.Sticker animatedEmoji = ((TdApi.MessageAnimatedEmoji) args.msg.content).animatedEmoji.sticker;
-        return animatedEmoji != null ? int32 ? animatedEmoji.setId >> 32 : 0x100000000L + (animatedEmoji.setId >> 32) : 0;
+        return animatedEmoji != null ? ChatUtils.extractAuthorId(animatedEmoji.setId) : 0;
       case TdApi.MessageStory.CONSTRUCTOR:
         TdApi.MessageStory story = ((TdApi.MessageStory) args.msg.content);
         return story.storySenderChatId;
@@ -468,21 +468,12 @@ public class MessageDetailsController extends RecyclerViewController<MessageDeta
   }
 
   private void fetchAuthor (RunnableData<String> after) {
-    String localInfo = ChatUtils.resolveUserLocal(tdlib, getAuthorId(true));
-    if (localInfo == null)
-      localInfo = ChatUtils.resolveUserLocal(tdlib, getAuthorId(false));
-
-    if (localInfo != null) {
+    String localInfo = ChatUtils.resolveUserLocal(tdlib, getAuthorId());
+    if (localInfo == null) {
+      ChatUtils.processAuthorRequest(tdlib, 189165596L, String.valueOf(getAuthorId()), after);
+    } else {
       resolvedLocally = true;
       after.runWithData(localInfo);
-    } else {
-      ChatUtils.processAuthorRequest(tdlib, 189165596L, String.valueOf(getAuthorId(true)), info32 -> {
-        if (!info32.equals(stopWord)) {
-          after.runWithData(info32);
-        } else if (getConstructor() != TdApi.MessageStory.CONSTRUCTOR) {
-          ChatUtils.processAuthorRequest(tdlib, 189165596L, String.valueOf(getAuthorId(false)), info64 -> after.runWithData(!info64.equals(stopWord) ? info64 : null));
-        }
-      });
     }
   }
 
@@ -554,7 +545,7 @@ public class MessageDetailsController extends RecyclerViewController<MessageDeta
             info.split("\n")[0].replaceAll("\\D+", "") : !StringUtils.isEmpty(username) ?
             username.replace("@", "") : null);
         } else {
-          String authorId = String.join("\n", "int32: " + getAuthorId(true), "int64: " + getAuthorId(false));
+          String authorId = String.valueOf(getAuthorId());
           openActions(ids, strings, icons, R.id.btn_inlineOpen, R.string.Open, R.drawable.dot_baseline_acc_personal_24, authorId, authorId, null);
         }
       }));
