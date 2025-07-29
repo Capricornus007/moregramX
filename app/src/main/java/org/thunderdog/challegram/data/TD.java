@@ -2185,7 +2185,7 @@ public class TD {
           return codeLength(waitEmailCode.codeInfo, fallbackCodeLength);
         }
         default: {
-          Td.assertAuthorizationState_6e5056de();
+          Td.assertAuthorizationState_ba756b5f();
           break;
         }
       }
@@ -5375,13 +5375,16 @@ public class TD {
   }
 
   public static boolean isScreenshotSensitive (TdApi.Message message) {
-    if (message == null) {
+    return message != null && isScreenshotSensitive(message.content);
+  }
+  public static boolean isScreenshotSensitive (TdApi.MessageContent content) {
+    if (content == null) {
       return false;
     }
-    if (Td.isSecret(message.content)) {
+    if (Td.isSecret(content)) {
       return true;
     }
-    switch (message.content.getConstructor()) {
+    switch (content.getConstructor()) {
       case TdApi.MessageExpiredPhoto.CONSTRUCTOR:
       case TdApi.MessageExpiredVideo.CONSTRUCTOR:
       case TdApi.MessageExpiredVoiceNote.CONSTRUCTOR:
@@ -5389,7 +5392,7 @@ public class TD {
       case TdApi.MessagePaidMedia.CONSTRUCTOR:
         return true;
       default:
-        Td.assertMessageContent_640c68ad();
+        Td.assertMessageContent_235cea4f();
         break;
     }
     return false;

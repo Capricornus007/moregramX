@@ -52,13 +52,7 @@ the **moest** client based on [Telegram-X](https://github.com/TGX-Android/Telegr
 
 #### Windows
 
-* Shell with `git`, `wget`, and `make` utilities:
-  * **MSYS**: `$ pacman -S make git mingw-w64-x86_64-git-lfs`
-  * **Git Bash**:
-    1. Download [wget](https://eternallybored.org/misc/wget/), unzip `wget.exe` and move to your `Git\mingw64\bin\`
-    2. Download [make](https://sourceforge.net/projects/ezwinports/files/make-4.3-without-guile-w32-bin.zip), unzip and copy the contents to your `Git\mingw64\` merging the folders, but do **NOT** overwrite any existing files
-* Run `$ git lfs install` for the current user, if you didn't have `git lfs` previously initialized
----
+* **moeGramX** does not provide official build instructions for Windows platform. It is recommended to rely on Linux distributions via [WSL](https://learn.microsoft.com/en-us/windows/wsl/install) instead.
 
 ## Build
 
