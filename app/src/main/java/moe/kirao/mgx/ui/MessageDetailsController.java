@@ -400,7 +400,7 @@ public class MessageDetailsController extends RecyclerViewController<MessageDeta
         return animatedEmoji != null ? ChatUtils.extractAuthorId(animatedEmoji.setId) : 0;
       case TdApi.MessageStory.CONSTRUCTOR:
         TdApi.MessageStory story = ((TdApi.MessageStory) args.msg.content);
-        return story.storySenderChatId;
+        return story.storyPosterChatId;
     }
     return 0;
   }
