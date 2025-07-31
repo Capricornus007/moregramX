@@ -7855,7 +7855,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   public boolean obtainSilentMode () {
-    return tdlib.chatDefaultDisableNotifications(getChatId());
+    return tdlib.chatDefaultDisableNotifications(getChatId()) || MoexConfig.silentMessage;
   }
 
   // pinned messages

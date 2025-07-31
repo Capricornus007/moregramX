@@ -135,6 +135,9 @@ public class SettingsMoexController extends RecyclerViewController<SettingsMoexC
     } else if (viewId == R.id.btn_darkenDrawer) {
       MoexConfig.instance().toggleDarkenDrawer();
       adapter.updateValuedSettingById(viewId);
+    } else if (viewId == R.id.btn_silent) {
+      MoexConfig.instance().toggleSilentMessage();
+      adapter.updateValuedSettingById(viewId);
     }
   }
 
@@ -320,6 +323,8 @@ public class SettingsMoexController extends RecyclerViewController<SettingsMoexC
           view.getToggler().setRadioEnabled(MoexConfig.typingInsteadChoosing, isUpdate);
         } else if (itemId == R.id.btn_darkenDrawer) {
           view.getToggler().setRadioEnabled(MoexConfig.darkenDrawer, isUpdate);
+        } else if (itemId == R.id.btn_silent) {
+          view.getToggler().setRadioEnabled(MoexConfig.silentMessage, isUpdate);
         }
       }
     };
@@ -380,6 +385,8 @@ public class SettingsMoexController extends RecyclerViewController<SettingsMoexC
         items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
         items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, Lang.getMarkdownString(this, R.string.RememberOptionsInfo), false));
         items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
+        items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_silent, 0, R.string.SilentMessage));
+        items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
         items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_typingInstead, 0, R.string.TypingInstead));
         items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
         items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, Lang.getMarkdownString(this, R.string.TypingInsteadInfo), false));

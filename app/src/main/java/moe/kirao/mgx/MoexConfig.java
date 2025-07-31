@@ -48,6 +48,7 @@ public class MoexConfig {
   public static final String KEY_DISABLE_REACTIONS = "disable_reactions";
   public static final String KEY_HIDE_BOTTOM_BAR = "hide_bottom_bar";
   public static final String KEY_DARKEN_DRAWER = "darken_drawer";
+  public static final String KEY_SILENT_MESSAGE = "silent_message";
 
   public static final int SIZE_LIMIT_800 = 0;
   public static final int SIZE_LIMIT_1280 = 1;
@@ -75,6 +76,7 @@ public class MoexConfig {
   public static boolean disableReactions = instance().getBoolean(KEY_DISABLE_REACTIONS, false);
   public static boolean hideBottomBar = instance().getBoolean(KEY_HIDE_BOTTOM_BAR, false);
   public static boolean darkenDrawer = instance().getBoolean(KEY_DARKEN_DRAWER, false);
+  public static boolean silentMessage = instance().getBoolean(KEY_SILENT_MESSAGE, false);
 
   private MoexConfig () {
     File configDir = new File(UI.getAppContext().getFilesDir(), "moexconf");
@@ -339,5 +341,8 @@ public class MoexConfig {
 
   public void toggleDarkenDrawer () {
     putBoolean(KEY_DARKEN_DRAWER, darkenDrawer ^= true);
+  }
+  public void toggleSilentMessage () {
+    putBoolean(KEY_SILENT_MESSAGE, silentMessage ^= true);
   }
 }
