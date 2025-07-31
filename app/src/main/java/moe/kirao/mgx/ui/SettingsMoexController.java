@@ -294,19 +294,21 @@ public class SettingsMoexController extends RecyclerViewController<SettingsMoexC
           String separator = Lang.getConcatSeparator();
 
           if (MoexConfig.disableCameraButton) {
-            b.append(Lang.getString(R.string.DisableCameraButton));
             if (b.length() > 0) b.append(separator);
+            b.append(Lang.getString(R.string.DisableCameraButton));
           }
           if (MoexConfig.disableRecordButton) {
-            b.append(Lang.getString(R.string.DisableRecordButton));
             if (b.length() > 0) b.append(separator);
+            b.append(Lang.getString(R.string.DisableRecordButton));
           }
           if (MoexConfig.disableCommandsButton) {
-            b.append(Lang.getString(R.string.DisableCommandsButton));
             if (b.length() > 0) b.append(separator);
+            b.append(Lang.getString(R.string.DisableCommandsButton));
           }
-          if (MoexConfig.disableSendAsButton)
+          if (MoexConfig.disableSendAsButton) {
+            if (b.length() > 0) b.append(separator);
             b.append(Lang.getString(R.string.DisableSendAsButton));
+          }
 
           view.setData(b.length() == 0 ? Lang.getString(R.string.BioNone) : b.toString());
         } else if (itemId == R.id.btn_hideBottomBar) {
