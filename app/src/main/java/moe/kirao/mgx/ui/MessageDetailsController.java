@@ -255,7 +255,7 @@ public class MessageDetailsController extends RecyclerViewController<MessageDeta
           case "Resolution":
             return video.width + "x" + video.height;
           case "Duration":
-            return DateUtils.formatElapsedTime(video.duration);
+            return video.duration != 0 ? DateUtils.formatElapsedTime(video.duration) : "";
           case "Bitrate":
             U.MediaMetadata metadata = U.getMediaMetadata(video.video.local.path);
             return (metadata != null ? metadata.bitrate / 1000 : video.video.expectedSize / video.duration * 8 / 1000) + " Kbps";
@@ -282,6 +282,7 @@ public class MessageDetailsController extends RecyclerViewController<MessageDeta
         }
       case TdApi.MessageAudio.CONSTRUCTOR:
         TdApi.Audio audio = ((TdApi.MessageAudio) msg.content).audio;
+        U.MediaMetadata audioMetadata = U.getMediaMetadata(audio.audio.local.path);
         switch (type) {
           case "Text":
             return ((TdApi.MessageAudio) msg.content).caption.text;
@@ -294,14 +295,13 @@ public class MessageDetailsController extends RecyclerViewController<MessageDeta
           case "Name":
             return audio.fileName;
           case "SongName":
-            return audio.title;
+            return audioMetadata != null ? audioMetadata.title : audio.title;
           case "Performer":
-            return audio.performer;
+            return audioMetadata != null ? audioMetadata.performer : audio.performer;
           case "Duration":
-            return DateUtils.formatElapsedTime(audio.duration);
+            return audio.duration != 0 ? DateUtils.formatElapsedTime(audio.duration) : "";
           case "Bitrate":
-            U.MediaMetadata metadata = U.getMediaMetadata(audio.audio.local.path);
-            return (metadata != null ? metadata.bitrate / 1000 : audio.audio.expectedSize / audio.duration * 8 / 1000) + " Kbps";
+            return audioMetadata != null ? audioMetadata.bitrate / 1000 + " Kbps" : audio.duration != 0 ? audio.audio.expectedSize / audio.duration * 8 / 1000 + " Kbps" : "";
           default:
             return "";
         }
