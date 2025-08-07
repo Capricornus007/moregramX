@@ -42,10 +42,12 @@ import org.thunderdog.challegram.navigation.HeaderView;
 import org.thunderdog.challegram.telegram.Tdlib;
 import org.thunderdog.challegram.telegram.TdlibUi;
 import org.thunderdog.challegram.theme.ColorId;
+import org.thunderdog.challegram.tool.Screen;
 import org.thunderdog.challegram.tool.UI;
 import org.thunderdog.challegram.ui.ListItem;
 import org.thunderdog.challegram.ui.RecyclerViewController;
 import org.thunderdog.challegram.ui.SettingsAdapter;
+import org.thunderdog.challegram.ui.TextController;
 import org.thunderdog.challegram.util.StringList;
 import org.thunderdog.challegram.v.CustomRecyclerView;
 
@@ -83,7 +85,7 @@ public class MessageDetailsController extends RecyclerViewController<MessageDeta
     public boolean shouldSkipClass (Class<?> clazz) {
       return false;
     }
-  }).create();
+  }).setPrettyPrinting().create();
 
   public static class Args {
     public final TdApi.Message msg;
@@ -117,20 +119,22 @@ public class MessageDetailsController extends RecyclerViewController<MessageDeta
 
   @Override
   protected int getMenuId () {
-    return R.id.menu_btn_copy;
+    return R.id.menu_btn_view;
   }
 
   @Override
   public void fillMenuItems (int id, HeaderView header, LinearLayout menu) {
-    if (id == R.id.menu_btn_copy) {
-      header.addCopyButton(menu, this, ColorId.headerIcon);
+    if (id == R.id.menu_btn_view) {
+      header.addButton(menu, R.id.menu_btn_view, R.drawable.baseline_text_search_variant_24, ColorId.headerIcon, this, Screen.dp(52f));
     }
   }
 
   @Override
   public void onMenuItemPressed (int id, View view) {
-    if (id == R.id.menu_btn_copy) {
-      UI.copyText(gson.toJson(args.msg), R.string.CopiedText);
+    if (id == R.id.menu_btn_view) {
+      TextController c = new TextController(context, tdlib);
+      c.setArguments(TextController.Arguments.fromRawText("JSON", gson.toJson(args.msg), "text/plain"));
+      navigateTo(c);
     }
   }
 
