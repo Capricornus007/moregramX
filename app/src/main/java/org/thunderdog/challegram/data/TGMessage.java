@@ -8334,6 +8334,9 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
         case TdApi.MessageSupergroupChatCreate.CONSTRUCTOR: {
           return new TGMessageService(context, msg, (TdApi.MessageSupergroupChatCreate) content);
         }
+        case TdApi.MessageDirectMessagePriceChanged.CONSTRUCTOR: {
+          return new TGMessageService(context, msg, (TdApi.MessageDirectMessagePriceChanged) content);
+        }
         case TdApi.MessageBotWriteAccessAllowed.CONSTRUCTOR: {
           return new TGMessageService(context, msg, (TdApi.MessageBotWriteAccessAllowed) content);
         }
@@ -8390,6 +8393,9 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
         case TdApi.MessageGroupCall.CONSTRUCTOR: // TODO TGMessageCall
         case TdApi.MessagePaidMessagesRefunded.CONSTRUCTOR: // TODO TGMessageService
         case TdApi.MessagePaidMessagePriceChanged.CONSTRUCTOR: // TODO TGMessageService
+        case TdApi.MessageChecklist.CONSTRUCTOR: // TODO TGMessagePoll
+        case TdApi.MessageChecklistTasksAdded.CONSTRUCTOR: // TODO TGMessageService
+        case TdApi.MessageChecklistTasksDone.CONSTRUCTOR: // TODO TGMessageService
           break;
 
         case TdApi.MessageUnsupported.CONSTRUCTOR:
@@ -8403,7 +8409,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
           break;
         }
         default: {
-          Td.assertMessageContent_235cea4f();
+          Td.assertMessageContent_ef7732f4();
           throw Td.unsupported(msg.content);
         }
       }
@@ -8821,7 +8827,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       return;
     }
 
-    final boolean canReply = Settings.instance().needChatQuickReply() && messagesController().canWriteMessages() && !messagesController().needTabs() && canReplyTo();
+    final boolean canReply = Settings.instance().needChatQuickReply() && messagesController().canSelectReply() && !messagesController().needTabs() && canReplyTo();
     final boolean canShare = Settings.instance().needChatQuickShare() && !messagesController().isSecretChat() && canBeForwarded();
     final boolean canFeatured = Settings.instance().needChatQuickFeatured() && !messagesController().isSecretChat() && canBeForwarded();
     final boolean canEdit = Settings.instance().needChatQuickEdit() && canEditText();
