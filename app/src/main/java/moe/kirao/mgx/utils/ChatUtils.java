@@ -30,7 +30,7 @@ public class ChatUtils {
         if (result.getConstructor() == TdApi.InlineQueryResultArticle.CONSTRUCTOR) {
           long queryId = ((TdApi.InlineQueryResults) article).inlineQueryId;
           String resultId = ((TdApi.InlineQueryResultArticle) result).id;
-          tdlib.client().send(new TdApi.SendInlineQueryResultMessage(tdlib.selfChatId(), 0, null, Td.newSendOptions(true), queryId, resultId, false), newMsg -> {
+          tdlib.client().send(new TdApi.SendInlineQueryResultMessage(tdlib.selfChatId(), 0, null, Td.newSendOptions(0L, true), queryId, resultId, false), newMsg -> {
             if (newMsg.getConstructor() != TdApi.Message.CONSTRUCTOR) return;
             tdlib.deleteMessages(tdlib.selfChatId(), new long[] {((TdApi.Message) newMsg).id}, true);
             after.runWithData(((TdApi.MessageText) ((TdApi.Message) newMsg).content).text.text);
