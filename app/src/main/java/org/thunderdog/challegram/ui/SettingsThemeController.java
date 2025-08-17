@@ -77,6 +77,7 @@ import me.vkryl.core.DateUtils;
 import me.vkryl.core.MathUtils;
 import me.vkryl.core.StringUtils;
 import me.vkryl.core.collection.IntList;
+import moe.kirao.mgx.MoexConfig;
 
 public class SettingsThemeController extends RecyclerViewController<SettingsThemeController.Args> implements View.OnClickListener, ViewController.SettingsIntDelegate, SliderWrapView.RealTimeChangeListener, View.OnLongClickListener, AppUpdater.Listener {
   public SettingsThemeController (Context context, Tdlib tdlib) {
@@ -286,13 +287,13 @@ public class SettingsThemeController extends RecyclerViewController<SettingsThem
           if (Settings.instance().needChatQuickShare()) {
             b.append(Lang.getString(R.string.QuickActionSettingShare));
           }
-          if (Settings.instance().needChatQuickEdit()) {
+          if (MoexConfig.quickEdit) {
             if (b.length() > 0) {
               b.append(Lang.getConcatSeparator());
             }
             b.append(Lang.getString(R.string.edit));
           }
-          if (Settings.instance().needChatQuickFeatured()) {
+          if (MoexConfig.quickFeatured) {
             if (b.length() > 0) {
               b.append(Lang.getConcatSeparator());
             }
@@ -1204,12 +1205,13 @@ public class SettingsThemeController extends RecyclerViewController<SettingsThem
     } else if (viewId == R.id.btn_chatSwipes) {
       showSettings(R.id.btn_chatSwipes, new ListItem[] {
         new ListItem(ListItem.TYPE_CHECKBOX_OPTION, R.id.btn_messageShare, 0, R.string.Share, R.id.btn_messageShare, Settings.instance().needChatQuickShare()),
-        new ListItem(ListItem.TYPE_CHECKBOX_OPTION, R.id.btn_messageEdit, 0, R.string.edit, R.id.btn_messageEdit, Settings.instance().needChatQuickEdit()),
-        new ListItem(ListItem.TYPE_CHECKBOX_OPTION, R.id.btn_savedMessages, 0, R.string.SavedMessages, R.id.btn_savedMessages, Settings.instance().needChatQuickFeatured()),
+        new ListItem(ListItem.TYPE_CHECKBOX_OPTION, R.id.btn_messageEdit, 0, R.string.edit, R.id.btn_messageEdit, MoexConfig.quickEdit),
+        new ListItem(ListItem.TYPE_CHECKBOX_OPTION, R.id.btn_savedMessages, 0, R.string.SavedMessages, R.id.btn_savedMessages, MoexConfig.quickFeatured),
         new ListItem(ListItem.TYPE_CHECKBOX_OPTION, R.id.btn_messageReply, 0, R.string.Reply, R.id.btn_messageReply, Settings.instance().needChatQuickReply())
       }, (id, result) -> {
-        Settings.instance().setDisableChatQuickActions(result.get(R.id.btn_messageEdit) != R.id.btn_messageEdit, result.get(R.id.btn_messageShare) != R.id.btn_messageShare,
-          result.get(R.id.btn_savedMessages) != R.id.btn_savedMessages, result.get(R.id.btn_messageReply) != R.id.btn_messageReply);
+        if (((result.get(R.id.btn_messageEdit) == 0) == MoexConfig.quickEdit)) MoexConfig.instance().toggleQuickEdit();
+        if (((result.get(R.id.btn_savedMessages) == 0) == MoexConfig.quickFeatured)) MoexConfig.instance().toggleQuickFeatured();
+        Settings.instance().setDisableChatQuickActions(result.get(R.id.btn_messageShare) != R.id.btn_messageShare, result.get(R.id.btn_messageReply) != R.id.btn_messageReply);
         adapter.updateValuedSettingById(R.id.btn_chatSwipes);
       });
     } else if (viewId == R.id.btn_systemEmoji) {

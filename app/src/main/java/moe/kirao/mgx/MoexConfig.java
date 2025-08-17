@@ -49,6 +49,8 @@ public class MoexConfig {
   public static final String KEY_HIDE_BOTTOM_BAR = "hide_bottom_bar";
   public static final String KEY_DARKEN_DRAWER = "darken_drawer";
   public static final String KEY_SILENT_MESSAGE = "silent_message";
+  public static final String KEY_CHAT_QUICK_EDIT = "quick_edit";
+  public static final String KEY_CHAT_QUICK_FEATURED = "quick_featured";
 
   public static final int SIZE_LIMIT_800 = 0;
   public static final int SIZE_LIMIT_1280 = 1;
@@ -77,6 +79,8 @@ public class MoexConfig {
   public static boolean hideBottomBar = instance().getBoolean(KEY_HIDE_BOTTOM_BAR, false);
   public static boolean darkenDrawer = instance().getBoolean(KEY_DARKEN_DRAWER, false);
   public static boolean silentMessage = instance().getBoolean(KEY_SILENT_MESSAGE, false);
+  public static boolean quickEdit = instance().getBoolean(KEY_CHAT_QUICK_EDIT, false);
+  public static boolean quickFeatured = instance().getBoolean(KEY_CHAT_QUICK_FEATURED, false);
 
   private MoexConfig () {
     File configDir = new File(UI.getAppContext().getFilesDir(), "moexconf");
@@ -342,7 +346,16 @@ public class MoexConfig {
   public void toggleDarkenDrawer () {
     putBoolean(KEY_DARKEN_DRAWER, darkenDrawer ^= true);
   }
+
   public void toggleSilentMessage () {
     putBoolean(KEY_SILENT_MESSAGE, silentMessage ^= true);
+  }
+
+  public void toggleQuickEdit () {
+    putBoolean(KEY_CHAT_QUICK_EDIT, quickEdit ^= true);
+  }
+
+  public void toggleQuickFeatured () {
+    putBoolean(KEY_CHAT_QUICK_FEATURED, quickFeatured ^= true);
   }
 }

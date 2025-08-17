@@ -8835,8 +8835,8 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
     final boolean canReply = Settings.instance().needChatQuickReply() && messagesController().canWriteMessagesOrWaitingForReply() && !messagesController().needTabs() && canReplyTo();
     final boolean canShare = Settings.instance().needChatQuickShare() && !messagesController().isSecretChat() && canBeForwarded();
-    final boolean canFeatured = Settings.instance().needChatQuickFeatured() && !messagesController().isSecretChat() && canBeForwarded();
-    final boolean canEdit = Settings.instance().needChatQuickEdit() && canEditText();
+    final boolean canFeatured = MoexConfig.quickFeatured && !messagesController().isSecretChat() && canBeForwarded();
+    final boolean canEdit = MoexConfig.quickEdit && canEditText();
 
     leftActions.clear();
     rightActions.clear();

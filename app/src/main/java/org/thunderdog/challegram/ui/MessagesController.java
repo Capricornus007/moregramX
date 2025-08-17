@@ -3462,7 +3462,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (needTabs() && y < HeaderView.getSize(true))
       return false;
 
-    if (Settings.instance().needChatQuickShare() || Settings.instance().needChatQuickFeatured()) {
+    if (Settings.instance().needChatQuickShare() || MoexConfig.quickFeatured) {
       if (Lang.rtl()) {
         int width = contentView.getMeasuredWidth();
         return width != 0 && x >= width - bound;
