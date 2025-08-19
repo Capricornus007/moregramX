@@ -8396,6 +8396,12 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
         case TdApi.MessageChecklist.CONSTRUCTOR: // TODO TGMessagePoll
         case TdApi.MessageChecklistTasksAdded.CONSTRUCTOR: // TODO TGMessageService
         case TdApi.MessageChecklistTasksDone.CONSTRUCTOR: // TODO TGMessageService
+        case TdApi.MessageSuggestedPostApprovalFailed.CONSTRUCTOR:
+        case TdApi.MessageSuggestedPostApproved.CONSTRUCTOR:
+        case TdApi.MessageSuggestedPostDeclined.CONSTRUCTOR:
+        case TdApi.MessageSuggestedPostPaid.CONSTRUCTOR:
+        case TdApi.MessageSuggestedPostRefunded.CONSTRUCTOR:
+        case TdApi.MessageGiftedTon.CONSTRUCTOR:
           break;
 
         case TdApi.MessageUnsupported.CONSTRUCTOR:
@@ -8409,7 +8415,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
           break;
         }
         default: {
-          Td.assertMessageContent_ef7732f4();
+          Td.assertMessageContent_7c00740();
           throw Td.unsupported(msg.content);
         }
       }
@@ -8827,7 +8833,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       return;
     }
 
-    final boolean canReply = Settings.instance().needChatQuickReply() && messagesController().canSelectReply() && !messagesController().needTabs() && canReplyTo();
+    final boolean canReply = Settings.instance().needChatQuickReply() && messagesController().canWriteMessagesOrWaitingForReply() && !messagesController().needTabs() && canReplyTo();
     final boolean canShare = Settings.instance().needChatQuickShare() && !messagesController().isSecretChat() && canBeForwarded();
     final boolean canFeatured = Settings.instance().needChatQuickFeatured() && !messagesController().isSecretChat() && canBeForwarded();
     final boolean canEdit = Settings.instance().needChatQuickEdit() && canEditText();
@@ -8842,7 +8848,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
         TdApi.Message message = getNewestMessage();
         getMessageProperties(message.id, properties -> {
           runOnUiThreadOptional(() -> {
-            messagesController().showReply(new MessageWithProperties(message, properties), null, true, true);
+            messagesController().showReply(new MessageWithProperties(message, properties), null, 0, true, true);
           });
         });
       }, true, false);

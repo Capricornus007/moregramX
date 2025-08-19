@@ -449,7 +449,13 @@ public class MessagesController extends ViewController<MessagesController.Argume
       CharSequence text = TD.toCharSequence(newText);
       showCallbackToast(text);
     } else if (viewId == R.id.btn_sendNoSound) {
-      pickDateOrProceed(Td.newSendOptions(getDirectMessagesChatTopicId(getCurrentReplyId()), true), (modifiedSendOptions, disableMarkdown) -> {
+      ReplyInfo replyInfo = getCurrentReplyId();
+      TdApi.MessageSendOptions sendOptions = Td.newSendOptions(
+        getDirectMessagesChatTopicId(replyInfo),
+        getInputSuggestedPostInfo(replyInfo),
+        true
+      );
+      pickDateOrProceed(sendOptions, (modifiedSendOptions, disableMarkdown) -> {
         send(modifiedSendOptions, true);
       });
     } else if (viewId == R.id.btn_debugLtrEmoji) {
@@ -1802,6 +1808,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   @Nullable
+  public final TdApi.InputSuggestedPostInfo getInputSuggestedPostInfo (ReplyInfo replyInfo) {
+    return null;
+  }
+
+  @Nullable
   public ThreadInfo getMessageThread () {
     return messageThread;
   }
@@ -2676,7 +2687,13 @@ public class MessagesController extends ViewController<MessagesController.Argume
       TGBotStart start = (TGBotStart) item;
 
       if (start.isGame()) {
-        tdlib.sendMessage(chat.id, getMessageThreadId(), null, Td.newSendOptions(getDirectMessagesChatTopicId(getCurrentReplyId()), obtainSilentMode()), new TdApi.InputMessageGame(start.getUserId(), start.getArgument()));
+        ReplyInfo replyInfo = getCurrentReplyId();
+        TdApi.MessageSendOptions sendOptions = Td.newSendOptions(
+          getDirectMessagesChatTopicId(replyInfo),
+          getInputSuggestedPostInfo(replyInfo),
+          obtainSilentMode()
+        );
+        tdlib.sendMessage(chat.id, getMessageThreadId(), null, sendOptions, new TdApi.InputMessageGame(start.getUserId(), start.getArgument()));
       } else if (start.useDeepLinking()) {
         if (!ChatId.isUserChat(chat.id) || start.ignoreExplicitUserInteraction()) {
           tdlib.sendBotStartMessage(start.getUserId(), chat.id, start.getArgument());
@@ -2805,7 +2822,13 @@ public class MessagesController extends ViewController<MessagesController.Argume
       draftMessage = getDraftMessage();
       if (!Td.isEmpty(fillDraft)) {
         if (Td.isEmpty(draftMessage) || Td.isEmpty(((TdApi.InputMessageText) draftMessage.inputMessageText).text) /*allow dropping replyTo*/) {
-          draftMessage = new TdApi.DraftMessage(null, 0, new TdApi.InputMessageText(fillDraft, null, false), 0);
+          draftMessage = new TdApi.DraftMessage(
+            null,
+            0,
+            new TdApi.InputMessageText(fillDraft, null, false),
+            0,
+            null
+          );
         } else if (!Td.equalsTo(((TdApi.InputMessageText) draftMessage.inputMessageText).text, fillDraft)) {
           promptDraftPrefillOnFocus = true;
         }
@@ -3737,7 +3760,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     } else if (id == R.id.menu_btn_reply) {
       MessageWithProperties m = getSingleSelectedMessage();
       if (m != null) {
-        showReply(m, null, true, true);
+        showReply(m, null, 0, true, true);
         finishSelectMode(-1);
         if (inputView != null && inputView.isEmpty()) {
           Keyboard.show(inputView);
@@ -4092,7 +4115,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   public boolean canSaveDraft () {
-    return canWriteMessages() && getChatId() != 0 && !inPreviewMode() && !isInForceTouchMode();
+    return canWriteMessagesOrWaitingForReply() && getChatId() != 0 && !inPreviewMode() && !isInForceTouchMode();
   }
 
   private void saveDraft () {
@@ -4108,7 +4131,13 @@ public class MessagesController extends ViewController<MessagesController.Argume
           findTargetContext().linkPreviewOptions,
           false
         );
-        final TdApi.DraftMessage draftMessage = new TdApi.DraftMessage(replyTo != null ? replyTo.toInputMessageReply() : null, (int) date, inputMessageText, 0);
+        final TdApi.DraftMessage draftMessage = new TdApi.DraftMessage(
+          replyTo != null ? replyTo.toInputMessageReply() : null,
+          (int) date,
+          inputMessageText,
+          0,
+          null
+        );
         final long outputChatId = messageThread != null ? messageThread.getChatId() : getChatId();
         final long messageThreadId = messageThread != null ? messageThread.getMessageThreadId() : 0;
         if (messageThread != null) {
@@ -5451,7 +5480,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     return inputView != null && bottomWrap.getVisibility() == View.VISIBLE && inputView.getVisibility() == View.VISIBLE;
   }
 
-  public boolean canSelectReply () {
+  public boolean canWriteMessagesOrWaitingForReply () {
     return canWriteMessages() || (actionShowing && actionMode == ACTION_AWAITING_REPLY);
   }
 
@@ -5711,7 +5740,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
         TdApi.Message message = selectedMessage.getNewestMessage();
         selectedMessage.getMessageProperties(message.id, properties -> runOnUiThreadOptional(() -> {
           if (properties != null) {
-            showReply(new MessageWithProperties(message, properties), null, true, true);
+            showReply(new MessageWithProperties(message, properties), null, 0, true, true);
             if (inputView.isEmpty()) {
               Keyboard.show(inputView);
             }
@@ -6413,17 +6442,19 @@ public class MessagesController extends ViewController<MessagesController.Argume
     public final Tdlib tdlib;
     public final MessageWithProperties message;
     public final @Nullable TdApi.InputTextQuote quote;
+    public final int checklistTaskId;
     public final long inChatId;
     public final @Nullable TdApi.MessageTopic inTopicId;
 
-    public ReplyInfo (Tdlib tdlib, MessageWithProperties message, @Nullable TdApi.InputTextQuote quote) {
-      this(tdlib, message, quote, 0, null);
+    public ReplyInfo (Tdlib tdlib, MessageWithProperties message, @Nullable TdApi.InputTextQuote quote, int checklistTaskId) {
+      this(tdlib, message, quote, checklistTaskId, 0, null);
     }
 
-    public ReplyInfo (Tdlib tdlib, MessageWithProperties message, @Nullable TdApi.InputTextQuote quote, long inChatId, @Nullable TdApi.MessageTopic inTopicId) {
+    public ReplyInfo (Tdlib tdlib, MessageWithProperties message, @Nullable TdApi.InputTextQuote quote, int checklistTaskId, long inChatId, @Nullable TdApi.MessageTopic inTopicId) {
       this.tdlib = tdlib;
       this.message = message;
       this.quote = quote;
+      this.checklistTaskId = checklistTaskId;
       this.inChatId = inChatId;
       this.inTopicId = inTopicId;
     }
@@ -6436,7 +6467,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       if (inTopicId == null && inChatId == message.message.chatId) {
         inTopicId = message.message.topicId;
       }
-      return new ReplyInfo(tdlib, message, quote, inChatId, inTopicId);
+      return new ReplyInfo(tdlib, message, quote, checklistTaskId, inChatId, inTopicId);
     }
 
     @Override
@@ -6458,9 +6489,18 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
     public TdApi.InputMessageReplyTo toInputMessageReply () {
       if (inChatId != message.message.chatId || (inTopicId != null && !Td.equalsTo(inTopicId, message.message.topicId))) {
-        return new TdApi.InputMessageReplyToExternalMessage(message.message.chatId, message.message.id, quote);
+        return new TdApi.InputMessageReplyToExternalMessage(
+          message.message.chatId,
+          message.message.id,
+          quote,
+          checklistTaskId
+        );
       } else {
-        return new TdApi.InputMessageReplyToMessage(message.message.id, quote);
+        return new TdApi.InputMessageReplyToMessage(
+          message.message.id,
+          quote,
+          checklistTaskId
+        );
       }
     }
   }
@@ -6512,7 +6552,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
   }
 
-  public void showReply (MessageWithProperties msg, @Nullable TdApi.InputTextQuote quote, boolean byUser, boolean showKeyboard) {
+  public void showReply (MessageWithProperties msg, @Nullable TdApi.InputTextQuote quote, int checklistTaskId, boolean byUser, boolean showKeyboard) {
     if (inPreviewMode || isInForceTouchMode()) {
       return;
     }
@@ -6528,8 +6568,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
     collapsePinnedMessagesBar(true);
     // TODO show keyboard properly
-    if (reply == null || reply.message.message.id != msg.message.id || reply.message.message.chatId != msg.message.chatId || !Td.equalsTo(reply.quote, quote)) {
-      setReplyInfo(new ReplyInfo(tdlib, msg, quote), true);
+    if (reply == null || reply.message.message.id != msg.message.id || reply.message.message.chatId != msg.message.chatId || !Td.equalsTo(reply.quote, quote) || reply.checklistTaskId != checklistTaskId) {
+      setReplyInfo(new ReplyInfo(tdlib, msg, quote, checklistTaskId), true);
 
       if (byUser) {
         inputView.setTextChangedSinceChatOpened(true);
@@ -6693,12 +6733,14 @@ public class MessagesController extends ViewController<MessagesController.Argume
     final long currentChatId = chat.id;
     final long replyToChatId, replyToMessageId;
     final TdApi.InputTextQuote replyToQuote;
+    final int replyToChecklistTaskId;
     switch (replyTo.getConstructor()) {
       case TdApi.InputMessageReplyToMessage.CONSTRUCTOR: {
         TdApi.InputMessageReplyToMessage replyToMessage = (TdApi.InputMessageReplyToMessage) replyTo;
         replyToChatId = currentChatId;
         replyToMessageId = replyToMessage.messageId;
         replyToQuote = replyToMessage.quote;
+        replyToChecklistTaskId = replyToMessage.checklistTaskId;
         break;
       }
       case TdApi.InputMessageReplyToExternalMessage.CONSTRUCTOR: {
@@ -6706,6 +6748,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
         replyToChatId = replyToExternalMessage.chatId;
         replyToMessageId = replyToExternalMessage.messageId;
         replyToQuote = replyToExternalMessage.quote;
+        replyToChecklistTaskId = replyToExternalMessage.checklistTaskId;
         break;
       }
       case TdApi.InputMessageReplyToStory.CONSTRUCTOR: // Unreachable.
@@ -6718,7 +6761,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       TGMessage foundMessage = manager.getAdapter().findMessageById(replyToMessageId);
       if (foundMessage != null) {
         foundMessage.getMessageWithProperties(msg -> runOnUiThreadOptional(() -> {
-          forceReply(msg, replyToQuote);
+          forceReply(msg, replyToQuote, replyToChecklistTaskId);
         }));
         return;
       }
@@ -6732,7 +6775,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
             if (Td.equalsTo(replyTo, currentReplyTo)) {
               tdlib.getMessageProperties(foundReplyMessage, properties -> runOnUiThreadOptional(() -> {
                 if (properties != null) {
-                  forceReply(new MessageWithProperties(foundReplyMessage, properties), replyToQuote);
+                  forceReply(
+                    new MessageWithProperties(foundReplyMessage, properties),
+                    replyToQuote,
+                    replyToChecklistTaskId
+                  );
                 }
               }));
             }
@@ -6742,13 +6789,13 @@ public class MessagesController extends ViewController<MessagesController.Argume
     });
   }
 
-  public void forceReply (MessageWithProperties message, @Nullable TdApi.InputTextQuote quote) {
+  public void forceReply (MessageWithProperties message, @Nullable TdApi.InputTextQuote quote, int checklistTaskId) {
     if (message == null || chat == null || inPreviewMode || isInForceTouchMode()) {
       clearReply();
       return;
     }
 
-    setReplyInfo(new ReplyInfo(tdlib, message, quote), false);
+    setReplyInfo(new ReplyInfo(tdlib, message, quote, checklistTaskId), false);
   }
 
   private void setReplyInfo (ReplyInfo replyInfo, boolean animated) {
@@ -6947,7 +6994,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
           return !Td.equalsTo(oldText, newText);
         }
         default: {
-          Td.assertMessageContent_ef7732f4();
+          Td.assertMessageContent_7c00740();
           break;
         }
       }
@@ -7361,7 +7408,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
         break;
       }
       default: {
-        Td.assertMessageContent_ef7732f4();
+        Td.assertMessageContent_7c00740();
         throw Td.unsupported(editContext.message.content);
       }
     }
@@ -7596,7 +7643,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   public void onRequestPoll (boolean oneTime, boolean forceQuiz, boolean forceRegular) {
     if (chat != null && tdlib.canSendPolls(chat.id)) {
       CreatePollController c = new CreatePollController(context, tdlib);
-      c.setArguments(new CreatePollController.Args(chat.id, messageThread, messageTopicId, this, forceQuiz, forceRegular));
+      c.setArguments(new CreatePollController.Args(chat.id, messageThread, messageTopicId, getInputSuggestedPostInfo(null), this, forceQuiz, forceRegular));
       navigateTo(c);
     }
   }
@@ -9105,7 +9152,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
       long messageThreadId = getMessageThreadId();
       ReplyInfo replyInfo = replyToFuture != null ? replyToFuture.getValue() : null;
       TdApi.InputMessageReplyTo replyTo = replyInfo != null ? replyInfo.toInputMessageReply() : null;
-      TdApi.MessageSendOptions sendOptions = Td.newSendOptions(modifiedSendOptions, getDirectMessagesChatTopicId(replyInfo), obtainSilentMode());
+      TdApi.MessageSendOptions sendOptions = Td.newSendOptions(
+        modifiedSendOptions,
+        getDirectMessagesChatTopicId(replyInfo),
+        getInputSuggestedPostInfo(replyInfo),
+        obtainSilentMode()
+      );
 
       TdApi.InputMessageContent inputMessageContent = content.getValue();
       tdlib.sendMessage(chat.id, messageThreadId, replyTo, sendOptions, inputMessageContent, null);
@@ -9698,7 +9750,13 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
 
     boolean forceUpdateOrderOfInstalledStickerSets = Settings.instance().getNewSetting(Settings.SETTING_FLAG_DYNAMIC_ORDER_EMOJI_PACKS);
-    final TdApi.MessageSendOptions finalSendOptions = Td.newSendOptions(initialSendOptions, getDirectMessagesChatTopicId(replyInfo), obtainSilentMode(), forceUpdateOrderOfInstalledStickerSets);
+    final TdApi.MessageSendOptions finalSendOptions = Td.newSendOptions(
+      initialSendOptions,
+      getDirectMessagesChatTopicId(replyInfo),
+      getInputSuggestedPostInfo(replyInfo),
+      obtainSilentMode(),
+      forceUpdateOrderOfInstalledStickerSets
+    );
     List<TdApi.Function<?>> functions = (List<TdApi.Function<?>>) (List<?>) TD.sendMessageText(chatId, messageThreadId, replyTo, finalSendOptions, content, tdlib.maxMessageTextLength());
 
     if (showSlowModeRestriction(sendButton != null ? sendButton : inputView, finalSendOptions)) {
@@ -9828,7 +9886,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
         long messageThreadId = getMessageThreadId();
         ReplyInfo replyInfo = allowReply ? obtainReplyTo() : null;
         TdApi.InputMessageReplyTo replyTo = replyInfo != null ? replyInfo.toInputMessageReply() : null;
-        TdApi.MessageSendOptions sendOptions = Td.newSendOptions(modifiedSendOptions, getDirectMessagesChatTopicId(replyInfo), obtainSilentMode());
+        TdApi.MessageSendOptions sendOptions = Td.newSendOptions(
+          modifiedSendOptions,
+          getDirectMessagesChatTopicId(replyInfo),
+          getInputSuggestedPostInfo(replyInfo),
+          obtainSilentMode()
+        );
 
         TdApi.InputMessageContact inputMessageContact = new TdApi.InputMessageContact(new TdApi.Contact(user.phoneNumber, user.firstName, user.lastName, null, user.id));
         tdlib.sendMessage(chat.id, messageThreadId, replyTo, sendOptions, inputMessageContact, null);
@@ -9847,7 +9910,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
         pickDateOrProceed(Td.newSendOptions(), (modifiedSendOptions, disableMarkdown) -> {
           long messageThreadId = getMessageThreadId();
           TdApi.InputMessageReplyTo replyTo = forceReplyTo != null ? forceReplyTo.toInputMessageReply() : null;
-          TdApi.MessageSendOptions sendOptions = Td.newSendOptions(modifiedSendOptions, getDirectMessagesChatTopicId(forceReplyTo), obtainSilentMode());
+          TdApi.MessageSendOptions sendOptions = Td.newSendOptions(
+            modifiedSendOptions,
+            getDirectMessagesChatTopicId(forceReplyTo),
+            getInputSuggestedPostInfo(forceReplyTo),
+            obtainSilentMode()
+          );
 
           TdApi.InputMessageContact inputMessageContact = new TdApi.InputMessageContact(new TdApi.Contact(user.phoneNumber, user.firstName, user.lastName, null, user.id));
           tdlib.sendMessage(chat.id, messageThreadId, replyTo, sendOptions, inputMessageContact, null);
@@ -9861,7 +9929,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
       pickDateOrProceed(initialSendOptions, (modifiedSendOptions, disableMarkdown) -> {
         ReplyInfo replyInfo = allowReply ? obtainReplyTo() : null;
         TdApi.InputMessageReplyTo replyTo = replyInfo != null ? replyInfo.toInputMessageReply() : null;
-        TdApi.MessageSendOptions sendOptions = Td.newSendOptions(modifiedSendOptions, getDirectMessagesChatTopicId(replyInfo), obtainSilentMode());
+        TdApi.MessageSendOptions sendOptions = Td.newSendOptions(
+          modifiedSendOptions,
+          getDirectMessagesChatTopicId(replyInfo),
+          getInputSuggestedPostInfo(replyInfo),
+          obtainSilentMode()
+        );
         tdlib.sendMessage(chat.id, getMessageThreadId(), replyTo, sendOptions, content, after);
       });
     }
@@ -9872,7 +9945,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
       pickDateOrProceed(initialSendOptions, (modifiedSendOptions, disableMarkdown) -> {
         ReplyInfo replyInfo = allowReply ? obtainReplyTo() : null;
         TdApi.InputMessageReplyTo replyTo = replyInfo != null ? replyInfo.toInputMessageReply() : null;
-        TdApi.MessageSendOptions sendOptions = Td.newSendOptions(modifiedSendOptions, getDirectMessagesChatTopicId(replyInfo), obtainSilentMode());
+        TdApi.MessageSendOptions sendOptions = Td.newSendOptions(
+          modifiedSendOptions,
+          getDirectMessagesChatTopicId(replyInfo),
+          getInputSuggestedPostInfo(replyInfo),
+          obtainSilentMode()
+        );
         tdlib.sendInlineQueryResult(chat.id, getMessageThreadId(), replyTo, sendOptions, inlineQueryId, id);
         if (clearInput) {
           inputView.setInput("", false, true);
@@ -9887,7 +9965,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
       pickDateOrProceed(Td.newSendOptions(), (modifiedSendOptions, disableMarkdown) -> {
         ReplyInfo replyInfo = allowReply ? obtainReplyTo() : null;
         TdApi.InputMessageReplyTo replyTo = replyInfo != null ? replyInfo.toInputMessageReply() : null;
-        TdApi.MessageSendOptions sendOptions = Td.newSendOptions(modifiedSendOptions, getDirectMessagesChatTopicId(replyInfo), obtainSilentMode());
+        TdApi.MessageSendOptions sendOptions = Td.newSendOptions(
+          modifiedSendOptions,
+          getDirectMessagesChatTopicId(replyInfo),
+          getInputSuggestedPostInfo(replyInfo),
+          obtainSilentMode()
+        );
         tdlib.sendMessage(chat.id, getMessageThreadId(), replyTo, sendOptions, TD.toInputMessageContent(audio), null);
       });
     }
@@ -9917,7 +10000,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
       }
       ReplyInfo replyInfo = allowReply ? obtainReplyTo() : null;
       TdApi.InputMessageReplyTo replyTo = replyInfo != null ? replyInfo.toInputMessageReply() : null;
-      TdApi.MessageSendOptions finalSendOptions = Td.newSendOptions(initialSendOptions, getDirectMessagesChatTopicId(replyInfo), obtainSilentMode());
+      TdApi.MessageSendOptions finalSendOptions = Td.newSendOptions(
+        initialSendOptions,
+        getDirectMessagesChatTopicId(replyInfo),
+        getInputSuggestedPostInfo(replyInfo),
+        obtainSilentMode()
+      );
       return TD.toFunctions(chat.id, getMessageThreadId(), replyTo, finalSendOptions, content, needGroupMedia);
     }
     return null;
@@ -9925,7 +10013,13 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   public void forwardMessage (TdApi.Message message) { // TODO remove all related to Forward stuff to replace with ShareLayout
     if (tdlib.getRestrictionText(chat, message) == null) {
-      tdlib.forwardMessage(chat.id, getMessageThreadId(), message.chatId, message.id, Td.newSendOptions(getDirectMessagesChatTopicId(getCurrentReplyId()), obtainSilentMode()));
+      ReplyInfo replyInfo = getCurrentReplyId();
+      TdApi.MessageSendOptions sendOptions = Td.newSendOptions(
+        getDirectMessagesChatTopicId(replyInfo),
+        getInputSuggestedPostInfo(replyInfo),
+        obtainSilentMode()
+      );
+      tdlib.forwardMessage(chat.id, getMessageThreadId(), message.chatId, message.id, sendOptions);
     }
   }
 
@@ -10088,7 +10182,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
           final boolean disableNotification = obtainSilentMode();
           ReplyInfo replyInfo = obtainReplyTo();
           TdApi.InputMessageReplyTo replyTo = replyInfo != null ? replyInfo.toInputMessageReply() : null;
-          TdApi.MessageSendOptions sendOptions = Td.newSendOptions(getDirectMessagesChatTopicId(replyInfo), disableNotification);
+          TdApi.MessageSendOptions sendOptions = Td.newSendOptions(
+            getDirectMessagesChatTopicId(replyInfo),
+            getInputSuggestedPostInfo(replyInfo),
+            disableNotification
+          );
           Background.instance().post(() -> {
             AudioFile file;
 
@@ -10130,7 +10228,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
     final boolean isSecretChat = isSecretChat();
     ReplyInfo replyInfo = allowReply ? obtainReplyTo() : null;
     TdApi.InputMessageReplyTo replyTo = replyInfo != null ? replyInfo.toInputMessageReply() : null;
-    final TdApi.MessageSendOptions finalSendOptions = Td.newSendOptions(initialSendOptions, getDirectMessagesChatTopicId(replyInfo), obtainSilentMode());
+    final TdApi.MessageSendOptions finalSendOptions = Td.newSendOptions(
+      initialSendOptions,
+      getDirectMessagesChatTopicId(replyInfo),
+      getInputSuggestedPostInfo(replyInfo),
+      obtainSilentMode()
+    );
     boolean allowAudio = tdlib.getRestrictionStatus(chat, RightId.SEND_AUDIO) == null;
     boolean allowDocs = tdlib.getRestrictionStatus(chat, RightId.SEND_DOCS) == null;
     boolean allowVideos = tdlib.getRestrictionStatus(chat, RightId.SEND_VIDEOS) == null;
@@ -10180,7 +10283,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
       final long chatId = chat.id;
       ReplyInfo replyInfo = allowReply ? obtainReplyTo() : null;
       TdApi.InputMessageReplyTo replyTo = replyInfo != null ? replyInfo.toInputMessageReply() : null;
-      TdApi.MessageSendOptions sendOptions = Td.newSendOptions(getDirectMessagesChatTopicId(replyInfo), obtainSilentMode());
+      TdApi.MessageSendOptions sendOptions = Td.newSendOptions(
+        getDirectMessagesChatTopicId(replyInfo),
+        getInputSuggestedPostInfo(replyInfo),
+        obtainSilentMode()
+      );
       final boolean isSecret = isSecretChat();
 
       Media.instance().post(() -> {
@@ -10215,7 +10322,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
     final long messageThreadId = getMessageThreadId();
     ReplyInfo replyInfo = obtainReplyTo();
     TdApi.InputMessageReplyTo replyTo = replyInfo != null ? replyInfo.toInputMessageReply() : null;
-    TdApi.MessageSendOptions finalSendOptions = Td.newSendOptions(modifiedSendOptions, getDirectMessagesChatTopicId(replyInfo), obtainSilentMode());;
+    TdApi.MessageSendOptions finalSendOptions = Td.newSendOptions(
+      modifiedSendOptions,
+      getDirectMessagesChatTopicId(replyInfo),
+      getInputSuggestedPostInfo(replyInfo),
+      obtainSilentMode()
+    );
 
     final boolean isSecretChat = isSecretChat();
 
@@ -10764,12 +10876,14 @@ public class MessagesController extends ViewController<MessagesController.Argume
     } else {
       long replyChatId, replyMessageId;
       TdApi.InputTextQuote replyQuote;
+      int replyChecklistTaskId;
       switch (replyTo.getConstructor()) {
         case TdApi.InputMessageReplyToMessage.CONSTRUCTOR: {
           TdApi.InputMessageReplyToMessage replyToMessage = (TdApi.InputMessageReplyToMessage) replyTo;
           replyChatId = getChatId();
           replyMessageId = replyToMessage.messageId;
           replyQuote = replyToMessage.quote;
+          replyChecklistTaskId = replyToMessage.checklistTaskId;
           break;
         }
         case TdApi.InputMessageReplyToExternalMessage.CONSTRUCTOR: {
@@ -10777,6 +10891,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
           replyChatId = replyToExternalMessage.chatId;
           replyMessageId = replyToExternalMessage.messageId;
           replyQuote = replyToExternalMessage.quote;
+          replyChecklistTaskId = replyToExternalMessage.checklistTaskId;
           break;
         }
         case TdApi.InputMessageReplyToStory.CONSTRUCTOR: // Unreachable
@@ -10787,7 +10902,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       tdlib.send(new TdApi.GetMessage(replyChatId, replyMessageId), (remoteMessage, error) -> tdlib.send(new TdApi.GetMessageProperties(replyChatId, replyMessageId), (properties, error1) -> {
         runOnUiThreadOptional(() -> {
           if (getChatId() == chatId && Td.equalsTo(getDraftMessage(), draftMessage) && remoteMessage != null && properties != null) {
-            showReply(new MessageWithProperties(remoteMessage, properties), replyQuote, false, false);
+            showReply(new MessageWithProperties(remoteMessage, properties), replyQuote, replyChecklistTaskId, false, false);
           } else {
             closeReply(false, true);
           }
