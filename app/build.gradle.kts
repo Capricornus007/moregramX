@@ -426,7 +426,7 @@ dependencies {
   // 17.x version requires minSdk 19 or higher
   implementation("com.google.mlkit:language-id:17.0.6")
   // The Checker Framework: https://checkerframework.org/CHANGELOG.md
-  compileOnly("org.checkerframework:checker-qual:3.49.3")
+  compileOnly("org.checkerframework:checker-qual:3.49.5")
   // OkHttp: https://github.com/square/okhttp/blob/master/CHANGELOG.md
   implementation("com.squareup.okhttp3:okhttp:4.12.0")
   // ShortcutBadger: https://github.com/leolin310148/ShortcutBadger
@@ -434,7 +434,7 @@ dependencies {
   // ReLinker: https://github.com/KeepSafe/ReLinker/blob/master/CHANGELOG.md
   implementation("com.getkeepsafe.relinker:relinker:1.4.5")
   // Konfetti: https://github.com/DanielMartinus/Konfetti/blob/main/README.md
-  implementation("nl.dionsegijn:konfetti-xml:2.0.4")
+  implementation("nl.dionsegijn:konfetti-xml:2.0.5")
   // Transcoder: https://github.com/natario1/Transcoder/blob/master/docs/_about/changelog.md
   implementation("com.github.natario1:Transcoder:ba8f098c94")
   // https://github.com/mikereedell/sunrisesunsetlib-java
