@@ -38,7 +38,9 @@ public class Config {
   public static final boolean SEARCH_MESSAGES_ONLY_IN_SELECTED_FOLDER = true; //BuildConfig.EXPERIMENTAL
   public static final boolean CHAT_FOLDERS_UNSET_DEFAULT_ICONS = false; // Until there's a fix on server
 
+  public static final boolean TEST_MULTI_SPONSORED_MESSAGES = false;
   public static final boolean TEST_NEW_FEATURES_PROMPTS = false;
+  public static final boolean ADJUST_STATUS_BAR_TO_AVOID_DISPLAY_CUTOUT = false;
 
   public static final boolean NEED_SILENT_BROADCAST = false;
 
@@ -98,7 +100,6 @@ public class Config {
   public static final boolean DISABLE_SENDING_MEDIA_CACHE = false; // BuildConfig.DEBUG; // FIXME: TDLib
   public static final boolean WORKAROUND_NEED_MODIFY = true; // FIXME TDLib
 
-  public static final boolean USE_FULLSCREEN_NAVIGATION = true;
   public static final boolean USE_FULLSCREEN_NAVIGATION_CONTENT = false; // BuildConfig.DEBUG;
   public static final boolean USE_TRANSLUCENT_NAVIGATION = false; // Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT;
 
@@ -154,7 +155,8 @@ public class Config {
 
   public static final boolean IN_APP_BROWSER_AVAILABLE = Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH_MR1;
 
-  public static final boolean VIDEO_PLAYER_AVAILABLE = Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN;
+  public static final boolean VIDEO_PLAYER_AVAILABLE = Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP;
+  public static final boolean HLS_VIDEO_ENABLED = Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP;
 
   public static final boolean FORCE_TOUCH_ENABLED = true;
   public static final boolean HOLD_TO_PREVIEW_AVAILABLE = true;
@@ -165,7 +167,7 @@ public class Config {
 
   public static final boolean SLOW_VIDEO_SWITCH = Device.IS_SAMSUNG; // TODO make
 
-  public static final boolean ROUND_VIDEOS_PLAYBACK_SUPPORTED = Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN;
+  public static final boolean ROUND_VIDEOS_PLAYBACK_SUPPORTED = Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP;
   public static final boolean ROUND_VIDEOS_RECORD_SUPPORTED = Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2;
 
   public static final boolean DEBUG_CLIPPING = false;
@@ -246,6 +248,10 @@ public class Config {
   public static final int MINIMUM_CALL_CONTACTS_SUGGESTIONS = 3;
 
   public static final boolean USE_CUSTOM_NAVIGATION_COLOR = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O;
+  public static final boolean USE_TRANSPARENT_STATUS_BAR = BuildConfig.DEBUG;
+
+  public static final boolean EDGE_TO_EDGE_AVAILABLE = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R;
+  public static final boolean EDGE_TO_EDGE_CUSTOMIZABLE = EDGE_TO_EDGE_AVAILABLE && (Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM || BuildConfig.TARGET_SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM);
 
   public static final boolean PREFER_RENDER_EXTENSIONS = true;
 

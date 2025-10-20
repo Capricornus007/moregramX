@@ -240,6 +240,7 @@ import org.thunderdog.challegram.widget.CollapseListView;
 import org.thunderdog.challegram.widget.CustomTextView;
 import org.thunderdog.challegram.widget.EmojiLayout;
 import org.thunderdog.challegram.widget.EmojiPacksInfoView;
+import org.thunderdog.challegram.widget.FillingSpace;
 import org.thunderdog.challegram.widget.ForceTouchView;
 import org.thunderdog.challegram.widget.KeyboardFrameLayout;
 import org.thunderdog.challegram.widget.NoScrollTextView;
@@ -334,6 +335,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   private MessagesLayout contentView;
   private LinearLayout bottomWrap;
+  private FillingSpace bottomSpace;
   private MessagesRecyclerView messagesView;
 
   private final MessagesManager manager;
@@ -378,8 +380,6 @@ public class MessagesController extends ViewController<MessagesController.Argume
   private FrameLayoutFix scrollToBottomButtonWrap, mentionButtonWrap, reactionsButtonWrap;
   private CircleButton scrollToBottomButton, mentionButton, reactionsButton;
   private CounterBadgeView unreadCountView, mentionCountView, reactionsCountView;
-
-  public boolean sponsoredMessageLoaded = false;
 
   public MessagesController (Context context, Tdlib tdlib) {
     super(context, tdlib);
@@ -639,6 +639,61 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   @Override
+  public boolean supportsBottomInset () {
+    return !isInForceTouchMode();
+  }
+
+  @Override
+  protected void onBottomInsetChanged (int extraBottomInset, int extraBottomInsetWithoutIme, boolean isImeInset) {
+    super.onBottomInsetChanged(extraBottomInset, extraBottomInsetWithoutIme, isImeInset);
+    if (emojiKeyboardFrameLayout != null) {
+      emojiKeyboardFrameLayout.setExtraBottomInset(extraBottomInset, extraBottomInsetWithoutIme);
+    }
+    updateBottomWrapOffset();
+    iterateMediaTabs(c ->
+      c.setBottomInset(extraBottomInset, extraBottomInsetWithoutIme)
+    );
+    Views.setLayoutHeight(bottomBar, Screen.dp(48f) + extraBottomInsetWithoutIme);
+    Views.setPaddingBottom(bottomBar, extraBottomInsetWithoutIme);
+    checkScrollButtonOffsets();
+    updateMessagesViewInset();
+    onMessagesFrameChanged();
+    if (searchControlsForChannel) {
+      Views.setLayoutHeight(searchControlsLayout, Screen.dp(48f) + extraBottomInset);
+    }
+    Views.setPaddingBottom(searchControlsReveal, extraBottomInset);
+    if (searchControlsLayout != null && needSearchControlsTranslate()) {
+      searchControlsLayout.setTranslationY((Screen.dp(49f) + extraBottomInset) * (1f - searchControlsFactor));
+    }
+    updateSearchControlsInset();
+    if (keyboardWrapper != null && keyboardLayout != null) {
+      Views.applyBottomInset(keyboardWrapper, extraBottomInsetWithoutIme);
+      Views.setLayoutHeight(keyboardWrapper, keyboardLayout.getSize() + extraBottomInsetWithoutIme);
+    }
+  }
+
+  private void updateSearchControlsInset () {
+    if (searchControlsLayout != null) {
+      for (int i = 0; i < searchControlsLayout.getChildCount(); i++) {
+        View view = searchControlsLayout.getChildAt(i);
+        if (view != null && view != searchControlsReveal) {
+          Views.setBottomMargin(view, extraBottomInset / 2);
+        }
+      }
+    }
+  }
+
+  private void updateMessagesViewInset () {
+    int inset = bottomWrap != null && bottomWrap.getVisibility() == View.VISIBLE ? 0 : extraBottomInset;
+    int appliedInset = Views.getAppliedBottomInset(messagesView);
+    if (inset != appliedInset) {
+      manager.maintainScrollPositionAndOffset(() -> {
+        return Views.applyBottomInset(messagesView, inset);
+      });
+    }
+  }
+
+  @Override
   protected View onCreateView (final Context context) {
     if (!isInForceTouchMode()) {
       UI.setSoftInputMode(UI.getContext(context), Config.DEFAULT_WINDOW_PARAMS);
@@ -692,6 +747,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
               throw new UnsupportedOperationException(filledWp.fill.toString());
           }
         }
+        break;
       }
       default: {
         break;
@@ -733,6 +789,13 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
 
     manager.modifyRecycler(context, messagesView, messagesManager);
+
+    params = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0);
+    params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
+
+    bottomSpace = new FillingSpace(context);
+    bottomSpace.setLayoutParams(params);
+    bottomSpace.setThemedBackground(ColorId.filling, this);
 
     params = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
     params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
@@ -1420,7 +1483,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
     // Bottom bar
 
-    params = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(48f));
+    params = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(48f) + extraBottomInsetWithoutIme);
     params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
 
     bottomBar = new ChatBottomBarView(context, tdlib) {
@@ -1430,10 +1493,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
         updateBottomBarStyle();
       }
     };
+    Views.setPaddingBottom(bottomBar, extraBottomInsetWithoutIme);
     bottomBar.setOnClickListener(this);
     bottomBar.setLayoutParams(params);
     addThemeInvalidateListener(bottomBar);
-    updateBottomBarStyle();
+    checkScrollButtonOffsets();
+    updateMessagesViewInset();
 
     if (previewMode == PREVIEW_MODE_WALLPAPER_OBJECT) {
       showBottomButton(BOTTOM_ACTION_APPLY_WALLPAPER, 0, false);
@@ -1449,6 +1514,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (!inPreviewMode) {
       contentView.addView(replyBarView);
     }
+    contentView.addView(bottomSpace);
     contentView.addView(bottomWrap);
     contentView.addView(messagesView);
     contentView.addView(bottomShadowView);
@@ -1524,7 +1590,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
             blocked = false;
           }
           if (!blocked) {
-            blocked = getCurrentItem() == 0 && (UI.getContext(MessagesController.this.context()).getRecordAudioVideoController().isOpen() || (inputView != null && inputView.getInlineSearchContext().isVisibleOrActive()));
+            blocked = getCurrentItem() == 0 && (UI.getContext(MessagesController.this.context()).getRecordAudioVideoController().isOpen() || (inputView != null && inputView.getInlineSearchContext().isVisibleOrActive()) || (attachedFiles != null && attachedFiles.isDisplayingItems()));
           }
 
           return !blocked && super.onInterceptTouchEvent(ev);
@@ -1641,6 +1707,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
         }
       }
       container.addView(c.getValue());
+      c.setBottomInset(context.extraBottomInset, context.extraBottomInsetWithoutIme);
       return c;
     }
 
@@ -1675,6 +1742,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       checkPagerInputBlocked();
       checkRoundVideo();
       checkInlineResults();
+      onMessagesFrameChanged();
     }
   }
 
@@ -1987,6 +2055,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   @Override
+  @SuppressWarnings("deprecation")
   public void onClick (View v) {
     final int viewId = v.getId();
     if (inPreviewMode) {
@@ -3317,6 +3386,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
     if (visible) {
       bottomWrap.setVisibility(View.VISIBLE);
+      bottomSpace.setVisibility(View.VISIBLE);
       bottomShadowView.setVisibility(View.VISIBLE);
       if (replyBarView != null) {
         replyBarView.setVisibility(View.VISIBLE);
@@ -3336,6 +3406,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     } else {
       hideActionButton();
       bottomWrap.setVisibility(View.GONE);
+      bottomSpace.setVisibility(View.GONE);
       if (replyBarView != null) {
         replyBarView.setVisibility(View.GONE);
       }
@@ -3345,6 +3416,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
       sendButton.setVisibility(View.GONE);
       messageSenderButton.setVisibility(View.GONE);
     }
+    updateBottomBarStyle();
+    updateMessagesViewInset();
   }
 
   @Override
@@ -4279,6 +4352,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (manager != null) {
       manager.destroy(this);
     }
+    if (attachedFiles != null) {
+      context.removeFromRoot(attachedFiles);
+    }
 
     if (tooltipInfo != null) {
       tooltipInfo.destroy();
@@ -4305,7 +4381,6 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
 
     botStartArgument = null;
-    sponsoredMessageLoaded = false;
 
     // switch pm state
     clearSwitchPmButton();
@@ -5386,13 +5461,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
         clearSelectedMessageIds();
       }
       if (pagerContentAdapter != null) {
-        final int size = pagerContentAdapter.cachedItems.size();
-        for (int i = 0; i < size; i++) {
-          SharedBaseController<?> c = pagerContentAdapter.cachedItems.valueAt(i);
-          if (c != null) {
-            c.setInMediaSelectMode(false);
-          }
-        }
+        iterateMediaTabs(c ->
+          c.setInMediaSelectMode(false)
+        );
       }
       if (position == -1) {
         closeSelectMode();
@@ -5538,6 +5609,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
   }
 
+  @SuppressWarnings("unchecked")
   private OptionDelegate newMessageOptionDelegate (final TGMessage selectedMessage, final TdApi.ChatMember selectedMessageSender, final Object selectedMessageTag) {
     return (itemView, id) -> {
       if (id == R.id.btn_cancel) {
@@ -5803,7 +5875,6 @@ public class MessagesController extends ViewController<MessagesController.Argume
             context().tooltipManager().builder(itemView).show(tdlib, R.string.ChannelNoSave).hideDelayed();
             return false;
           }
-          //noinspection unchecked
           tdlib.ui().saveGifs(((List<TD.DownloadedFile>) selectedMessageTag));
         }
         return true;
@@ -5813,7 +5884,6 @@ public class MessagesController extends ViewController<MessagesController.Argume
             context().tooltipManager().builder(itemView).show(tdlib, R.string.ChannelNoSave).hideDelayed();
             return false;
           }
-          //noinspection unchecked
           TD.saveFiles(context, (List<TD.DownloadedFile>) selectedMessageTag);
         }
         return true;
@@ -5879,7 +5949,6 @@ public class MessagesController extends ViewController<MessagesController.Argume
         return true;
       } else if (id == R.id.btn_deleteFile) {
         if (selectedMessageTag != null) {
-          //noinspection unchecked
           TD.deleteFiles(this, (List<TD.DownloadedFile>) selectedMessageTag, null);
         } else {
           TdApi.Message[] messages = selectedMessage.getAllMessages();
@@ -5990,15 +6059,15 @@ public class MessagesController extends ViewController<MessagesController.Argume
     float detachFactor = scrollToBottomVisible.getFloatValue();
     boolean needBottomBar = CURRENT_BOTTOM_ACTION == BOTTOM_ACTION_APPLY_WALLPAPER;
     boolean needHideBottomBar = MoexConfig.hideBottomBar && !needBottomBar && !scrollToBottomVisible.getValue();
-    int barHeight = Screen.dp(48f);
+    int barHeight = Screen.dp(48f) + extraBottomInset;
     int baseY = needSearchControlsTranslate() ? (int) ((float) barHeight * MathUtils.clamp(searchControlsFactor)) : 0;
     float fromY = bottomButtonFactor == 1f ? baseY : baseY + (int) ((float) barHeight * (1f - bottomButtonFactor));
     float alpha = (1f - 1f * detachFactor * (1f - bottomButtonFactor)) * (1f - searchControlsFactor);
     int moveBy = Screen.dp(74f) - Screen.dp(16f);
-    float toY = -getButtonsOffset() - Screen.dp(16f) - moveBy - moveBy * mentionButtonFactor; //  -getReplyOffset() - (Screen.dp(74f) - Screen.dp(48f)) / 2f;
+    float toY = -getButtonsOffset() - Screen.dp(16f) - moveBy - moveBy * mentionButtonFactor + (bottomWrap.getVisibility() == View.VISIBLE ? 0 : extraBottomInsetWithoutIme); //  -getReplyOffset() - (Screen.dp(74f) - Screen.dp(48f)) / 2f;
     bottomBar.setCollapseFactor(detachFactor);
     bottomBar.setAlpha(alpha);
-    int dx = (int) ((bottomBar.getMeasuredWidth() / 2f - Screen.dp(16f) - barHeight / 2) * detachFactor);
+    int dx = (int) ((bottomBar.getMeasuredWidth() / 2f - Screen.dp(16f) - Screen.dp(48f) / 2f) * detachFactor);
     bottomBar.setTranslationY(bottomButtonFactor == 1f && detachFactor == 0f ? fromY : fromY + (toY - fromY) * detachFactor);
     bottomBar.setTranslationX(dx);
     int desiredVisibility = (bottomButtonFactor > 0f && searchControlsFactor != 1f) && !needHideBottomBar ? View.VISIBLE : View.GONE;
@@ -6892,7 +6961,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   private float getButtonsOffset () {
-    return getReplyOffset() + getAttachedFilesOffset() + getSearchControlsOffset() + getKeyboardOffset();
+    return getReplyOffset() + getAttachedFilesOffset() + getSearchControlsOffset() + getKeyboardOffset() + (bottomWrap.getVisibility() == View.VISIBLE ? 0 : extraBottomInsetWithoutIme);
   }
 
   private float getMentionButtonY () {
@@ -7493,6 +7562,13 @@ public class MessagesController extends ViewController<MessagesController.Argume
   private ScrollView keyboardWrapper;
   private CommandKeyboardLayout keyboardLayout;
 
+  private void setCommandsShown (boolean commandsShown) {
+    if (this.commandsShown != commandsShown) {
+      this.commandsShown = commandsShown;
+      updateBottomWrapOffset();
+    }
+  }
+
   private void toggleCommandsKeyboard () {
     if (commandsShown) {
       closeCommandsKeyboard(true);
@@ -7517,7 +7593,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
         keyboardLayout.showKeyboard(inputView);
       }
 
-      commandsShown = false;
+      setCommandsShown(false);
       if (destroy) {
         updateCommandButton(R.drawable.deproko_baseline_bots_command_26);
       } else {
@@ -7536,7 +7612,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       if (keyboardWrapper != null) {
         keyboardWrapper.setVisibility(View.GONE);
       }
-      commandsShown = false;
+      setCommandsShown(false);
       updateCommandButton(R.drawable.deproko_baseline_bots_keyboard_26);
     }
   }
@@ -7555,7 +7631,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
       keyboardLayout.setCallback(this);
 
       keyboardWrapper.addView(keyboardLayout);
-      keyboardWrapper.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, keyboardLayout.getSize()));
+      keyboardWrapper.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, keyboardLayout.getSize() + extraBottomInsetWithoutIme));
+      Views.applyBottomInset(keyboardWrapper, extraBottomInsetWithoutIme);
 
       bottomWrap.addView(keyboardWrapper);
       contentView.getViewTreeObserver().addOnPreDrawListener(keyboardLayout);
@@ -7588,7 +7665,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
     keyboardWrapper.setVisibility(View.VISIBLE);
     // updateButtonsY();
-    commandsShown = true;
+    setCommandsShown(true);
 
     if (commandsState) {
       updateCommandButton(R.drawable.baseline_keyboard_24);
@@ -8215,7 +8292,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   private TopBarView.Item newReportItem (long chatId, boolean isBlock) {
     return new TopBarView.Item(R.id.btn_reportChat, isBlock ? R.string.BlockContact : R.string.ReportSpam, v -> {
       showSettings(new SettingsWrapBuilder(R.id.btn_reportSpam)
-        .setHeaderItem(new ListItem(ListItem.TYPE_INFO, 0, 0, Lang.getStringBold(R.string.ReportChatSpam, chat.title), false))
+        .addHeaderItem(new ListItem(ListItem.TYPE_INFO, 0, 0, Lang.getStringBold(R.string.ReportChatSpam, chat.title), false))
         .setRawItems(getChatUserId() != 0 ? new ListItem[] {
           new ListItem(ListItem.TYPE_CHECKBOX_OPTION, R.id.btn_reportSpam, 0, R.string.ReportSpam, true),
           new ListItem(ListItem.TYPE_CHECKBOX_OPTION, R.id.btn_removeChatFromList, 0, R.string.DeleteChat, true),
@@ -8679,7 +8756,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (isInForceTouchMode()) {
       return makeGuessAboutForcePreviewHeight();
     } else {
-      int height = Screen.currentHeight() - HeaderView.getSize(true);
+      int height;
+      if (Settings.instance().useEdgeToEdge()) {
+        height = context().getVisibleContentHeight() - context().getRootView().getTopInset() - HeaderView.getSize(false);
+      } else {
+        height = Screen.currentHeight() - HeaderView.getSize(true);
+      }
 
       if (canWriteMessages() || actionShowing) {
         height -= Screen.dp(49f);
@@ -8726,6 +8808,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   public boolean onKeyboardStateChanged (boolean visible) {
     if (isEventLog()) {
       bottomWrap.setVisibility(visible ? View.INVISIBLE : View.VISIBLE);
+      bottomSpace.setVisibility(visible ? View.INVISIBLE : View.VISIBLE);
       bottomShadowView.setVisibility(visible ? View.INVISIBLE : View.VISIBLE);
       RelativeLayout.LayoutParams params = ((RelativeLayout.LayoutParams) messagesView.getLayoutParams());
       params.addRule(RelativeLayout.ABOVE, visible ? 0 : R.id.msg_bottom);
@@ -8735,6 +8818,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
       params.addRule(RelativeLayout.ABOVE, visible ? 0 : R.id.msg_bottom);
       params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM, visible ? RelativeLayout.TRUE : 0);
       scrollToBottomButtonWrap.setLayoutParams(params);
+
+      updateBottomBarStyle();
+      updateMessagesViewInset();
     }
 
     if (isFocused()) {
@@ -8762,40 +8848,50 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   @Override
-  public boolean onBackPressed (boolean fromTop) {
+  public boolean performOnBackPressed (boolean fromTop, boolean commit) {
     BaseActivity context = context();
     if (context.getRecordAudioVideoController().isOpen()) {
-      context.getRecordAudioVideoController().finishRecording(true);
+      if (commit) {
+        context.getRecordAudioVideoController().finishRecording(true);
+      }
       return true;
     }
     if (hasEditedChanges()) {
-      if (isEditingCaption()) {
-        showUnsavedChangesPromptBeforeLeaving(Lang.getString(R.string.DiscardEditCaptionHint), Lang.getString(R.string.DiscardEditCaption), null);
-      } else {
-        showUnsavedChangesPromptBeforeLeaving(Lang.getString(R.string.DiscardEditMsgHint), Lang.getString(R.string.DiscardEditMsg), null);
+      if (commit) {
+        if (isEditingCaption()) {
+          showUnsavedChangesPromptBeforeLeaving(Lang.getString(R.string.DiscardEditCaptionHint), Lang.getString(R.string.DiscardEditCaption), null);
+        } else {
+          showUnsavedChangesPromptBeforeLeaving(Lang.getString(R.string.DiscardEditMsgHint), Lang.getString(R.string.DiscardEditMsg), null);
+        }
       }
       return true;
     }
 
     if (hasAttachedFiles()) {
-      showUnsavedChangesPromptBeforeLeaving(Lang.getString(R.string.DiscardCaptionHint), Lang.getString(R.string.DiscardEditCaption), null);
+      if (commit) {
+        showUnsavedChangesPromptBeforeLeaving(Lang.getString(R.string.DiscardCaptionHint), Lang.getString(R.string.DiscardEditCaption), null);
+      }
       return true;
     }
 
-    if (fromTop) {
-      return false;
+    if (!fromTop) {
+      if (emojiShown) {
+        if (commit) {
+          emojiState = false;
+          closeEmojiKeyboard();
+        }
+        return true;
+      }
+      if (commandsShown) {
+        if (commit) {
+          commandsState = false;
+          closeCommandsKeyboard(true);
+        }
+        return true;
+      }
     }
-    if (emojiShown) {
-      emojiState = false;
-      closeEmojiKeyboard();
-      return true;
-    }
-    if (commandsShown) {
-      commandsState = false;
-      closeCommandsKeyboard(true);
-      return true;
-    }
-    return false;
+
+    return super.performOnBackPressed(fromTop, commit);
   }
 
   private boolean emojiShown, emojiState;
@@ -8820,6 +8916,16 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
   }
 
+  private void updateBottomWrapOffset () {
+    if (bottomWrap != null) {
+      int height = emojiShown || commandsShown ? 0 : extraBottomInset;
+      Views.setPaddingBottom(bottomWrap, height);
+      if (bottomSpace.setLayoutHeight(height, false)) {
+        onMessagesFrameChanged();
+      }
+    }
+  }
+
   private void openEmojiKeyboard () {
     if (!emojiShown) {
       if (emojiKeyboardFrameLayout == null) {
@@ -8827,6 +8933,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
         emojiKeyboardFrameLayout.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         emojiKeyboardFrameLayout.setParentView(bottomWrap, contentView, contentView);
         emojiKeyboardFrameLayout.setUpdateTranslationListener(this::onKeyboardLayoutTranslation);
+        emojiKeyboardFrameLayout.setExtraBottomInset(extraBottomInset, extraBottomInsetWithoutIme);
 
         textFormattingLayout = emojiKeyboardFrameLayout.contentView.textFormattingLayout;
         textFormattingLayout.init(this, inputView, new TextFormattingLayout.Delegate() {
@@ -8892,6 +8999,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       }
       updateEmojiStatus();
       setTextFormattingLayoutVisible(textInputHasSelection);
+      updateBottomWrapOffset();
 
       if (inputView != null) {
         inputView.setActionModeVisibility(!textInputHasSelection || !emojiShown);
@@ -9043,7 +9151,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
     inputView.getSymbolUnderCursorPosition(symbolUnderCursorPosition);
     cursorCoordinates[0] = symbolUnderCursorPosition[0] + inputView.getLeft() + inputView.getPaddingLeft();
-    cursorCoordinates[1] = symbolUnderCursorPosition[1] - inputView.getLineHeight() + Screen.currentHeight() - getInputOffset(true) - Screen.dp(40);
+    int y = context.getRootView().getMeasuredHeight() - getInputOffset(true) - extraBottomInset;
+    // cursorCoordinates[1] = symbolUnderCursorPosition[1] - inputView.getLineHeight() + context.getRootView().getMeasuredHeight() - extraBottomInset - getInputOffset(true) - Screen.dp(40);
+    cursorCoordinates[1] = y;
     return cursorCoordinates;
   }
 
@@ -9051,12 +9161,13 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (bottomWrap.getVisibility() == View.GONE) {
       return 0;
     }
-    int bottom = bottomWrap.getMeasuredHeight();
+    float bottom = bottomWrap.getMeasuredHeight();
     if (!excludeTranslation) {
       bottom += getReplyOffset();
     }
     bottom += getKeyboardOffset();
-    return bottom;
+    bottom -= extraBottomInset;
+    return (int) bottom;
   }
 
   // Stickers
@@ -9494,10 +9605,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
           .setSettingProcessor((item, view, isUpdate) -> {
             switch (item.getViewType()) {
               case ListItem.TYPE_CHECKBOX_OPTION:
-              case ListItem.TYPE_CHECKBOX_OPTION_WITH_AVATAR:
-                view.setEmojiStatus(tdlib.cache().user(item.getLongValue()));
+              case ListItem.TYPE_CHECKBOX_OPTION_WITH_AVATAR: {
+                long userId = item.getLongValue();
+                view.setEmojiStatus(userId != 0 ? tdlib.cache().user(userId) : null);
                 ((CheckBoxView) view.getChildAt(0)).setChecked(item.isSelected(), isUpdate);
                 break;
+              }
             }
           })
           .setOnSettingItemClick((view, settingsId, item, doneButton, settingsAdapter, window) -> {
@@ -9708,6 +9821,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
   }
 
+  @SuppressWarnings("unchecked")
   private void sendText (TdApi.FormattedText msg, boolean clearInput, boolean allowDice, boolean allowReply, boolean allowLinkPreview, TdApi.MessageSendOptions initialSendOptions) {
     if ((Td.isEmpty(msg) && !(clearInput && inputView != null && inputView.getText().length() > 0)) || (isSendingText && clearInput)) {
       return;
@@ -11374,6 +11488,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     searchControlsReveal = new RippleRevealView(context);
     searchControlsReveal.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     searchControlsLayout.addView(searchControlsReveal);
+    Views.setPaddingBottom(searchControlsReveal, extraBottomInset);
     addThemeInvalidateListener(searchControlsReveal);
 
     fp = FrameLayoutFix.newParams(Screen.dp(52f), Screen.dp(49f), Gravity.LEFT | Gravity.CENTER_VERTICAL);
@@ -11448,6 +11563,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
     setSearchInProgress(0f);
     setSearchControlsFactor(0f);
+    updateSearchControlsInset();
   }
 
   private boolean searchControlsForChannel;
@@ -11480,7 +11596,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
           rp.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
           rp.addRule(RelativeLayout.ALIGN_BOTTOM, 0);
           rp.addRule(RelativeLayout.ALIGN_TOP, 0);
-          rp.height = Screen.dp(48f);
+          rp.height = Screen.dp(48f) + extraBottomInset;
         } else {
           rp.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM, 0);
           rp.addRule(RelativeLayout.ALIGN_BOTTOM, R.id.msg_bottom);
@@ -11570,7 +11686,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       }
       boolean translate = needSearchControlsTranslate();
       searchControlsReveal.setRevealFactor(translate ? 1f : factor);
-      searchControlsLayout.setTranslationY(translate ? Screen.dp(49f) * (1f - factor) : 0f);
+      searchControlsLayout.setTranslationY(translate ? (Screen.dp(49f) + extraBottomInset) * (1f - factor) : 0f);
       if (translate) {
         checkScrollButtonOffsets();
       }
@@ -11582,7 +11698,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   private float getSearchControlsOffset () {
-    return needSearchControlsTranslate() && searchControlsFactor != -1f ? Screen.dp(49f) * searchControlsFactor : 0f;
+    return needSearchControlsTranslate() && searchControlsFactor != -1f ? (Screen.dp(49f) + extraBottomInset) * (searchControlsFactor) : 0f;
   }
 
   @Override
@@ -11681,16 +11797,24 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   private String lastMediaSearchQuery;
 
-  private void searchMedia (String query) {
-    if (pagerContentAdapter != null && !StringUtils.equalsOrBothEmpty(lastMediaSearchQuery, query)) {
-      lastMediaSearchQuery = query;
+  private void iterateMediaTabs (RunnableData<SharedBaseController<?>> callback) {
+    if (pagerContentAdapter != null) {
       final int size = pagerContentAdapter.cachedItems.size();
       for (int i = 0; i < size; i++) {
         SharedBaseController<?> c = pagerContentAdapter.cachedItems.valueAt(i);
         if (c != null) {
-          c.search(query);
+          callback.runWithData(c);
         }
       }
+    }
+  }
+
+  private void searchMedia (String query) {
+    if (pagerContentAdapter != null && !StringUtils.equalsOrBothEmpty(lastMediaSearchQuery, query)) {
+      lastMediaSearchQuery = query;
+      iterateMediaTabs(c ->
+        c.search(query)
+      );
     }
   }
 
@@ -12184,7 +12308,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       if (content == null) {
         return MESSAGE_TYPE_TEXT;
       }
-      if (!StringUtils.isEmpty(msg.restrictionReason) && Settings.instance().needRestrictContent()) {
+      if (Td.hasRestriction(msg.restrictionInfo, Settings.instance().needRestrictContent())) {
         return MESSAGE_TYPE_TEXT;
       }
       switch (content.getConstructor()) {
@@ -12605,6 +12729,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
     setCustomCaptionPlaceholder(hasAttachedFiles ? Lang.getString(R.string.Caption) : null);
     if (inputView != null) {
+      inputView.getInlineSearchContext().setIsCaption(hasAttachedFiles);
       checkSendButton(animated);
     }
     if (emojiLayout != null) {
@@ -12753,27 +12878,24 @@ public class MessagesController extends ViewController<MessagesController.Argume
         public void onFactorChanged (int id, float factor, float fraction, FactorAnimator callee) {
           super.onFactorChanged(id, factor, fraction, callee);
           updateReplyView();
+          if (factor == 0f) {
+            if (getParent() != null) {
+              context.removeFromRoot(this);
+            }
+          } else {
+            if (getParent() == null) {
+              context.addToRoot(this, false);
+            }
+          }
         }
       };
       attachedFilesAnimator = new CustomItemAnimator(AnimatorUtils.DECELERATE_INTERPOLATOR, 150L);
       attachedFiles.getRecyclerView().setItemAnimator(null);
-      attachedFiles.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-      attachedFiles.setOffsetProvider(new InlineResultsWrap.OffsetProvider() {
-        @Override
-        public int provideOffset (InlineResultsWrap v) {
-          return getInputOffset(false);
-        }
-
-        @Override
-        public int provideParentHeight (InlineResultsWrap v) {
-          return contentView.getMeasuredHeight();
-        }
-      });
       attachedFiles.setListener(new InlineResultsWrap.PickListener() {});
     }
 
     if (attachedFiles.getParent() == null) {
-      contentView.addView(attachedFiles);
+      context().addToRoot(attachedFiles, false);
     }
 
     attachedFiles.showItems(this, results, false, null, null, null, needHideAttachedFiles());

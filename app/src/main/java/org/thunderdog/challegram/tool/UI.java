@@ -20,6 +20,7 @@ import android.content.ContextWrapper;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.content.res.Resources;
+import android.graphics.Color;
 import android.os.Build;
 import android.os.CancellationSignal;
 import android.os.Handler;
@@ -33,6 +34,7 @@ import android.view.inputmethod.InputMethodManager;
 import android.view.inputmethod.InputMethodSubtype;
 import android.widget.Toast;
 
+import androidx.activity.EdgeToEdge;
 import androidx.annotation.IntDef;
 import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
@@ -77,6 +79,8 @@ import me.vkryl.android.SdkVersion;
 import me.vkryl.android.ViewUtils;
 import me.vkryl.android.util.InvalidateDelegate;
 import me.vkryl.android.util.LayoutDelegate;
+import me.vkryl.core.BitwiseUtils;
+import me.vkryl.core.ColorUtils;
 import me.vkryl.core.StringUtils;
 import me.vkryl.core.reference.ReferenceList;
 
@@ -431,26 +435,6 @@ public class UI {
     return appContext.getResources();
   }
 
-  @SuppressWarnings("deprecation")
-  public static Locale getLocale (Configuration configuration) {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-      android.os.LocaleList list = configuration.getLocales();
-      return list.get(0);
-    } else {
-      return configuration.locale;
-    }
-  }
-
-  public static Locale getSystemLocale () {
-    Configuration configuration = Resources.getSystem().getConfiguration();
-    return getLocale(configuration);
-  }
-
-  public static Locale getConfigurationLocale () {
-    Configuration configuration = getAppContext().getResources().getConfiguration();
-    return getLocale(configuration);
-  }
-
   public static void removePendingRunnable (Runnable runnable) {
     getAppHandler().removeCallbacks(runnable);
   }
@@ -598,7 +582,6 @@ public class UI {
     return navigation != null ? navigation.getStack().getCurrent() : null;
   }
 
-  @Deprecated
   public static ViewController<?> getCurrentStackItem (Context context) {
     return UI.getContext(context).navigation().getCurrentStackItem();
   }
@@ -606,87 +589,100 @@ public class UI {
   public static final int NAVIGATION_BAR_COLOR = false && Device.NEED_LIGHT_NAVIGATION_COLOR ? 0xfff0f0f0 : 0xff000000;
 
   @SuppressWarnings("deprecation")
+  public static void setLightSystemBars (Window w, boolean lightNavigationBar, boolean lightStatusBar, int newVisibility, boolean forceNewVisibility) {
+    if (Settings.instance().useEdgeToEdge() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+      android.view.WindowInsetsController insetsController = w.getInsetsController();
+      if (insetsController != null) {
+        int flags =
+          android.view.WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS |
+          android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS;
+        int setFlags =
+          BitwiseUtils.optional(android.view.WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS, lightNavigationBar) |
+          BitwiseUtils.optional(android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS, lightStatusBar);
+        insetsController.setSystemBarsAppearance(setFlags, flags);
+      }
+    }
+    int visibility = forceNewVisibility ? newVisibility : w.getDecorView().getSystemUiVisibility();
+    visibility = BitwiseUtils.setFlag(visibility, View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR, lightNavigationBar);
+    visibility = BitwiseUtils.setFlag(visibility, View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR, lightStatusBar);
+    w.getDecorView().setSystemUiVisibility(visibility);
+  }
+
+  @SuppressWarnings("deprecation")
+  public static void setNavigationBarColor (Window w, int color, boolean isGestureNavigationEnabled) {
+    if (Config.USE_CUSTOM_NAVIGATION_COLOR) {
+      if (Settings.instance().useEdgeToEdge()) {
+        if (isGestureNavigationEnabled) {
+          w.setNavigationBarColor(Color.TRANSPARENT);
+        } else {
+          int transparentColor = Color.alpha(color) == 255 ? ColorUtils.alphaColor(.75f, color) : color;
+          w.setNavigationBarColor(transparentColor);
+        }
+      } else {
+        w.setNavigationBarColor(color);
+      }
+    }
+  }
+
+  @SuppressWarnings("deprecation")
   public static void clearActivity (BaseActivity a) {
     a.requestWindowFeature(Window.FEATURE_NO_TITLE);
     Window w = a.getWindow();
-    // TODO: rework to Window.setDecorFitsSystemWindows(boolean)
-    w.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN | WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+    if (Settings.instance().useEdgeToEdge()) {
+      w.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN);
+    } else {
+      w.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN | WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+    }
+    if (Settings.instance().useEdgeToEdge()) {
+      EdgeToEdge.enable(a);
+      if (Config.EDGE_TO_EDGE_CUSTOMIZABLE) {
+        w.setNavigationBarContrastEnforced(false);
+      }
+    }
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
       w.setBackgroundDrawableResource(R.drawable.transparent);
     } else {
-      int visibility = 0;
       if (Config.USE_CUSTOM_NAVIGATION_COLOR) {
-        w.setNavigationBarColor(Theme.backgroundColor());
-        if (!Theme.isDark()) {
-          // TODO: rework to WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS
-          visibility |= View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
-        }
+        setNavigationBarColor(w, Theme.backgroundColor(), Screen.isGesturalNavigationEnabled(getResources()));
       } else {
         w.setNavigationBarColor(NAVIGATION_BAR_COLOR);
       }
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-        if (Theme.needLightStatusBar()) {
-          // TODO: rework to WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
-          visibility |= View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
-        }
-      }
-      if (visibility != 0) {
-        // TODO: rework to WindowInsetsController
-        w.getDecorView().setSystemUiVisibility(visibility);
-      }
+      setLightSystemBars(w, !Theme.isDark(), Theme.needLightStatusBar(), 0, false);
       RootDrawable d = new RootDrawable(a);
       w.setBackgroundDrawable(d);
       a.setRootDrawable(d);
-      if (Config.USE_FULLSCREEN_NAVIGATION) {
-        w.setStatusBarColor(0); // 0x4c000000
-      } else {
-        w.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-        // TODO: rework to Window.setStatusBarColor(int)
-        w.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
-        w.setStatusBarColor(HeaderView.defaultStatusColor());
-      }
-      /*if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-        WindowManager.LayoutParams params = w.getAttributes();
-        params.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
-        w.setAttributes(params);
-      }*/
+      w.setStatusBarColor(0);
     }
   }
 
   @SuppressWarnings("deprecation")
   public static void setFullscreenIfNeeded (View view) {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && Config.USE_FULLSCREEN_NAVIGATION) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
       view.setFitsSystemWindows(true);
       // TODO: rework to WindowInsetsController
       view.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
     }
   }
 
-  public static void setNewStatusBarColor (int color) {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && Config.USE_FULLSCREEN_NAVIGATION) {
-      final BaseActivity context = getUiContext();
-      if (context != null && context.getWindow() != null) {
-        context.getWindow().setStatusBarColor(color);
-      }
-    }
-  }
-
   public static void setStatusBarColor (int color) {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && !Config.USE_FULLSCREEN_NAVIGATION) {
+    /*if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && !Config.USE_FULLSCREEN_NAVIGATION) {
       final BaseActivity context = getUiContext();
       if (context != null && context.getWindow() != null) {
         context.getWindow().setStatusBarColor(color);
       }
-    }
+    }*/
   }
 
+  @SuppressWarnings("deprecation")
   public static int getStatusBarColor () {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
       final BaseActivity context = getUiContext();
-      return context == null || context.getWindow() == null ? 0 : context.getWindow().getStatusBarColor();
-    } else {
-      return 0;
+      final Window window = context != null ? context.getWindow() : null;
+      if (window != null) {
+        return window.getStatusBarColor();
+      }
     }
+    return 0;
   }
 
   public static Window getWindow () {
@@ -882,7 +878,7 @@ public class UI {
               inputLanguages.add(code);
           }
         } else {
-          String code = LocaleUtils.toBcp47Language(getSystemLocale());
+          String code = LocaleUtils.toBcp47Language(Lang.getSystemLocale());
           if (!StringUtils.isEmpty(code)) {
             inputLanguages.add(code);
           }

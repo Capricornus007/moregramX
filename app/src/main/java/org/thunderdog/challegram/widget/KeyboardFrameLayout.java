@@ -96,11 +96,7 @@ public class KeyboardFrameLayout extends FrameLayoutFix implements ViewTreeObser
 
   @Override
   protected void onMeasure (int widthMeasureSpec, int heightMeasureSpec) {
-    super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(Keyboard.getSize(), MeasureSpec.EXACTLY));
-  }
-
-  public int getSize () {
-    return Keyboard.getSize();
+    super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(getKeyboardHeight(), MeasureSpec.EXACTLY));
   }
 
   private static final int STATE_NONE = 0;
@@ -180,11 +176,31 @@ public class KeyboardFrameLayout extends FrameLayoutFix implements ViewTreeObser
     addView(contentView);
   }
 
+  private int extraBottomInset, extraBottomInsetWithoutIme;
+
+  public void setExtraBottomInset (int extraBottomInset, int extraBottomInsetWithoutIme) {
+    if (this.extraBottomInset != extraBottomInset || this.extraBottomInsetWithoutIme != extraBottomInsetWithoutIme) {
+      this.extraBottomInset = extraBottomInset;
+      this.extraBottomInsetWithoutIme = extraBottomInsetWithoutIme;
+      ViewGroup.LayoutParams layoutParams = contentView.getLayoutParams();
+      if (layoutParams.height != ViewGroup.LayoutParams.MATCH_PARENT) {
+        layoutParams.height = getKeyboardHeight();
+        contentView.setLayoutParams(layoutParams);
+      }
+      contentView.emojiLayout.setExtraBottomInset(extraBottomInset, extraBottomInsetWithoutIme);
+      requestLayout();
+    }
+  }
+
+  private int getKeyboardHeight () {
+    return Keyboard.getSize() + extraBottomInset;
+  }
+
   private void addContentViewToParent () {
     removeContentView();
 
     if (parentViewForDetachedMode instanceof RelativeLayout) {
-      RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Keyboard.getSize());
+      RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, getKeyboardHeight());
       params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
       contentView.setLayoutParams(params);
     } else {

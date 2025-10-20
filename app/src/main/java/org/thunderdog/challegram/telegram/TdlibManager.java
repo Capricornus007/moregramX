@@ -40,6 +40,7 @@ import org.thunderdog.challegram.U;
 import org.thunderdog.challegram.config.Config;
 import org.thunderdog.challegram.core.Background;
 import org.thunderdog.challegram.core.BaseThread;
+import org.thunderdog.challegram.core.Lang;
 import org.thunderdog.challegram.core.WatchDog;
 import org.thunderdog.challegram.core.WatchDogContext;
 import org.thunderdog.challegram.data.TD;
@@ -1179,6 +1180,7 @@ public class TdlibManager implements Iterable<TdlibAccount>, UI.StateListener {
   public static final String MODE_RW = "rw";
   public static final String MODE_R = "r";
 
+  @SuppressWarnings("try")
   private synchronized void saveAccountConfig (int mode, int accountId) {
     long ms = SystemClock.uptimeMillis();
     File file = getAccountConfigFile();
@@ -2189,7 +2191,7 @@ public class TdlibManager implements Iterable<TdlibAccount>, UI.StateListener {
   public static String getSystemLanguageCode () {
     String languageCode = "en-US";
     try {
-      languageCode = LocaleUtils.toBcp47Language(UI.getConfigurationLocale());
+      languageCode = LocaleUtils.toBcp47Language(Lang.getConfigurationLocale());
     } catch (Throwable ignored) { }
     return languageCode;
   }

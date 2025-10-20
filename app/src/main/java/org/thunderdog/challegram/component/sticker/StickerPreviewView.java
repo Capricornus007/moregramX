@@ -161,8 +161,10 @@ public class StickerPreviewView extends FrameLayoutFix implements FactorAnimator
   }
 
   @Override
-  public boolean onBackPressed (boolean fromTop) {
-    closePreviewIfNeeded();
+  public boolean onBackPressed (boolean fromTop, boolean commit) {
+    if (commit) {
+      closePreviewIfNeeded();
+    }
     return true;
   }
 

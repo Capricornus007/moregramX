@@ -16,6 +16,7 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
 import android.content.Context;
+import android.graphics.Rect;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
@@ -143,11 +144,27 @@ public abstract class TelegramViewController<T> extends ViewController<T> {
     });
   }
 
+  @Override
+  public void dispatchSystemInsets (View parentView, ViewGroup.MarginLayoutParams originalParams, Rect legacyInsets, Rect insets, Rect insetsWithoutIme, Rect systemInsets, Rect systemInsetsWithoutIme, boolean fitsSystemWindows) {
+    super.dispatchSystemInsets(parentView, originalParams, legacyInsets, insets, insetsWithoutIme, systemInsets, systemInsetsWithoutIme, fitsSystemWindows);
+    setBottomInset(insets.bottom, insetsWithoutIme.bottom);
+  }
+
+  @Override
+  protected void onBottomInsetChanged (int extraBottomInset, int extraBottomInsetWithoutIme, boolean isImeInset) {
+    super.onBottomInsetChanged(extraBottomInset, extraBottomInsetWithoutIme, isImeInset);
+    if (chatSearchView != null) {
+      chatSearchView.setPadding(0, 0, 0, extraBottomInsetWithoutIme);
+    }
+  }
+
   protected final CustomRecyclerView generateChatSearchView (@Nullable ViewGroup parent) {
     final boolean noChatSearch = (getChatSearchFlags() & SearchManager.FLAG_NO_CHATS) != 0;
     chatSearchViewport = tdlib.messageViewer().createViewport(new TdApi.MessageSourceSearch(), this);
     chatSearchViewport.addIgnoreLock(() -> !this.isSearchContentVisible);
     chatSearchView = (CustomRecyclerView) Views.inflate(context(), R.layout.recycler_custom, parent);
+    chatSearchView.setClipToPadding(false);
+    chatSearchView.setPadding(0, 0, 0, systemInsets.bottom);
     Views.setScrollBarPosition(chatSearchView);
     tdlib.ui().attachViewportToRecyclerView(chatSearchViewport, chatSearchView);
     chatSearchView.addOnScrollListener(new RecyclerView.OnScrollListener() {

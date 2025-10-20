@@ -99,7 +99,7 @@ open class ModulePlugin : Plugin<Project> {
     val androidExt = project.extensions.getByName("android")
     if (androidExt is BaseExtension) {
       androidExt.apply {
-        compileSdkVersion(versions.getOrThrow("version.sdk_compile").toInt())
+        compileSdkVersion(versions.getIntOrThrow("version.sdk_compile"))
         buildToolsVersion(versions.getOrThrow("version.build_tools"))
 
         // TODO: investigate why AGP 8.1.2 forces default ndkVersion,
@@ -122,22 +122,30 @@ open class ModulePlugin : Plugin<Project> {
           jniLibs.srcDirs("jniLibs")
         }
 
-        project.tasks.withType(KotlinCompile::class.java).configureEach {
-          kotlinOptions {
-            jvmTarget = Config.JAVA_VERSION.toString()
-            allWarningsAsErrors = true
-          }
-        }
-
         project.afterEvaluate {
           tasks.withType(JavaCompile::class.java).configureEach {
-            options.compilerArgs.addAll(listOf("-Xmaxerrs", "2000", "-Xlint:unchecked", "-Xlint:deprecation"))
+            options.compilerArgs.addAll(listOf(
+              "-Xmaxerrs", "2000",
+              "-Xmaxwarns", "2000",
+
+              "-Xlint:all",
+              "-Xlint:unchecked",
+
+              "-Xlint:-serial",
+              "-Xlint:-lossy-conversions",
+              "-Xlint:-overloads",
+              "-Xlint:-overrides",
+              "-Xlint:-this-escape",
+
+              // TODO: fix deprecation warnings by migrating to newer APIs.
+              "-Xlint:-deprecation",
+            ))
           }
         }
 
         defaultConfig {
           minSdk = Config.MIN_SDK_VERSION
-          targetSdk = versions.getOrThrow("version.sdk_target").toInt()
+          targetSdk = versions.getIntOrThrow("version.sdk_target")
           multiDexEnabled = true
         }
 

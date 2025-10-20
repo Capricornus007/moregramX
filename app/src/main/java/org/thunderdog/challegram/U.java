@@ -1261,7 +1261,15 @@ public class U {
   }
 
   public static void openFile (TdlibDelegate context, TdApi.Video video) {
-    openFile(context, StringUtils.isEmpty(video.fileName) ? ("video/mp4".equals(video.mimeType) ? "video.mp4" : "video/quicktime".equals(video.mimeType) ? "video.mov" : "") : video.fileName, new File(video.video.local.path), video.mimeType, 0);
+    String displayName = StringUtils.isEmpty(video.fileName) ? ("video/mp4".equals(video.mimeType) ? "video.mp4" : "video/quicktime".equals(video.mimeType) ? "video.mov" : "") : video.fileName;
+    String mimeType = video.mimeType;
+    openFile(context, displayName, new File(video.video.local.path), mimeType, 0);
+  }
+
+  public static void openFile (TdlibDelegate context, TdApi.Animation animation) {
+    String displayName = StringUtils.isEmpty(animation.fileName) ? ("video/mp4".equals(animation.mimeType) ? "animation.mp4" : "video/quicktime".equals(animation.mimeType) ? "animation.mov" : "") : animation.fileName;
+    String mimeType = animation.mimeType;
+    openFile(context, displayName, new File(animation.animation.local.path), mimeType, 0);
   }
 
   public static Uri getUri (Parcelable parcelable) {
@@ -2412,7 +2420,6 @@ public class U {
     return measureText(in, start, end, p);
   }
 
-  @Deprecated
   public static float measureText (@Nullable CharSequence in, int start, int end, @NonNull Paint p) {
     final int count = end - start;
 
@@ -2529,7 +2536,7 @@ public class U {
 
   public static String getUsefulMetadata (@Nullable Tdlib tdlib) {
     AppBuildInfo buildInfo = org.thunderdog.challegram.unsorted.Settings.instance().getCurrentBuildInformation();
-    String locale = UI.getAppContext().getResources().getConfiguration().locale.toString();
+    String locale = Lang.getConfigurationLocale().toString();
     String appLocale = Lang.locale().toString();
     String metadata = Lang.getAppBuildAndVersion(tdlib) + " (" + BuildConfig.COMMIT + ")\n" +
       (!buildInfo.getPullRequests().isEmpty() ? "PRs: " + buildInfo.pullRequestsList() + "\n" : "") +
@@ -2685,7 +2692,7 @@ public class U {
 
   public static Locale getDisplayLocaleOfSubtypeLocale (@NonNull final String localeString) {
     if (NO_LANGUAGE.equals(localeString)) {
-      return UI.getResources().getConfiguration().locale;
+      return Lang.getPrimaryLocale(UI.getResources().getConfiguration());
     }
     return constructLocaleFromString(localeString);
   }
@@ -2696,16 +2703,7 @@ public class U {
       // TODO: Should this be Locale.ROOT?
       return null;
     }
-    final String[] localeParams = localeStr.split("_", 3);
-    if (localeParams.length == 1) {
-      return new Locale(localeParams[0]);
-    } else if (localeParams.length == 2) {
-      return new Locale(localeParams[0], localeParams[1]);
-    } else if (localeParams.length == 3) {
-      return new Locale(localeParams[0], localeParams[1], localeParams[2]);
-    }
-    // TODO: Should return Locale.ROOT instead of null?
-    return null;
+    return Lang.obtainLocale(localeStr);
   }
 
   public static @Nullable Bitmap tryDecodeVideoThumb (String path, long timeUs, int dstWidth, int dstHeight, @Nullable int[] rotation) {
@@ -3618,6 +3616,7 @@ public class U {
     }
   }
 
+  @SuppressWarnings("try")
   public static boolean canReadContentUri (Uri uri) {
     try (InputStream ignored = openInputStream(uri.toString())) {
       return true;
@@ -3701,6 +3700,14 @@ public class U {
     return false;
   }
 
+  public static boolean setRect (Rect rect, int left, int top, int right, int bottom) {
+    if (rect.left != left || rect.top != top || rect.right != right || rect.bottom != bottom) {
+      rect.set(left, top, right, bottom);
+      return true;
+    }
+    return false;
+  }
+
   public static String[] getInputLanguages () {
     final List<String> inputLanguages = new ArrayList<>();
     InputMethodManager imm = (InputMethodManager) UI.getAppContext().getSystemService(Context.INPUT_METHOD_SERVICE);
@@ -3765,7 +3772,7 @@ public class U {
               inputLanguages.add(code);
           }
         } else {
-          String code = LocaleUtils.toBcp47Language(Resources.getSystem().getConfiguration().locale);
+          String code = LocaleUtils.toBcp47Language(Lang.getPrimaryLocale(Resources.getSystem().getConfiguration()));
           if (!StringUtils.isEmpty(code)) {
             inputLanguages.add(code);
           }
@@ -3787,12 +3794,18 @@ public class U {
           return languageTag;
         }
       }
-      String locale = ims.getLocale();
-      if (!StringUtils.isEmpty(locale)) {
-        Locale l = U.getDisplayLocaleOfSubtypeLocale(locale);
-        if (l != null) {
-          return LocaleUtils.toBcp47Language(l);
-        }
+      return toLanguageCodePreNougat(ims);
+    }
+    return null;
+  }
+
+  @SuppressWarnings("deprecation")
+  private static String toLanguageCodePreNougat (InputMethodSubtype ims) {
+    String locale = ims.getLocale();
+    if (!StringUtils.isEmpty(locale)) {
+      Locale l = U.getDisplayLocaleOfSubtypeLocale(locale);
+      if (l != null) {
+        return LocaleUtils.toBcp47Language(l);
       }
     }
     return null;

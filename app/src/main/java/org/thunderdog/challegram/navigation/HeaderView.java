@@ -45,7 +45,6 @@ import androidx.annotation.Nullable;
 
 import org.thunderdog.challegram.R;
 import org.thunderdog.challegram.component.base.SwitchDrawable;
-import org.thunderdog.challegram.config.Config;
 import org.thunderdog.challegram.core.Lang;
 import org.thunderdog.challegram.telegram.TGLegacyManager;
 import org.thunderdog.challegram.theme.ColorId;
@@ -57,12 +56,14 @@ import org.thunderdog.challegram.tool.Paints;
 import org.thunderdog.challegram.tool.Screen;
 import org.thunderdog.challegram.tool.UI;
 import org.thunderdog.challegram.tool.Views;
+import org.thunderdog.challegram.unsorted.Settings;
 import org.thunderdog.challegram.unsorted.Size;
 import org.thunderdog.challegram.util.ToggleDelegate;
 import org.thunderdog.challegram.v.HeaderEditText;
 import org.thunderdog.challegram.widget.ClearButton;
 import org.thunderdog.challegram.widget.EmojiTextView;
 import org.thunderdog.challegram.widget.PopupLayout;
+import org.thunderdog.challegram.widget.RootFrameLayout;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -77,7 +78,7 @@ import me.vkryl.core.lambda.RunnableData;
 import me.vkryl.core.util.ColorChanger;
 
 @SuppressWarnings("unused")
-public class HeaderView extends FrameLayoutFix implements View.OnClickListener, View.OnLongClickListener, Destroyable, Lang.Listener, Screen.StatusBarHeightChangeListener, TGLegacyManager.EmojiLoadListener {
+public class HeaderView extends FrameLayoutFix implements View.OnClickListener, View.OnLongClickListener, Destroyable, Lang.Listener, RootFrameLayout.InsetsChangeListener, TGLegacyManager.EmojiLoadListener {
   private static boolean BACK_BUTTON_ON_TOP = true;
 
   private static final float TRANSLATION_FACTOR = .14f;
@@ -172,7 +173,6 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
     this.filling = new HeaderFilling(this, null);
     if (needOffsets) {
       filling.setNeedOffsets();
-      setHeaderOffset(getTopOffset());
       setClipToPadding(false);
     } else {
       setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, getSize(false) + filling.getExtraHeight(), Gravity.TOP));
@@ -183,14 +183,34 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
     TGLegacyManager.instance().addEmojiListener(this);
     Lang.addLanguageListener(this);
     controller.addDestroyListener(this);
+  }
+
+  private RootFrameLayout rootView;
+
+  @Override
+  protected void onAttachedToWindow () {
+    super.onAttachedToWindow();
     if (needOffsets) {
-      Screen.addStatusBarHeightListener(this);
+      rootView = Views.findAncestor(this, RootFrameLayout.class, false);
+      if (rootView != null) {
+        rootView.addInsetsChangeListener(this);
+        setHeaderOffset(rootView.getTopInset());
+      }
     }
   }
 
   @Override
-  public void onStatusBarHeightChanged (int newHeight) {
-    setHeaderOffset(getTopOffset());
+  protected void onDetachedFromWindow () {
+    super.onDetachedFromWindow();
+    if (rootView != null) {
+      rootView.removeInsetsChangeListener(this);
+      rootView = null;
+    }
+  }
+
+  @Override
+  public void onInsetsChanged (RootFrameLayout viewGroup, Rect effectiveInsets, Rect effectiveInsetsWithoutIme, Rect systemInsets, Rect systemInsetsWithoutIme, boolean isUpdate) {
+    setHeaderOffset(effectiveInsets.top);
   }
 
   public void initWithController (NavigationController controller) {
@@ -200,9 +220,8 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
     this.filling = new HeaderFilling(this, controller);
     this.filling.setNeedOffsets();
     this.filling.layout((int) height, getHeightFactor());
-    setHeaderOffset(getTopOffset());
+    // setHeaderOffset(getTopOffset());
     ViewUtils.setBackground(this, filling);
-    Screen.addStatusBarHeightListener(this);
     TGLegacyManager.instance().addEmojiListener(this);
   }
 
@@ -250,7 +269,7 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
       if (isOwningStack) {
         setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, getSize(true) + filling.getExtraHeight(), Gravity.TOP));
       } else {
-        setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, Size.getMaximumHeaderSize() + getTopOffset() + filling.getExtraHeight() + Size.getHeaderPortraitSize(), Gravity.TOP));
+        setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, Size.getMaximumHeaderSize() + getEffectiveTopOffset() + filling.getExtraHeight() + Size.getHeaderPortraitSize(), Gravity.TOP));
       }
       // requestLayout();
     }
@@ -262,8 +281,13 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
 
   // Theme stuff
 
+  @SuppressWarnings("deprecation")
   private void invalidateHeader () {
-    invalidate(0, 0, getMeasuredWidth(), filling.getBottom() + filling.getExtraHeight());
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+      invalidate();
+    } else {
+      invalidate(0, 0, getMeasuredWidth(), filling.getBottom() + filling.getExtraHeight());
+    }
   }
 
   public void resetColors (ViewController<?> c, ViewController<?> preview) {
@@ -1131,7 +1155,7 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
         return false;
       }
       if (e.getAction() == MotionEvent.ACTION_DOWN && e.getY() < filling.getBottom()) {
-        ViewController<?> c = UI.getCurrentStackItem();
+        ViewController<?> c = UI.getCurrentStackItem(getContext());
         if (c != null) {
           c.dismissIntercept();
         }
@@ -1326,7 +1350,7 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
       if (forward) {
         addView(menuPreview, -1);
       } else {
-        addView(menuPreview, 3);
+        addView(menuPreview, Math.min(3, getChildCount()));
       }
     } else {
       menuPreviewUsed = false;
@@ -1402,6 +1426,7 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
   private boolean useShadowSwitch, shadowSwitch;
   private boolean usePlayerSwitch, playerSwitch;
   private float translationFactor;
+  private boolean forceRtlAnimation;
 
   public float getTranslation () {
     return translationFactor;
@@ -1441,7 +1466,7 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
 
     switch (translationMode) {
       case MODE_HORIZONTAL: {
-        if (Lang.rtl()) {
+        if (forceRtlAnimation || Lang.rtl()) {
           if (translateForward) {
             title.setTranslationX(currentX * raptor);
             preview.setTranslationX(-currentX * (1f - raptor));
@@ -1466,14 +1491,14 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
       }
       case MODE_VERTICAL: {
         if (translateForward) {
-          title.setTranslationY(-(Size.getHeaderPortraitSize() + HeaderView.getTopOffset()) * raptor);
+          title.setTranslationY(-(Size.getHeaderPortraitSize() + getEffectiveTopOffset()) * raptor);
           preview.setTranslationY(currentY * (1f - raptor));
           if (previewItem != null) {
             previewItem.applyCustomHeaderAnimations(raptor);
           }
         } else {
           title.setTranslationY(currentY * raptor);
-          preview.setTranslationY(-((Size.getHeaderPortraitSize() + HeaderView.getTopOffset()) * (1f - raptor)));
+          preview.setTranslationY(-((Size.getHeaderPortraitSize() + getEffectiveTopOffset()) * (1f - raptor)));
           if (baseItem != null) {
             baseItem.applyCustomHeaderAnimations(1f - raptor);
           }
@@ -1497,14 +1522,14 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
         menu.setAlpha(1f - raptor);
         if (translationMode == MODE_VERTICAL) {
           //noinspection ResourceType
-          menu.setTranslationY(translateForward ? -(Size.getHeaderPortraitSize() + HeaderView.getTopOffset()) * raptor : currentY * raptor);
+          menu.setTranslationY(translateForward ? -(Size.getHeaderPortraitSize() + getEffectiveTopOffset()) * raptor : currentY * raptor);
         }
       }
       if (useMenuPreview) {
         menuPreview.setAlpha(raptor);
         if (translationMode == MODE_VERTICAL) {
           //noinspection ResourceType
-          menuPreview.setTranslationY(translateForward ? currentY * (1f - raptor) : -((Size.getHeaderPortraitSize() + HeaderView.getTopOffset()) * (1f - raptor)));
+          menuPreview.setTranslationY(translateForward ? currentY * (1f - raptor) : -((Size.getHeaderPortraitSize() + getEffectiveTopOffset()) * (1f - raptor)));
         }
       }
     }
@@ -1513,13 +1538,13 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
       if (backFade) {
         backButton.setAlpha(raptor);
         if (translationMode == MODE_VERTICAL) {
-          backButton.setTranslationY(-(Size.getHeaderPortraitSize() + HeaderView.getTopOffset()) * (1f - raptor));
+          backButton.setTranslationY(-(Size.getHeaderPortraitSize() + getEffectiveTopOffset()) * (1f - raptor));
         }
         backButton.setTranslationX(preview.getTranslationX());
       } else {
         backButton.setAlpha(1f - raptor);
         if (translationMode == MODE_VERTICAL) {
-          backButton.setTranslationY((Size.getHeaderPortraitSize() + HeaderView.getTopOffset()) * raptor);
+          backButton.setTranslationY((Size.getHeaderPortraitSize() + getEffectiveTopOffset()) * raptor);
         }
         backButton.setTranslationX(title.getTranslationX());
       }
@@ -1604,7 +1629,7 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
       if (useBarSwitch) {
-        window.setStatusBarColor(barChanger.getColor(raptor));
+        setStatusBarColor(window, barChanger.getColor(raptor));
       }
     }
 
@@ -1620,6 +1645,12 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
         preview.invalidate();
       }
     }
+  }
+
+  @SuppressWarnings("deprecation")
+  @TargetApi(Build.VERSION_CODES.LOLLIPOP)
+  private static void setStatusBarColor (Window window, int color) {
+    window.setStatusBarColor(color);
   }
 
   void applyPreview (ViewController<?> current) {
@@ -1707,7 +1738,7 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
   private void transform (final ViewController<?> controller, final int mode, int arg, final boolean open, boolean animated, final Runnable after, boolean needUpdateKeyboard) {
     this.transformMode = mode;
 
-    openPreview(controller, null, open, MODE_FADE, translationFactor);
+    openPreview(controller, null, open, MODE_FADE, translationFactor, false);
 
     if (open) {
       switch (mode) {
@@ -2206,16 +2237,17 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
 
   private boolean previewOpened = false;
 
-  void openPreview (ViewController<?> left, ViewController<?> right, boolean forward, int direction, float factor) {
+  void openPreview (ViewController<?> left, ViewController<?> right, boolean forward, int direction, float factor, boolean forceRtl) {
     this.previewOpened = true;
     this.currentX = (float) getMeasuredWidth() * TRANSLATION_FACTOR;
     this.translationMode = direction;
     this.translationFactor = factor;
+    this.forceRtlAnimation = direction == MODE_HORIZONTAL && forceRtl;
 
     if (right != null && !forward && right.usePopupMode()) {
-      this.currentY = left.getHeaderHeight() + HeaderView.getTopOffset();
+      this.currentY = left.getHeaderHeight() + getEffectiveTopOffset();
     } else {
-      this.currentY = getCurrentHeight() + HeaderView.getTopOffset();
+      this.currentY = getCurrentHeight() + getEffectiveTopOffset();
     }
 
     genPreview(left, right, forward); // Starting the preparation
@@ -2363,7 +2395,7 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
           backButton.setTranslationY(0);
         } else {
           if (translationMode == MODE_VERTICAL) {
-            backButton.setTranslationY(-(Size.getHeaderPortraitSize() + HeaderView.getTopOffset()));
+            backButton.setTranslationY(-(Size.getHeaderPortraitSize() + getEffectiveTopOffset()));
           } else {
             backButton.setTranslationY(0);
           }
@@ -2785,6 +2817,7 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
     return ColorUtils.compositeColor(color, STATUS_OVERLAY_COLOR);
   }
 
+  @SuppressWarnings("deprecation")
   public static int computeStatusBarColor (ViewController<?> c, int alpha) {
     return ColorUtils.compositeColor(c.getStatusBarColor(), Color.argb((int) ((float) alpha / 255f * (float) Color.alpha(STATUS_OVERLAY_COLOR)), Color.red(STATUS_OVERLAY_COLOR), Color.green(STATUS_OVERLAY_COLOR), Color.blue(STATUS_OVERLAY_COLOR)));
   }
@@ -2836,7 +2869,7 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
   }
 
   public static int getTopOffset () {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && Config.USE_FULLSCREEN_NAVIGATION) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
       return Screen.getStatusBarHeight();
     }
     return 0;
@@ -2848,7 +2881,10 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
   public void performDestroy () {
     TGLegacyManager.instance().removeEmojiListener(this);
     Lang.removeLanguageListener(this);
-    Screen.removeStatusBarHeightListener(this);
+    if (rootView != null) {
+      rootView.removeInsetsChangeListener(this);
+      rootView = null;
+    }
     if (filling != null) {
       filling.performDestroy();
     }

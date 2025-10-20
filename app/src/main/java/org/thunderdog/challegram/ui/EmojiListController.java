@@ -78,6 +78,18 @@ public class EmojiListController extends ViewController<EmojiLayout> implements 
     trendingSetsController.stickerSets = new ArrayList<>();
   }
 
+  @Override
+  public boolean supportsBottomInset () {
+    return true;
+  }
+
+  @Override
+  protected void onBottomInsetChanged (int extraBottomInset, int extraBottomInsetWithoutIme, boolean isImeInset) {
+    super.onBottomInsetChanged(extraBottomInset, extraBottomInsetWithoutIme, isImeInset);
+    emojiController.setBottomInset(extraBottomInset, extraBottomInsetWithoutIme);
+    trendingSetsController.setBottomInset(extraBottomInset, extraBottomInsetWithoutIme);
+  }
+
   public TGStickerObj modifyStickerObj (TGStickerObj sticker) {
     sticker.setPreviewOptimizationMode(GifFile.OptimizationMode.EMOJI_PREVIEW);
     return sticker;

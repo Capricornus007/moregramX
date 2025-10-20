@@ -52,6 +52,7 @@ import org.thunderdog.challegram.telegram.StickersListener;
 import org.thunderdog.challegram.telegram.Tdlib;
 import org.thunderdog.challegram.tool.Screen;
 import org.thunderdog.challegram.tool.UI;
+import org.thunderdog.challegram.tool.Views;
 import org.thunderdog.challegram.unsorted.Settings;
 import org.thunderdog.challegram.util.StickerSetsDataProvider;
 import org.thunderdog.challegram.util.StringList;
@@ -112,6 +113,19 @@ public class EmojiMediaListController extends ViewController<EmojiLayout> implem
         setEnableStickersAnimations(true);
       }
     }, null, 2000L);
+  }
+
+  @Override
+  public boolean supportsBottomInset () {
+    return true;
+  }
+
+  @Override
+  protected void onBottomInsetChanged (int extraBottomInset, int extraBottomInsetWithoutIme, boolean isImeInset) {
+    super.onBottomInsetChanged(extraBottomInset, extraBottomInsetWithoutIme, isImeInset);
+    stickersController.setBottomInset(extraBottomInset, extraBottomInsetWithoutIme);
+    trendingSetsController.setBottomInset(extraBottomInset, extraBottomInsetWithoutIme);
+    Views.applyBottomInset(gifsView, extraBottomInset);
   }
 
   public void expectReorder (TGStickerObj stickerObj) {
@@ -404,6 +418,7 @@ public class EmojiMediaListController extends ViewController<EmojiLayout> implem
 
       gifsView = new RecyclerView(context()); // (RecyclerView) Views.inflate(R.layout.recycler, contentView);
       gifsView.setItemAnimator(null);
+      Views.applyBottomInset(gifsView, extraBottomInset);
       gifsView.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
       gifsView.setHasFixedSize(true);
       gifsView.setOverScrollMode(Config.HAS_NICE_OVER_SCROLL_EFFECT ? View.OVER_SCROLL_IF_CONTENT_SCROLLS :View.OVER_SCROLL_NEVER);

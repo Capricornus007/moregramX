@@ -469,16 +469,20 @@ public class SelectChatsController extends RecyclerViewController<SelectChatsCon
   }
 
   @Override
-  public boolean onBackPressed (boolean fromTop) {
+  public boolean performOnBackPressed (boolean fromTop, boolean commit) {
     if (hasBubbles() && isChatSearchOpen() && headerCell != null) {
-      headerCell.clearSearchInput();
+      if (commit) {
+        headerCell.clearSearchInput();
+      }
       return true;
     }
     if (hasChanges()) {
-      showUnsavedChangesPromptBeforeLeaving(null);
+      if (commit) {
+        showUnsavedChangesPromptBeforeLeaving(null);
+      }
       return true;
     }
-    return super.onBackPressed(fromTop);
+    return super.performOnBackPressed(fromTop, commit);
   }
 
   @Override
@@ -1185,7 +1189,7 @@ class Chip extends Drawable implements FlowListAnimator.Measurable, Drawable.Cal
     }
     int saveCount;
     if (alpha < 0xFF) {
-      saveCount = canvas.saveLayerAlpha(bounds.left, bounds.top, bounds.right, bounds.bottom, alpha, Canvas.ALL_SAVE_FLAG);
+      saveCount = Views.saveLayerAlpha(canvas, bounds.left, bounds.top, bounds.right, bounds.bottom, alpha, Canvas.ALL_SAVE_FLAG);
     } else {
       saveCount = Integer.MIN_VALUE;
     }
@@ -1256,6 +1260,7 @@ class Chip extends Drawable implements FlowListAnimator.Measurable, Drawable.Cal
   }
 
   @Override
+  @SuppressWarnings("deprecation")
   public int getOpacity () {
     return PixelFormat.TRANSLUCENT;
   }

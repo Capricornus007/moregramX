@@ -127,6 +127,7 @@ import org.thunderdog.challegram.util.text.Counter;
 import org.thunderdog.challegram.util.text.IconSpan;
 import org.thunderdog.challegram.util.text.TextColorSet;
 import org.thunderdog.challegram.widget.BubbleLayout;
+import org.thunderdog.challegram.widget.FillingSpace;
 import org.thunderdog.challegram.widget.PopupLayout;
 import org.thunderdog.challegram.widget.ShadowView;
 import org.thunderdog.challegram.widget.SnackBar;
@@ -195,6 +196,25 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   }
 
   @Override
+  protected void onBottomInsetChanged (int extraBottomInset, int extraBottomInsetWithoutIme, boolean isImeInset) {
+    super.onBottomInsetChanged(extraBottomInset, extraBottomInsetWithoutIme, isImeInset);
+    if (composeWrap != null) {
+      checkComposeWrapPaddings();
+    }
+    Views.setPaddingBottom(updateSnackBar, extraBottomInsetWithoutIme);
+    updateBottomBarMargins();
+    checkMargins();
+  }
+
+  private void updateBottomBarMargins () {
+    if (bottomBar != null) {
+      int height = Math.round(extraBottomInsetWithoutIme * (1f - (updateSnackBar != null ? updateSnackBar.getVisibilityFactor() : 0)));
+      Views.setBottomMargin(bottomBar, height);
+      bottomBarSpace.setLayoutHeight(height, true);
+    }
+  }
+
+  @Override
   protected void onCreateView (Context context, FrameLayoutFix contentView, ViewPager pager) {
     if (BuildConfig.DEBUG) {
       Test.execute();
@@ -214,6 +234,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     UI.setSoftInputMode(UI.getContext(context), Config.DEFAULT_WINDOW_PARAMS);
 
     composeWrap = new OverlayButtonWrap(context);
+    checkComposeWrapPaddings();
     composeWrap.initWithList(this,
       ColorId.circleButtonActive,
       ColorId.circleButtonActiveIcon,
@@ -970,6 +991,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
         break;
       }
     }
+    context.notifyBackPressAvailabilityChanged();
   }
 
   @Override
@@ -1000,7 +1022,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
 
   private void checkComposeWrapPaddings () {
     if (composeWrap != null) {
-      int paddingBottom = displayTabsAtBottom() ? getHeaderHeight() : 0;
+      int paddingBottom = (displayTabsAtBottom() ? getHeaderHeight() : 0) + extraBottomInsetWithoutIme;
       composeWrap.setPadding(composeWrap.getPaddingLeft(), composeWrap.getPaddingTop(), composeWrap.getPaddingRight(), paddingBottom);
       composeWrap.setClipToPadding(paddingBottom == 0);
     }
@@ -1056,16 +1078,21 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   private void onAppUpdateAvailable (boolean isApk, boolean immediate) {
     if (updateSnackBar == null) {
       updateSnackBar = new SnackBar(context);
+      Views.setPaddingBottom(updateSnackBar, extraBottomInsetWithoutIme);
       updateSnackBar.setCallback(new SnackBar.Callback() {
         @Override
         public void onSnackBarTransition (SnackBar v, float factor) {
           float offsetBySnackBar = v.getMeasuredHeight() * factor;
           composeWrap.setTranslationY(-offsetBySnackBar);
+          boolean tabsAtBottom = displayTabsAtBottom();
           if (Config.CHAT_FOLDERS_HIDE_BOTTOM_BAR_ON_SCROLL) {
             bottomBarOffsetBySnackBar = -offsetBySnackBar;
             invalidateBottomBarOffset();
-          } else if (displayTabsAtBottom()) {
+          } else if (tabsAtBottom) {
             Views.setBottomMargin(pagerWrap, Math.round(offsetBySnackBar)); // FIXME
+          }
+          if (tabsAtBottom) {
+            updateBottomBarMargins();
           }
         }
 
@@ -1710,6 +1737,11 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   }
 
   @Override
+  public boolean supportsBottomInset () {
+    return true;
+  }
+
+  @Override
   protected ViewController<?> onCreatePagerItemForPosition (Context context, final int position) {
     final ViewController<?> c;
     long pagerItemId = getPagerItemId(position);
@@ -1859,12 +1891,23 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   }
 
   @Override
-  public boolean onBackPressed (boolean fromTop) {
+  public boolean performOnBackPressed (boolean fromTop, boolean commit) {
     if (composeWrap != null && composeWrap.isShowing()) {
-      composeWrap.close();
+      if (commit) {
+        composeWrap.close();
+      }
       return true;
     }
-    return scrollToFirstPosition();
+    if (commit) {
+      if (scrollToFirstPosition()) {
+        return true;
+      }
+    } else {
+      if (!isAtFirstPosition()) {
+        return true;
+      }
+    }
+    return super.performOnBackPressed(fromTop, commit);
   }
 
   // Intent process
@@ -2611,13 +2654,10 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   }
 
   private @Nullable ViewGroup bottomBar;
+  private @Nullable FillingSpace bottomBarSpace;
   private @Px float bottomBarOffsetByPlayer;
-  private @Px float bottomBarOffsetByScroll;
   private @Px float bottomBarOffsetBySnackBar;
   private final BoolAnimator isBottomBarVisible = new BoolAnimator(0, (id, factor, fraction, callee) -> {
-    int headerHeight = getHeaderHeight();
-    int shadowHeight = Screen.dp(2f);
-    bottomBarOffsetByScroll = (headerHeight + shadowHeight) * (1f - factor);
     invalidateBottomBarOffset();
   }, AnimatorUtils.DECELERATE_INTERPOLATOR, 200l, true);
 
@@ -2635,7 +2675,10 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
 
   private void invalidateBottomBarOffset () {
     if (bottomBar != null) {
-      bottomBar.setTranslationY(bottomBarOffsetByPlayer + bottomBarOffsetByScroll + bottomBarOffsetBySnackBar);
+      float bottomBarOffsetByScroll = (getHeaderHeight() + Screen.dp(2f) + Views.getBottomMargin(bottomBar)) * (1f - isBottomBarVisible.getFloatValue());
+      float y = bottomBarOffsetByPlayer + bottomBarOffsetByScroll + bottomBarOffsetBySnackBar;
+      bottomBar.setTranslationY(y);
+      bottomBarSpace.setTranslationY(Math.max(0, y));
     }
   }
 
@@ -2740,6 +2783,13 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
         bottomBar.addView(shadowView);
         bottomBar.addView(headerCellView);
         pagerWrap.addView(bottomBar, FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, headerHeight + Views.getTopMargin(headerCellView), Gravity.BOTTOM));
+
+        bottomBarSpace = new FillingSpace(context);
+        bottomBarSpace.setThemedBackground(ColorId.headerLightBackground, this);
+        pagerWrap.addView(bottomBarSpace, FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, Gravity.BOTTOM));
+
+        updateBottomBarMargins();
+
         if (Config.CHAT_FOLDERS_HIDE_BOTTOM_BAR_ON_SCROLL) {
           isBottomBarVisible.setValue(true, false);
           invalidateBottomBarOffset();
@@ -2753,8 +2803,11 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     } else {
       if (bottomBar != null) {
         pagerWrap.removeView(bottomBar);
+        pagerWrap.removeView(bottomBarSpace);
+        bottomBarSpace.performDestroy();
         bottomBar.removeView(headerCellView);
         bottomBar = null;
+        bottomBarSpace = null;
         if (Config.CHAT_FOLDERS_HIDE_BOTTOM_BAR_ON_SCROLL) {
           isBottomBarVisible.setValue(false, false);
         }
@@ -2874,7 +2927,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     notifyPagerItemPositionsChanged();
     ViewPager pager = getViewPager();
     if (pager != null) {
-      onPageSelected(getCurrentPagerItemPosition(), pager.getCurrentItem());
+      onPageSelected(pager.getCurrentItem());
     }
     if (oldHasFolders != hasFolders() && pagerWrap != null) {
       checkTabs();
