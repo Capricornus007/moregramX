@@ -8932,7 +8932,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
     if (canFeatured) {
       leftActions.add(new SwipeQuickAction(featuredText, iQuickFeatured, () -> {
-        tdlib.forwardMessage(tdlib.selfChatId(), 0, getChatId(), getId(), null);
+        tdlib.forwardMessage(tdlib.selfChatId(), null, getChatId(), getId(), null);
       }, true, false));
     }
   }

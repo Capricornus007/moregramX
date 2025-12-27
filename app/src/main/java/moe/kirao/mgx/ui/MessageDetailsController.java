@@ -190,7 +190,7 @@ public class MessageDetailsController extends RecyclerViewController<MessageDeta
         user.firstName = line.replaceAll("^.+? ", "");
       } else if (line.contains("\u2063\uD83C\uDF10")) {
         line = line.replaceAll("^.+? ", "");
-        user.usernames = new TdApi.Usernames(null, null, line);
+        user.usernames = new TdApi.Usernames(null, null, line, null);
       }
     }
     return mode == TRIM_MODE_NAME ? user.firstName : mode == TRIM_MODE_USERNAME
