@@ -1167,6 +1167,8 @@ public class Lang {
       case TdApi.MessageGiftedTon.CONSTRUCTOR:
       case TdApi.MessageGift.CONSTRUCTOR:
       case TdApi.MessageUpgradedGift.CONSTRUCTOR:
+      case TdApi.MessageUpgradedGiftPurchaseOffer.CONSTRUCTOR:
+      case TdApi.MessageUpgradedGiftPurchaseOfferDeclined.CONSTRUCTOR:
       case TdApi.MessageRefundedUpgradedGift.CONSTRUCTOR:
       case TdApi.MessagePremiumGiftCode.CONSTRUCTOR:
       case TdApi.MessageGiveawayCreated.CONSTRUCTOR:
@@ -1213,6 +1215,7 @@ public class Lang {
       case TdApi.MessageInviteVideoChatParticipants.CONSTRUCTOR:
       case TdApi.MessageProximityAlertTriggered.CONSTRUCTOR:
       case TdApi.MessageSuggestProfilePhoto.CONSTRUCTOR:
+      case TdApi.MessageSuggestBirthdate.CONSTRUCTOR:
       case TdApi.MessageUsersShared.CONSTRUCTOR:
       case TdApi.MessageVideoChatEnded.CONSTRUCTOR:
       case TdApi.MessageVideoChatScheduled.CONSTRUCTOR:
@@ -1228,7 +1231,7 @@ public class Lang {
       case TdApi.MessageSuggestedPostRefunded.CONSTRUCTOR:
         break;
       default:
-        Td.assertMessageContent_7c00740();
+        Td.assertMessageContent_e0365d1c();
         throw Td.unsupported(message.content);
     }
     if (format == null) {

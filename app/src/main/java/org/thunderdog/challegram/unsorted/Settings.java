@@ -31,8 +31,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.UiThread;
 
-import com.otaliastudios.transcoder.strategy.DefaultVideoStrategy;
-
 import org.drinkless.tdlib.Client;
 import org.drinkless.tdlib.TdApi;
 import org.drinkmore.Tracer;
@@ -50,6 +48,7 @@ import org.thunderdog.challegram.emoji.Emoji;
 import org.thunderdog.challegram.emoji.RecentEmoji;
 import org.thunderdog.challegram.emoji.RecentInfo;
 import org.thunderdog.challegram.loader.ImageFile;
+import org.thunderdog.challegram.navigation.PlaybackSpeedLayout;
 import org.thunderdog.challegram.player.TGPlayerController;
 import org.thunderdog.challegram.telegram.ChatFolderOptions;
 import org.thunderdog.challegram.telegram.ChatFolderStyle;
@@ -123,6 +122,7 @@ import me.vkryl.leveldb.LevelDB;
 import tgx.td.ChatId;
 import tgx.td.MessageId;
 import tgx.td.Td;
+import tgx.td.TdConstants;
 
 import moe.kirao.mgx.MoexConfig;
 
@@ -434,6 +434,7 @@ public class Settings {
   public static final long EXPERIMENT_FLAG_ALLOW_EXPERIMENTS = 1;
   public static final long EXPERIMENT_FLAG_SHOW_PEER_IDS = 1 << 2;
   public static final long EXPERIMENT_FLAG_NO_EDGE_TO_EDGE = 1 << 3;
+  public static final long EXPERIMENT_FLAG_FORCE_ALTERNATIVE_PUSH_SERVICE = 1 << 4;
 
   public static final long REMOVED_EXPERIMENT_FLAG_ENABLE_FOLDERS = 1 << 1;
 
@@ -857,7 +858,12 @@ public class Settings {
     try {
       pmcVersion = Math.max(0, pmc.tryGetInt(KEY_VERSION));
     } catch (FileNotFoundException e) {
-      migratePrefsToPmc();
+      if (isFreshAppInstallation()) {
+        pmc.putInt(KEY_VERSION, pmcVersion);
+        pmcVersion = VERSION;
+      } else {
+        migratePrefsToPmc();
+      }
     }
     if (pmcVersion > VERSION) {
       Log.e("Downgrading database version: %d -> %d", pmcVersion, VERSION);
@@ -962,7 +968,7 @@ public class Settings {
   public int[] getIntArray (String key) {
     return pmc.getIntArray(key);
   }
-  
+
   public void putIntArray (String key, int[] value) {
     pmc.putIntArray(key, value);
   }
@@ -2292,6 +2298,10 @@ public class Settings {
     return false;
   }
 
+  private boolean isFreshAppInstallation () {
+    return !TdlibManager.getAccountConfigFile().exists() && pmc.getLong(KEY_APP_INSTALLATION_ID, 0) == 0;
+  }
+
   private void migratePrefsToPmc () {
     // Main
 
@@ -3216,6 +3226,8 @@ public class Settings {
   }
 
   public static class VideoLimit {
+    public static final int BITRATE_UNKNOWN = -1;
+
     public final @NonNull VideoSize size;
     public final int fps;
     public final long bitrate;
@@ -3225,7 +3237,7 @@ public class Settings {
     }
 
     public VideoLimit (VideoSize size, int fps) {
-      this(size, fps, DefaultVideoStrategy.BITRATE_UNKNOWN);
+      this(size, fps, BITRATE_UNKNOWN);
     }
 
     public VideoLimit (@NonNull VideoSize size, int fps, long bitrate) {
@@ -3242,7 +3254,7 @@ public class Settings {
       return
         size.isDefault() &&
           fps == DEFAULT_FRAME_RATE &&
-          bitrate == DefaultVideoStrategy.BITRATE_UNKNOWN;
+          bitrate == BITRATE_UNKNOWN;
     }
 
     @Override
@@ -3278,11 +3290,11 @@ public class Settings {
       if (data != null && data.length > 0) {
         this.size = new VideoSize(data[0], data.length > 1 ? data[1] : data[0]);
         this.fps = data.length > 2 ? data[2] : DEFAULT_FRAME_RATE;
-        this.bitrate = data.length > 3 ? (long) BitUnit.KBIT.toBits(data[3]) : DefaultVideoStrategy.BITRATE_UNKNOWN;
+        this.bitrate = data.length > 3 ? (long) BitUnit.KBIT.toBits(data[3]) : BITRATE_UNKNOWN;
       } else {
         this.size = new VideoSize(DEFAULT_VIDEO_LIMIT);
         this.fps = DEFAULT_FRAME_RATE;
-        this.bitrate = DefaultVideoStrategy.BITRATE_UNKNOWN;
+        this.bitrate = BITRATE_UNKNOWN;
       }
     }
 
@@ -4258,14 +4270,14 @@ public class Settings {
     removeByPrefix(key(KEY_SCROLL_CHAT_PREFIX, accountId), editor);
   }
 
-  public void setScrollMessageId (int accountId, long chatId, long messageThreadId, @Nullable SavedMessageId savedMessageId) {
-    String keyId = makeScrollChatKey(KEY_SCROLL_CHAT_MESSAGE_ID, accountId, chatId, messageThreadId);
-    String keyChatId = makeScrollChatKey(KEY_SCROLL_CHAT_MESSAGE_CHAT_ID, accountId, chatId, messageThreadId);
-    String keyReturnToIds = makeScrollChatKey(KEY_SCROLL_CHAT_RETURN_TO_MESSAGE_IDS_STACK, accountId, chatId, messageThreadId);
-    String keyAliases = makeScrollChatKey(KEY_SCROLL_CHAT_ALIASES, accountId, chatId, messageThreadId);
-    String keyOffset = makeScrollChatKey(KEY_SCROLL_CHAT_OFFSET, accountId, chatId, messageThreadId);
-    String keyReadFully = makeScrollChatKey(KEY_SCROLL_CHAT_READ_FULLY, accountId, chatId, messageThreadId);
-    String keyTopEnd = makeScrollChatKey(KEY_SCROLL_CHAT_TOP_END, accountId, chatId, messageThreadId);
+  public void setScrollMessageId (int accountId, long chatId, @Nullable TdApi.MessageTopic topicId, @Nullable SavedMessageId savedMessageId) {
+    String keyId = makeScrollChatKey(KEY_SCROLL_CHAT_MESSAGE_ID, accountId, chatId, topicId);
+    String keyChatId = makeScrollChatKey(KEY_SCROLL_CHAT_MESSAGE_CHAT_ID, accountId, chatId, topicId);
+    String keyReturnToIds = makeScrollChatKey(KEY_SCROLL_CHAT_RETURN_TO_MESSAGE_IDS_STACK, accountId, chatId, topicId);
+    String keyAliases = makeScrollChatKey(KEY_SCROLL_CHAT_ALIASES, accountId, chatId, topicId);
+    String keyOffset = makeScrollChatKey(KEY_SCROLL_CHAT_OFFSET, accountId, chatId, topicId);
+    String keyReadFully = makeScrollChatKey(KEY_SCROLL_CHAT_READ_FULLY, accountId, chatId, topicId);
+    String keyTopEnd = makeScrollChatKey(KEY_SCROLL_CHAT_TOP_END, accountId, chatId, topicId);
     SharedPreferences.Editor editor = edit();
     if (savedMessageId == null) {
       editor
@@ -4316,19 +4328,29 @@ public class Settings {
   }
 
   @Nullable
-  public SavedMessageId getScrollMessageId (int accountId, long chatId, long messageThreadId) {
-    String prefix = key(KEY_SCROLL_CHAT_PREFIX + chatId, accountId);
+  public SavedMessageId getScrollMessageId (int accountId, long chatId, @Nullable TdApi.MessageTopic topicId) {
+    String prefix = makeScrollChatKey(null, accountId, chatId, null);
+    String topicSuffix = topicId != null ? "_" + Td.cacheKey(topicId) : null;
     SavedMessageId.Builder b = null;
     for (LevelDB.Entry entry : pmc.find(prefix)) {
-      long keyMessageThreadId = StringUtils.parseLong(entry.key().replaceAll("^.+_thread(\\d+)$", "$1"));
-      if (messageThreadId != keyMessageThreadId) {
+      String key = entry.key();
+      boolean mismatch;
+      if (StringUtils.isEmpty(topicSuffix)) {
+        if (TdConstants.COMPILE_CHECK) {
+          Td.assertMessageTopic_98b4a9a3();
+        }
+        mismatch = key.matches("^.+_(?:thread|forum|direct|saved)+\\d+$");
+      } else {
+        mismatch = !key.endsWith(topicSuffix);
+      }
+      if (mismatch) {
         continue;
       }
       if (b == null) {
         b = new SavedMessageId.Builder(chatId);
       }
-      String suffix = entry.key().substring(prefix.length()).replaceAll("_thread[\\d]+$", "");
-      switch (suffix) {
+      String dataKey = key.substring(prefix.length(), key.length() - StringUtils.length(topicSuffix));
+      switch (dataKey) {
         case KEY_SCROLL_CHAT_MESSAGE_ID:
           b.messageId = entry.asLong();
           break;
@@ -4394,10 +4416,14 @@ public class Settings {
     }
   }
 
-  private static String makeScrollChatKey (String key, int accountId, long chatId, long messageThreadId) {
-    StringBuilder b = new StringBuilder(KEY_SCROLL_CHAT_PREFIX).append(chatId).append(key);
-    if (messageThreadId != 0) {
-      b.append("_thread").append(messageThreadId);
+  private static String makeScrollChatKey (String key, int accountId, long chatId, @Nullable TdApi.MessageTopic topicId) {
+    StringBuilder b = new StringBuilder(KEY_SCROLL_CHAT_PREFIX)
+      .append(chatId);
+    if (key != null) {
+      b.append(key);
+    }
+    if (topicId != null) {
+      b.append("_").append(Td.cacheKey(topicId));
     }
     return key(b.toString(), accountId);
   }
@@ -7009,7 +7035,12 @@ public class Settings {
       long previousInstallationId = currentBuildInformation != null ? currentBuildInformation.getInstallationId() - 1 : -1;
       int previouslyInstalledVersionCode = previousInstallationId != -1 ?
         AppBuildInfo.restoreVersionCode(pmc, KEY_APP_INSTALLATION_PREFIX + previousInstallationId) : 0;
-      previouslyAvailableFeatures = FeatureAvailability.recoverAvailableFeaturesForAppVersionCode(previouslyInstalledVersionCode);
+      if (previouslyInstalledVersionCode != 0) {
+        previouslyAvailableFeatures = FeatureAvailability.recoverAvailableFeaturesForAppVersionCode(previouslyInstalledVersionCode);
+      } else {
+        // Do not bombard with a dozen of pop-ups on clean app installations
+        previouslyAvailableFeatures = currentlyAvailableFeatures;
+      }
       saveFeatures = true;
     }
     if (currentlyAvailableFeatures != previouslyAvailableFeatures) {
@@ -7239,12 +7270,14 @@ public class Settings {
   private Integer _playbackSpeed;
 
   public void setPlaybackSpeed (int speed) {
+    if (speed <= 0)
+      throw new IllegalArgumentException(Integer.toString(speed));
     pmc.putInt(KEY_PLAYBACK_SPEED, _playbackSpeed = speed);
   }
 
   public int getPlaybackSpeed () {
     if (_playbackSpeed == null) {
-      _playbackSpeed = pmc.getInt(KEY_PLAYBACK_SPEED, 100);
+      _playbackSpeed = PlaybackSpeedLayout.normalizeSpeed(pmc.getInt(KEY_PLAYBACK_SPEED, 100));
     }
     return _playbackSpeed;
   }

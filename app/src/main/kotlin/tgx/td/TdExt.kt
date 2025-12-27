@@ -16,7 +16,8 @@
 
 package tgx.td
 
-import androidx.collection.*
+import androidx.collection.LongSparseArray
+import androidx.collection.set
 import org.drinkless.tdlib.TdApi.*
 import org.thunderdog.challegram.R
 import org.thunderdog.challegram.core.Lang
@@ -145,12 +146,14 @@ fun LinkPreview?.getRepresentationTitle (): String {
       LinkPreviewTypeVideoNote.CONSTRUCTOR,
       LinkPreviewTypeVoiceNote.CONSTRUCTOR,
       LinkPreviewTypeWebApp.CONSTRUCTOR,
+      LinkPreviewTypeGiftAuction.CONSTRUCTOR,
+      LinkPreviewTypeLiveStory.CONSTRUCTOR,
       LinkPreviewTypeExternalAudio.CONSTRUCTOR,
       LinkPreviewTypeExternalVideo.CONSTRUCTOR -> {
         null
       }
       else -> {
-        assertLinkPreviewType_4868cb55()
+        assertLinkPreviewType_a9a3ffcd()
         throw unsupported(it)
       }
     }
@@ -172,7 +175,7 @@ fun LinkPreview?.getContentTitle (): String {
             it.audio?.title
           }
           else -> {
-            assertLinkPreviewType_4868cb55()
+            assertLinkPreviewType_a9a3ffcd()
             null
           }
         }
@@ -285,9 +288,11 @@ fun LinkPreviewType?.getMediaFile (): File? {
     LinkPreviewTypeWebApp.CONSTRUCTOR,
     LinkPreviewTypeUpgradedGift.CONSTRUCTOR,
     LinkPreviewTypeGiftCollection.CONSTRUCTOR,
+    LinkPreviewTypeGiftAuction.CONSTRUCTOR,
+    LinkPreviewTypeLiveStory.CONSTRUCTOR,
     LinkPreviewTypeUnsupported.CONSTRUCTOR -> null
     else -> {
-      assertLinkPreviewType_4868cb55()
+      assertLinkPreviewType_a9a3ffcd()
       throw unsupported(this)
     }
   }

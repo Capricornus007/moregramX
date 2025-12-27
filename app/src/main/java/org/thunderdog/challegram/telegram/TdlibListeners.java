@@ -589,9 +589,9 @@ public class TdlibListeners {
     );
   }
 
-  private void runForumUpdate (long chatId, long messageThreadId, RunnableData<ForumTopicInfoListener> act) {
+  private void runForumUpdate (long chatId, int forumTopicId, RunnableData<ForumTopicInfoListener> act) {
     runUpdate(act,
-      specificForumTopicListeners.iterator(uniqueForumTopicKey(chatId, messageThreadId)),
+      specificForumTopicListeners.iterator(uniqueForumTopicKey(chatId, forumTopicId)),
       chatListeners.iterator(),
       specificChatListeners.iterator(chatId)
     );
@@ -1140,6 +1140,46 @@ public class TdlibListeners {
     );
   }
 
+  // updateNewGroupCallMessage
+
+  void updateNewGroupCallMessage (TdApi.UpdateNewGroupCallMessage update) {
+    runGroupCallUpdate(update.groupCallId, listener ->
+      listener.onNewGroupCallMessage(update.groupCallId, update.message)
+    );
+  }
+
+  // updateNewGroupCallPaidReaction
+
+  void updateNewGroupCallPaidReaction (TdApi.UpdateNewGroupCallPaidReaction update) {
+    runGroupCallUpdate(update.groupCallId, listener ->
+      listener.onNewGroupCallPaidReaction(update.groupCallId, update.senderId, update.starCount)
+    );
+  }
+
+  // updateGroupCallMessageLevels
+
+  void updateGroupCallMessageLevels (TdApi.UpdateGroupCallMessageLevels update) {
+    runUpdate(optionListeners, listener ->
+      listener.onGroupCallMessageLevelsUpdated(update.levels)
+    );
+  }
+
+  // updateGroupCallMessageSendFailed
+
+  void updateGroupCallMessageSendFailed (TdApi.UpdateGroupCallMessageSendFailed update) {
+    runGroupCallUpdate(update.groupCallId, listener ->
+      listener.onGroupCallMessageSendFailed(update.groupCallId, update.messageId, update.error)
+    );
+  }
+
+  // updateGroupCallMessagesDeleted
+
+  void updateGroupCallMessagesDeleted (TdApi.UpdateGroupCallMessagesDeleted update) {
+    runGroupCallUpdate(update.groupCallId, listener ->
+      listener.onGroupCallMessagesDeleted(update.groupCallId, update.messageIds)
+    );
+  }
+
   // updateGroupCallVerificationState
 
   void updateGroupCallVerificationState (TdApi.UpdateGroupCallVerificationState update) {
@@ -1235,12 +1275,12 @@ public class TdlibListeners {
 
   // updateForumTopicInfo
 
-  private static String uniqueForumTopicKey (long chatId, long messageThreadId) {
-    return chatId + "_" + messageThreadId;
+  private static String uniqueForumTopicKey (long chatId, int forumTopicId) {
+    return chatId + "_" + forumTopicId;
   }
 
   void updateForumTopicInfo (TdApi.UpdateForumTopicInfo update) {
-    runForumUpdate(update.info.chatId, update.info.messageThreadId, listener ->
+    runForumUpdate(update.info.chatId, update.info.forumTopicId, listener ->
       listener.onForumTopicInfoChanged(update.info)
     );
   }
@@ -1248,8 +1288,8 @@ public class TdlibListeners {
   // updateForumTopic
 
   void updateForumTopic (TdApi.UpdateForumTopic update) {
-    runForumUpdate(update.chatId, update.messageThreadId, listener ->
-      listener.onForumTopicUpdated(update.chatId, update.messageThreadId, update.isPinned, update.lastReadInboxMessageId, update.lastReadOutboxMessageId, update.notificationSettings)
+    runForumUpdate(update.chatId, update.forumTopicId, listener ->
+      listener.onForumTopicUpdated(update.chatId, update.forumTopicId, update.isPinned, update.lastReadInboxMessageId, update.lastReadOutboxMessageId, update.notificationSettings)
     );
   }
 
@@ -1552,6 +1592,14 @@ public class TdlibListeners {
   void updateTrendingStickerSets (TdApi.UpdateTrendingStickerSets update, int unreadCount) {
     runUpdate(stickersListeners, listener ->
       listener.onTrendingStickersUpdated(update.stickerType, update.stickerSets, unreadCount)
+    );
+  }
+
+  // updateTrustedMiniAppBots
+
+  void updateTrustedMiniAppBots (TdApi.UpdateTrustedMiniAppBots update) {
+    runUpdate(optionListeners, listener ->
+      listener.onTrustedMiniAppBotsUpdated(update.botUserIds)
     );
   }
 

@@ -1022,8 +1022,14 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     TdApi.Message messageWithReplyInfo = findMessageWithReplyInfo();
     TdApi.Message targetMessage = messageWithReplyInfo != null ? messageWithReplyInfo : getNewestMessage();
     getMessageProperties(targetMessage.id, properties -> {
-      if (!properties.canGetMessageThread)
+      if (!properties.canGetMessageThread) {
+        long messageThreadId = Td.messageThreadId(targetMessage.topicId);
+        if (messageThreadId != 0) {
+          MessageId highlightMessageId = toMessageId();
+          openMessageThread(new TdApi.GetMessageThread(targetMessage.chatId, targetMessage.id), highlightMessageId);
+        }
         return;
+      }
       MessageId highlightMessageId;
       if (isChannel() || isChannelAutoForward()) {
         // View X Comments
@@ -4668,11 +4674,16 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   }
 
   public final boolean isMessageThreadRoot () {
-    return canGetMessageThread() && (isChannel() || (isMessageThread() && isThreadHeader()) || (msg.messageThreadId != 0 && msg.replyTo == null));
+    return canGetMessageThread() && (
+      isChannel() ||
+      (isMessageThread() && isThreadHeader()) ||
+      (Td.messageThreadId(msg.topicId) == msg.id || msg.topicId == null /*FIXME TDLib*/)
+    );
   }
 
-  public final long getMessageThreadId () {
-    return getOldestMessage().messageThreadId;
+  @Nullable
+  public final TdApi.MessageTopic getMessageTopicId () {
+    return getOldestMessage().topicId;
   }
 
   public final long[] getOtherMessageIds (long exceptMessageId) {
@@ -8388,12 +8399,15 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
         case TdApi.MessageStory.CONSTRUCTOR:
         case TdApi.MessageChatSetBackground.CONSTRUCTOR:
         case TdApi.MessageSuggestProfilePhoto.CONSTRUCTOR:
+        case TdApi.MessageSuggestBirthdate.CONSTRUCTOR:
         case TdApi.MessageUsersShared.CONSTRUCTOR:
         case TdApi.MessageChatShared.CONSTRUCTOR:
         case TdApi.MessagePaidMedia.CONSTRUCTOR:
         case TdApi.MessageGiveawayPrizeStars.CONSTRUCTOR:
         case TdApi.MessageGift.CONSTRUCTOR:
         case TdApi.MessageUpgradedGift.CONSTRUCTOR:
+        case TdApi.MessageUpgradedGiftPurchaseOffer.CONSTRUCTOR:
+        case TdApi.MessageUpgradedGiftPurchaseOfferDeclined.CONSTRUCTOR:
         case TdApi.MessageRefundedUpgradedGift.CONSTRUCTOR:
 
         case TdApi.MessageGroupCall.CONSTRUCTOR: // TODO TGMessageCall
@@ -8421,7 +8435,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
           break;
         }
         default: {
-          Td.assertMessageContent_7c00740();
+          Td.assertMessageContent_e0365d1c();
           throw Td.unsupported(msg.content);
         }
       }
@@ -8482,7 +8496,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     }
     b.append("\n");
 
-    Log.toStringBuilder(error, 2, b);
+    Log.toStringBuilder(error, 2, true, b);
 
     logEntity.length = b.length() - logEntity.offset;
 

@@ -118,7 +118,7 @@ void logError(const char *functionName, int errorNumber);
  */
 void releaseContext(AVCodecContext *context);
 
-/*jint JNI_OnLoad(JavaVM *vm, void *reserved) {
+extern "C" jint ffmpeg_jni_OnLoad(JavaVM *vm, void *reserved) {
   JNIEnv *env;
   if (vm->GetEnv(reinterpret_cast<void **>(&env), JNI_VERSION_1_6) != JNI_OK) {
     LOGE("JNI_OnLoad: GetEnv failed");
@@ -139,7 +139,7 @@ void releaseContext(AVCodecContext *context);
     return -1;
   }
   return JNI_VERSION_1_6;
-}*/
+}
 
 LIBRARY_FUNC(jstring, ffmpegGetVersion) {
   return env->NewStringUTF(LIBAVCODEC_IDENT);

@@ -19,6 +19,16 @@ fun tdlibEqualTypes(): Array<TdlibType> = arrayOf(
   TdlibType("WebAppOpenMode"),
   TdlibType("ReplyMarkup"),
 
+  TdlibType("GroupCall"),
+  TdlibType("GroupCallRecentSpeaker"),
+
+  TdlibType("Call"),
+  TdlibType("CallState"),
+  TdlibType("CallDiscardReason"),
+  TdlibType("CallProtocol"),
+  TdlibType("CallServer"),
+  TdlibType("CallServerType"),
+
   TdlibType("RemoteFile"),
   TdlibType("LocalFile"),
 
@@ -101,7 +111,13 @@ fun tdlibEqualTypes(): Array<TdlibType> = arrayOf(
 
   TdlibType("ChatFolderName", isExperimental = true),
 
+  TdlibType("Gift"),
+  TdlibType("GiftAuction"),
+  TdlibType("GiftPurchaseLimits"),
+  TdlibType("GiftBackground"),
+
   TdlibType("UpgradedGift", isExperimental = true),
+  TdlibType("UpgradedGiftColors"),
   TdlibType("UpgradedGiftModel"),
   TdlibType("UpgradedGiftSymbol"),
   TdlibType("UpgradedGiftBackdrop"),
