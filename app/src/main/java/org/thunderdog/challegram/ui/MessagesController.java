@@ -2256,6 +2256,23 @@ public class MessagesController extends ViewController<MessagesController.Argume
           });
         }
       });
+    } else if (id == R.id.btn_viewForum) {
+      // Navigate to forum topics view (when viewing a specific topic, e.g., from message link)
+      long supergroupId = ChatId.toSupergroupId(chat.id);
+      TdApi.Supergroup supergroup = supergroupId != 0 ? tdlib.cache().supergroup(supergroupId) : null;
+      boolean hasForumTabs = supergroup != null && supergroup.hasForumTabs;
+
+      ViewController<?> forumController;
+      if (hasForumTabs) {
+        ForumTopicTabsController tabsController = new ForumTopicTabsController(context, tdlib);
+        tabsController.setArguments(new ForumTopicTabsController.Arguments(chat));
+        forumController = tabsController;
+      } else {
+        ForumTopicsController listController = new ForumTopicsController(context, tdlib);
+        listController.setArguments(new ForumTopicsController.Arguments(chat));
+        forumController = listController;
+      }
+      navigateTo(forumController);
     } else if (id == R.id.btn_manageGroup) {
       manageGroup();
     } else if (id == R.id.btn_deleteThread) {
@@ -4579,6 +4596,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (tdlib.isForum(chat.id) && messageThread == null && forumTopic == null && !chat.viewAsTopics) {
       ids.append(R.id.btn_viewAsTopics);
       strings.append(R.string.ViewAsTopics);
+    }
+
+    // Add "View forum" option when viewing a specific forum topic (e.g., from message link)
+    if (tdlib.isForum(chat.id) && (forumTopic != null || getMessageTopicId() != null)) {
+      ids.append(R.id.btn_viewForum);
+      strings.append(R.string.ViewForum);
     }
 
     if (BuildConfig.DEBUG) {

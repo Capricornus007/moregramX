@@ -382,6 +382,7 @@ public class ForumTopicView extends BaseView implements TdlibEmojiManager.Watche
     }
 
     // Build preview Text with custom emoji support
+    // Build preview Text with emoji support (use FormattedText for custom emoji)
     if (previewFormattedText != null && !StringUtils.isEmpty(previewFormattedText.text)) {
       displayPreview = new Text.Builder(
         tdlib,
@@ -391,6 +392,7 @@ public class ForumTopicView extends BaseView implements TdlibEmojiManager.Watche
         Paints.robotoStyleProvider(15f),
         TextColorSets.Regular.LIGHT,
         this // textMediaListener for custom emoji loading
+        null // textMediaListener - could add for custom emoji loading
       ).singleLine()
        .ignoreNewLines()
        .build();
@@ -628,6 +630,11 @@ public class ForumTopicView extends BaseView implements TdlibEmojiManager.Watche
         // Convert baseline to top position (previewY is baseline at 64dp, top is ~52dp)
         int previewTop = (int) previewY - Screen.dp(12f);
         displayPreview.draw(canvas, textLeft, previewTop, null, 1f, textMediaReceiver);
+      // Row 3: Draw message preview with emoji support
+      if (displayPreview != null) {
+        // Convert baseline to top position (previewY is baseline at 64dp, top is ~52dp)
+        int previewTop = (int) previewY - Screen.dp(12f);
+        displayPreview.draw(canvas, textLeft, previewTop);
       }
     }
 
