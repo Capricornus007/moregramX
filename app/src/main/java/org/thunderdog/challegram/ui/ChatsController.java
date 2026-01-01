@@ -464,7 +464,9 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
         }
       }
 
-      if (context.archiveCollapsed && outRect.top == 0 && current.isArchive()) {
+      // When archive is collapsed, hide it with negative offset - but only if no story bar
+      // When story bar is present, archive sits below it and doesn't need collapse offset
+      if (context.archiveCollapsed && outRect.top == 0 && current.isArchive() && !context.adapter.hasStoryBar()) {
         outRect.top = -ChatView.getViewHeight(current.getListMode());
         if (context.liveLocationHelper != null && context.liveLocationHelper.isVisible()) {
           outRect.top -= Screen.dp(1f);
