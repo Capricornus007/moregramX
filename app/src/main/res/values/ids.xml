@@ -1197,8 +1197,10 @@
 
   <item type="id" name="btn_quick_reaction" />
   <item type="id" name="btn_big_reactions" />
+  <item type="id" name="btn_bigReactionsDMs" />
   <item type="id" name="btn_bigReactionsChats" />
   <item type="id" name="btn_bigReactionsChannels" />
+  <item type="id" name="btn_showAttachWhileTyping" />
 
   <item type="id" name="btn_enabledReactionsCheckboxGroup" />
   <item type="id" name="btn_quick_reaction_enabled" />
