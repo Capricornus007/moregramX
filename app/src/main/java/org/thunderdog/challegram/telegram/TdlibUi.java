@@ -2131,9 +2131,10 @@ public class TdlibUi extends Handler {
       TdApi.Supergroup supergroup = supergroupId != 0 ? tdlib.cache().supergroup(supergroupId) : null;
       boolean hasForumTabs = supergroup != null && supergroup.hasForumTabs;
 
-      // Show topics view if viewAsTopics is true (default for forums)
+      // Show topics view if viewAsTopics is true OR if forum has tabs layout enabled
+      // Forums with tabs should always open in tabs view by default
       // Users can use "View as chat" option to switch to unified view (sets viewAsTopics to false)
-      if (chat.viewAsTopics) {
+      if (chat.viewAsTopics || hasForumTabs) {
         ViewController<?> forumController;
         if (hasForumTabs) {
           ForumTopicTabsController tabsController = new ForumTopicTabsController(context.context(), context.tdlib());

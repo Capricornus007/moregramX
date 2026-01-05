@@ -31,6 +31,7 @@ import org.thunderdog.challegram.component.attach.CustomItemAnimator;
 import org.thunderdog.challegram.component.chat.ChatHeaderView;
 import org.thunderdog.challegram.component.chat.MessagesManager;
 import org.thunderdog.challegram.core.Lang;
+import org.thunderdog.challegram.ui.MessagesController;
 import org.thunderdog.challegram.navigation.BackHeaderButton;
 import org.thunderdog.challegram.navigation.HeaderView;
 import org.thunderdog.challegram.navigation.Menu;
@@ -701,8 +702,16 @@ public class ForumTopicsController extends TelegramViewController<ForumTopicsCon
       tdlib.client().send(new TdApi.ToggleChatViewAsTopics(chatId, false), result -> {
         if (result.getConstructor() == TdApi.Ok.CONSTRUCTOR) {
           tdlib.ui().post(() -> {
-            // Open chat in unified mode - this replaces current controller properly
-            tdlib.ui().openChat(this, chat, new TdlibUi.ChatOpenParameters().removeDuplicates());
+            // Create the messages controller and replace current controller
+            MessagesController c = new MessagesController(context, tdlib);
+            c.setArguments(new MessagesController.Arguments(tdlib, null, chat, null, null, null));
+
+            // Navigate to messages controller and remove this controller from stack after navigation
+            c.addOneShotFocusListener(() -> {
+              // Destroy the ForumTopicsController from the stack (it's now at position stackSize - 2)
+              c.destroyStackItemAt(c.stackSize() - 2);
+            });
+            navigateTo(c);
           });
         }
       });
