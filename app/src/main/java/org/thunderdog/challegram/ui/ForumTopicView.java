@@ -387,12 +387,11 @@ public class ForumTopicView extends BaseView implements TdlibEmojiManager.Watche
       displayPreview = new Text.Builder(
         tdlib,
         previewFormattedText,
-        null, // urlOpenParameters
+        null,
         availWidth,
         Paints.robotoStyleProvider(15f),
         TextColorSets.Regular.LIGHT,
-        this // textMediaListener for custom emoji loading
-        null // textMediaListener - could add for custom emoji loading
+        this
       ).singleLine()
        .ignoreNewLines()
        .build();
@@ -630,16 +629,11 @@ public class ForumTopicView extends BaseView implements TdlibEmojiManager.Watche
         // Convert baseline to top position (previewY is baseline at 64dp, top is ~52dp)
         int previewTop = (int) previewY - Screen.dp(12f);
         displayPreview.draw(canvas, textLeft, previewTop, null, 1f, textMediaReceiver);
-      // Row 3: Draw message preview with emoji support
-      if (displayPreview != null) {
-        // Convert baseline to top position (previewY is baseline at 64dp, top is ~52dp)
-        int previewTop = (int) previewY - Screen.dp(12f);
-        displayPreview.draw(canvas, textLeft, previewTop);
       }
-    }
 
-    // Draw separator line at bottom
-    canvas.drawLine(textLeft, height - 1, width, height - 1, Paints.strokeSeparatorPaint(ColorId.separator));
+      // Draw separator line at bottom
+      canvas.drawLine(textLeft, height - 1, width, height - 1, Paints.strokeSeparatorPaint(ColorId.separator));
+    }
   }
 
   private void drawCustomEmojiIcon (Canvas canvas, int left, int top, int right, int bottom) {

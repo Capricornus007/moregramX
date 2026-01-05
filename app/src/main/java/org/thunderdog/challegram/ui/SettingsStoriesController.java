@@ -54,6 +54,10 @@ public class SettingsStoriesController extends RecyclerViewController<Void> impl
           int[] colors = Settings.instance().getStoryRingColors();
           view.setData(colors.length == 1 ? Lang.getString(R.string.SolidColor) :
                        Lang.plural(R.string.xColors, colors.length));
+        } else if (id == R.id.btn_toggleNewSetting) {
+          updateSettingView(view, item, isUpdate);
+        } else if (id == R.id.btn_showAddStoryBorder) {
+          view.getToggler().setRadioEnabled(Settings.instance().getNewSetting(Settings.SETTING_FLAG_SHOW_ADD_STORY_BORDER), isUpdate);
         }
       }
     };

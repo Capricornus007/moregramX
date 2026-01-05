@@ -236,6 +236,7 @@ android {
   // defaultConfig.vectorDrawables.useSupportLibrary = true
 
   sourceSets.getByName("main") {
+    res.srcDir("src/main/reX-values")
     java.srcDirs("./src/google/java") // TODO: Huawei & FOSS editions
     java.srcDirs(
       "./jni/third_party/webrtc/rtc_base/java/src",
