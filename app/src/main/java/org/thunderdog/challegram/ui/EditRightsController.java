@@ -1484,10 +1484,12 @@ public class EditRightsController extends EditBaseController<EditRightsControlle
         } else {
           targetRestrict.permissions.canCreateTopics = newValue;
         }
+        break;
       case RightId.MANAGE_TOPICS:
-        targetAdmin.rights.canManageTopics = newValue;
->>>>>>> 54685ab3 (Added missing admin flags checks in recent actions + Supported `canManageTopics` permission)
-          targetRestrict.permissions.canManageTopics = newValue;
+        if (getArgumentsStrict().mode == MODE_ADMIN_PROMOTION) {
+          targetAdmin.rights.canManageTopics = newValue;
+        } else {
+          targetRestrict.permissions.canCreateTopics = newValue;
         }
         break;
       case RightId.POST_STORIES:
@@ -1636,9 +1638,10 @@ public class EditRightsController extends EditBaseController<EditRightsControlle
           return canViewMessages && targetRestrict.permissions.canCreateTopics;
         }
       case RightId.MANAGE_TOPICS:
-        return targetAdmin.rights.canManageTopics;
->>>>>>> 54685ab3 (Added missing admin flags checks in recent actions + Supported `canManageTopics` permission)
-          return canViewMessages && targetRestrict.permissions.canManageTopics;
+        if (getArgumentsStrict().mode == MODE_ADMIN_PROMOTION) {
+          return targetAdmin.rights.canManageTopics;
+        } else {
+          return canViewMessages && targetRestrict.permissions.canCreateTopics;
         }
       case RightId.POST_STORIES:
         return targetAdmin.rights.canPostStories;
@@ -1700,9 +1703,6 @@ public class EditRightsController extends EditBaseController<EditRightsControlle
         return getArgumentsStrict().mode == MODE_ADMIN_PROMOTION ? R.string.RightTopics : R.string.RightTopicsCreate;
       case RightId.MANAGE_TOPICS:
         return R.string.RightTopics;
->>>>>>> 54685ab3 (Added missing admin flags checks in recent actions + Supported `canManageTopics` permission)
-      case RightId.MANAGE_OR_CREATE_TOPICS:
-        return getArgumentsStrict().mode == MODE_ADMIN_PROMOTION ? R.string.RightTopics : R.string.RightTopicsCreate;
       case RightId.POST_STORIES:
         return R.string.RightStoriesPost;
       case RightId.EDIT_STORIES:

@@ -259,11 +259,7 @@ public class TD {
         return permissions.canPinMessages;
       // Same right, but different meaning
       case RightId.MANAGE_OR_CREATE_TOPICS:
-<<<<<<< HEAD
         return permissions.canCreateTopics;
-=======
-        return permissions.canManageTopics;
->>>>>>> cb4e0254 (Support for `Create Topics` permission and restriction)
       // Admin-only
       case RightId.ADD_NEW_ADMINS:
       case RightId.BAN_USERS:
@@ -1289,11 +1285,7 @@ public class TD {
       (a.canInviteUsers != defaultPermissions.canInviteUsers && defaultPermissions.canInviteUsers) ||
       (a.canPinMessages != defaultPermissions.canPinMessages && defaultPermissions.canPinMessages) ||
       (a.canChangeInfo != defaultPermissions.canChangeInfo && defaultPermissions.canChangeInfo) ||
-<<<<<<< HEAD
       (a.canCreateTopics != defaultPermissions.canCreateTopics && defaultPermissions.canCreateTopics);
-=======
-      (a.canManageTopics != defaultPermissions.canManageTopics && defaultPermissions.canManageTopics);
->>>>>>> cb4e0254 (Support for `Create Topics` permission and restriction)
   }
 
   public static int getCombineMode (TdApi.Message message) {
