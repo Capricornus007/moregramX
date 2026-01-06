@@ -210,7 +210,7 @@ public class InputView extends NoClipEditText implements InlineSearchContext.Cal
     setMaxLines(8);
     setMinimumHeight(Screen.dp(49f));
     setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-    Views.clearCursorDrawable(this);
+    Views.setCursorDrawable(this, R.drawable.cursor_input_message);
     setMaxCodePointCount(0);
     addTextChangedListener(new TextWatcher() {
       @Override

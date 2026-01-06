@@ -117,7 +117,7 @@ public class KeyboardFrameLayout extends FrameLayoutFix implements ViewTreeObser
 
   public void onKeyboardStateChanged (boolean visible) {
     if (keyboardState == STATE_AWAITING_SHOW && visible) {
-      framesDropped = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N ? 45 : 55;
+      framesDropped = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N ? 3 : 5;
     } else if (keyboardState == STATE_AWAITING_HIDE && !visible) {
       keyboardState = STATE_NONE;
     }
@@ -130,7 +130,7 @@ public class KeyboardFrameLayout extends FrameLayoutFix implements ViewTreeObser
   @Override
   public boolean onPreDraw () {
     if (keyboardState == STATE_AWAITING_SHOW || keyboardState == STATE_AWAITING_HIDE) {
-      if (++framesDropped >= 60) {
+      if (++framesDropped >= 10) {
         framesDropped = 0;
         keyboardState = STATE_NONE;
         return true;

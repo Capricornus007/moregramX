@@ -630,3 +630,36 @@ Fixed star icon in reaction bubbles being too large (overflowing its border).
   - Changed `drawReceiver()` to use `drawable.draw(canvas)` directly instead of `Drawables.draw()`
   - Now properly respects the bounds set with `setBounds(l, t, r, b)`
   - Star icon scales to fit the reaction bubble correctly
+
+### Emoji/Sticker Panel to Keyboard Switching Performance Fix
+Fixed 1-second freeze when switching from emoji/sticker panel to keyboard.
+
+**Root Cause:** `KeyboardFrameLayout.onPreDraw()` was intentionally dropping 45-55 frames (750ms-1s freeze at 60 FPS) when showing keyboard. This was an old workaround for pre-Android N devices but caused noticeable lag on modern devices.
+
+**Solution:** Reduced frame dropping from 45-55 to 3-5 frames (~50-83ms), making the transition nearly imperceptible.
+
+**Files Modified:**
+- `app/src/main/java/org/thunderdog/challegram/widget/KeyboardFrameLayout.java`:
+  - Line 120: Changed `framesDropped = 45 : 55` → `framesDropped = 3 : 5`
+  - Line 133: Changed safety limit from `>= 60` → `>= 10` frames
+
+### Message Input Cursor Thickness
+Made the message input cursor more visible by increasing its width.
+
+**Files Created:**
+- `app/src/main/res/drawable/cursor_input_message.xml` - Custom cursor drawable with 2dp width
+
+**Files Modified:**
+- `app/src/main/java/org/thunderdog/challegram/component/chat/InputView.java`:
+  - Line 213: Changed from `Views.clearCursorDrawable(this)` to `Views.setCursorDrawable(this, R.drawable.cursor_input_message)`
+  - Now uses custom cursor instead of system default
+
+### Paid Reaction Double Star Icon Fix
+Fixed paid (star) reactions displaying two overlapping star icons instead of one.
+
+**Root Cause:** `TGReactions.drawReceiver()` was calling both `drawable.draw(c)` and `Drawables.draw()` on the same star drawable, causing duplicate rendering.
+
+**Files Modified:**
+- `app/src/main/java/org/thunderdog/challegram/data/TGReactions.java`:
+  - Line 981: Removed duplicate `Drawables.draw()` call
+  - Now only draws star icon once via `drawable.draw(c)` after setting bounds/alpha/color filter

@@ -57,6 +57,7 @@ import org.thunderdog.challegram.R;
 import org.thunderdog.challegram.U;
 import org.thunderdog.challegram.component.MediaCollectorDelegate;
 import org.thunderdog.challegram.component.attach.AvatarPickerManager;
+import org.thunderdog.challegram.data.DoubleTextWrapper;
 import org.thunderdog.challegram.loader.ImageFile;
 import org.thunderdog.challegram.loader.ImageGalleryFile;
 import org.thunderdog.challegram.mediaview.MediaSelectDelegate;
@@ -2453,13 +2454,28 @@ public class ProfileController extends ViewController<ProfileController.Args> im
     return user.isContact || user.isMutualContact || TD.hasPhoneNumber(user);
   }
 
+  private ListItem newProfileChannelItem() {
+    DoubleTextWrapper channelWrapper = new DoubleTextWrapper(tdlib, tdlib().chat(userFull.personalChatId));
+    return new ListItem(ListItem.TYPE_CHAT_SMALL, R.id.btn_profileChannel).setData(channelWrapper);
+  }
+
   private void buildUserCells () {
     ArrayList<ListItem> items = new ArrayList<>(15);
 
     items.add(new ListItem(ListItem.TYPE_EMPTY_OFFSET));
 
     int addedCount = 0;
+    if(userFull != null){
+      if(userFull.personalChatId != 0){
+        items.add(newProfileChannelItem());
+        addedCount++;
+      }
+    }
+
     if (Settings.instance().showPeerIds()) {
+      if(addedCount > 0){
+        items.add(new ListItem(ListItem.TYPE_SEPARATOR));
+      }
       items.add(newPeerIdItem());
       addedCount++;
     }
@@ -2538,7 +2554,7 @@ public class ProfileController extends ViewController<ProfileController.Args> im
     checkBirthdate();
     checkDescription();
     checkGroupsInCommon();
-
+    checkProfileChannel();
     /*if (userFull.commonChatCount > 0) {
       int index = baseAdapter.indexOfViewById(R.id.btn_notifications);
       if (index != -1) {
@@ -2550,6 +2566,21 @@ public class ProfileController extends ViewController<ProfileController.Args> im
     }*/
 
     checkUserButtons();
+  }
+
+  private void checkProfileChannel() {
+    if(isEditing()) return;
+
+    int foundIndex = baseAdapter.indexOfViewById(R.id.btn_profileChannel);
+    boolean hadPersonalChannel = foundIndex != -1;
+    boolean hasPersonalChannel = userFull.personalChatId != 0;
+    if(hadPersonalChannel != hasPersonalChannel){
+      if(hadPersonalChannel){
+        removeTopItem(foundIndex);
+      } else {
+        addTopItem(newProfileChannelItem(), 0);
+      }
+    }
   }
 
   private void checkUserButtons () {
@@ -2793,6 +2824,9 @@ public class ProfileController extends ViewController<ProfileController.Args> im
         removeTopItem(foundIndex);
       } else {
         int index = 0;
+        if (baseAdapter.indexOfViewById(R.id.btn_profileChannel) != -1) {
+          index++;
+        }
         if (Settings.instance().showPeerIds() && baseAdapter.indexOfViewById(R.id.btn_peer_id) != -1) {
           index++;
         }
@@ -2820,6 +2854,9 @@ public class ProfileController extends ViewController<ProfileController.Args> im
         setDescription();
 
         int index = 0;
+        if (baseAdapter.indexOfViewById(R.id.btn_profileChannel) != -1) {
+          index++;
+        }
         if (Settings.instance().showPeerIds() && baseAdapter.indexOfViewById(R.id.btn_peer_id) != -1) {
           index++;
         }
@@ -2857,6 +2894,9 @@ public class ProfileController extends ViewController<ProfileController.Args> im
           removeTopItem(foundIndex);
         } else {
           int index = 0;
+          if (baseAdapter.indexOfViewById(R.id.btn_profileChannel) != -1) {
+            index++;
+          }
           if (Settings.instance().showPeerIds() && baseAdapter.indexOfViewById(R.id.btn_peer_id) != -1) {
             index++;
           }
@@ -2918,6 +2958,9 @@ public class ProfileController extends ViewController<ProfileController.Args> im
         ListItem usernameItem = newUsernameItem();
         if (usernameItem != null) {
           int index = 0;
+          if (baseAdapter.indexOfViewById(R.id.btn_profileChannel) != -1) {
+            index++;
+          }
           if (Settings.instance().showPeerIds() && baseAdapter.indexOfViewById(R.id.btn_peer_id) != -1) {
             index++;
           }
@@ -5073,6 +5116,8 @@ public class ProfileController extends ViewController<ProfileController.Args> im
       icons.append(R.drawable.baseline_forward_24);
 
       showOptions("@" + tdlib.chatUsername(chat.id), ids.get(), strings.get(), null, icons.get());
+    } else if(viewId == R.id.btn_profileChannel) {
+      tdlib().ui().openChat(this, userFull.personalChatId, new TdlibUi.ChatOpenParameters().keepStack().removeDuplicates());
     } else if (viewId == R.id.btn_birthdate) {
       TdApi.Birthdate birthdate = userFull != null ? userFull.birthdate : null;
       if (birthdate != null) {

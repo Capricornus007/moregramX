@@ -5,6 +5,7 @@ import android.graphics.Color;
 import android.graphics.Path;
 import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.ScaleDrawable;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
@@ -673,7 +674,10 @@ public class TGReactions implements Destroyable, ReactionLoadListener {
 
       // Handle paid reactions with star icon
       if (reaction.isPaid()) {
-        this.paidReactionDrawable = Drawables.get(R.drawable.baseline_star_24);
+        Drawable tDrawable = Drawables.get(R.drawable.baseline_premium_star_16);
+        ScaleDrawable scaled = new ScaleDrawable(tDrawable, Gravity.CENTER, 0.5f, 0.5f);
+        scaled.setLevel(1);
+        this.paidReactionDrawable = scaled;
         this.animation = null;
         this.animationScale = 1f;
         this.staticAnimationFile = null;
@@ -972,13 +976,11 @@ public class TGReactions implements Destroyable, ReactionLoadListener {
     private boolean inAnimation;
 
     private void drawReceiver (Canvas c, int l, int t, int r, int b, float alpha) {
-      // Draw star icon for paid reactions
       if (paidReactionDrawable != null) {
         paidReactionDrawable.setBounds(l, t, r, b);
         paidReactionDrawable.setAlpha((int) (alpha * 255));
-        paidReactionDrawable.setColorFilter(Paints.getPorterDuffPaint(Theme.getColor(ColorId.iconActive)).getColorFilter());
+        paidReactionDrawable.setColorFilter(Paints.getColorFilter(Theme.getColor(ColorId.iconActive)));
         paidReactionDrawable.draw(c);
-        Drawables.draw(c, paidReactionDrawable, l, t, Paints.getPorterDuffPaint(Theme.getColor(ColorId.text)));
         return;
       }
 
