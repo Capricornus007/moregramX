@@ -643,6 +643,142 @@ Fixed 1-second freeze when switching from emoji/sticker panel to keyboard.
   - Line 120: Changed `framesDropped = 45 : 55` → `framesDropped = 3 : 5`
   - Line 133: Changed safety limit from `>= 60` → `>= 10` frames
 
+### Quote Creation and Highlighting Implementation (REFACTORED)
+Complete reimplementation of quote functionality with proper highlighting and long-press text selection.
+
+**Features Implemented:**
+
+1. **Quote Highlighting on Click (FULLY WORKING)**
+   - Added quote highlight rendering directly in Text.java
+   - Quote info extraction from `MessageReplyToMessage.quote` when clicking on replies
+   - Semi-transparent blue highlight with 2-second fade-in/fade-out animation
+   - Quote info passed through: TGMessage → MessagesController → MessagesManager → TGMessageText
+
+2. **Two-Step Long-Press Quote Creation with Visual Selection (NEW)**
+   - First long-press on message → selects message (enters selection mode)
+   - Second long-press on selected message text → shows **floating ActionMode** with visual selection
+   - **Visual features**:
+     - Blue highlight over selected text (like EditText)
+     - Draggable circular handles at start and end of selection
+     - Floating menu bar above selection with "Quote" button
+   - Touch events handled for dragging handles to change selection
+   - Automatically opens reply with quote and shows keyboard
+   - Works seamlessly with message selection mode
+
+3. **Quote Button Removed**
+   - Removed quote button from message selection menu (as requested)
+   - Quoting now only available via long-press on message text
+
+**Files Modified:**
+
+- `app/src/main/java/org/thunderdog/challegram/util/text/Text.java`:
+  - Lines 273-276: Added quote highlight fields (quoteHighlightStart, quoteHighlightEnd, quoteHighlightAlpha)
+  - Lines 2828-2839: Added setQuoteHighlight() and clearQuoteHighlight() public methods
+  - Lines 2444-2473: Added drawQuoteHighlight() method for rendering
+  - Line 2636: Added drawQuoteHighlight call in main draw() method
+
+- `app/src/main/java/org/thunderdog/challegram/data/TGMessageText.java`:
+  - Lines 675-725: Refactored performLongPress to show quote ActionMode
+  - Lines 692-724: Added canBeQuoted(), inSelectionMode(), showQuoteActionMode() methods
+  - Lines 768-812: Updated setTextHighlight and animateHighlight to use Text.setQuoteHighlight()
+  - Removed enableTextSelection/disableTextSelection methods (no longer needed)
+
+- `app/src/main/java/org/thunderdog/challegram/ui/MessagesController.java`:
+  - Lines 3853-3862: Removed menu_btn_quote handler (deleted)
+  - Lines 3684-3686: Quote button in menu already commented out
+  - Removed canCreateQuoteFromSelectedMessage() method
+  - Removed enterTextSelectionMode(), exitTextSelectionMode(), onQuoteCreated() methods
+  - Removed messageInTextSelection field
+
+- `app/src/main/java/org/thunderdog/challegram/data/TGMessage.java`:
+  - Lines 213-221: TextQuoteInfo class (kept for quote click handling)
+  - Lines 2964-2983: Quote info extraction on reply click (unchanged)
+  - Lines 3001-3003: highlightOtherMessage with quoteInfo (unchanged)
+
+- `app/src/main/java/org/thunderdog/challegram/component/chat/MessagesManager.java`:
+  - Lines 3094: Quote info parameter in highlightMessage (unchanged)
+  - Lines 3117-3119: setTextHighlight call on TGMessageText (unchanged)
+
+**Files Kept (Still Used):**
+- `app/src/main/java/org/thunderdog/challegram/util/text/TextSelectionHelper.java` - Used for ActionMode in long-press
+- `app/src/main/res/menu/text_selection_quote.xml` - ActionMode menu resource
+- `app/src/main/res/values/ids.xml` - menu_btn_create_quote ID
+
+**Implementation Details:**
+
+1. **Quote Highlight Rendering:**
+   - Uses existing Text.java infrastructure (similar to pressHighlight and spoilers)
+   - Finds TextParts that overlap with UTF-16 quote range
+   - Draws semi-transparent blue background (0x4000A0FF)
+   - Alpha animated from 0 → 1 → 0 over 2 seconds
+
+2. **Two-Step Long-Press Quote Flow:**
+   - **First press**: User long-presses message → super.performLongPress() selects message
+   - **Second press**: User long-presses selected message → performLongPress() in TGMessageText
+   - Check: not already handled, in selection mode, current message is selected, message has text
+   - Create TextSelectionHelper with full message text
+   - Show ActionMode with "Quote" button
+   - On "Quote" click → create InputTextQuote → showReply() → open keyboard
+   - On cancel → clear TextSelectionHelper via CancelCallback
+
+3. **UTF-16 Position Handling:**
+   - Java String uses UTF-16 internally
+   - convertUtf16ToCharIndex handles surrogate pairs correctly
+   - Quote position calculated at selection start (0 for full message)
+
+**Current Status:**
+- ✅ Quote highlighting on click: WORKING
+- ✅ Two-step quote creation: WORKING (1st press selects, 2nd shows floating ActionMode)
+- ✅ Floating ActionMode menu: WORKING (TYPE_FLOATING like EditText)
+- ✅ Visual text selection highlight: WORKING (blue highlight)
+- ✅ Selection handles: WORKING (draggable circles like EditText)
+- ✅ Touch event handling: WORKING (drag handles to change selection)
+- ✅ Quote button removed from selection menu: DONE
+- ✅ Repeated long-press fix: WORKING (ActionMode cancel callback implemented)
+- ✅ Partial text selection: IMPLEMENTED (touch handling and character detection)
+- ✅ Multi-line selection support: IMPLEMENTED (getCharIndexAt supports multi-line)
+
+**Implementation Details:**
+
+1. **Repeated Long-Press Fix:**
+   - Added CancelCallback interface to TextSelectionHelper
+   - TextSelectionHelper now notifies TGMessageText when ActionMode is cancelled
+   - TGMessageText properly resets textSelectionHelper on cancel
+   - Always recreates TextSelectionHelper for clean state
+
+2. **Floating ActionMode (like EditText):**
+   - Uses ActionMode.Callback2 for floating menu support
+   - ActionMode.TYPE_FLOATING on Android 6.0+ (API 23+)
+   - onGetContentRect() positions menu above selection
+   - View invalidation on show/hide for selection rendering
+
+3. **Visual Selection Rendering:**
+   - drawSelection() renders blue highlight using quote highlight system
+   - drawHandles() draws circular handles with stems at selection edges
+   - Rendered in TGMessageText.drawContent() after text drawing
+   - Handle color: #2196F3 (Material Blue), radius: 12dp
+
+4. **Touch Event Handling:**
+   - TGMessageText.onTouchEvent() delegates to TextSelectionHelper first
+   - updateSelectionFromTouch() updates selection based on drag
+   - isDraggingStart/isDraggingEnd flags track which handle is being moved
+   - View invalidation on touch for smooth visual updates
+
+5. **Partial Text Selection:**
+   - Added getCharIndexAt() method in Text.java for coordinate-to-character mapping
+   - Implemented touch handling in TextSelectionHelper with drag support
+   - Selection updates based on touch position
+
+6. **Multi-Line Selection:**
+   - getCharIndexAt() finds line by Y coordinate
+   - Finds character within line by X coordinate
+   - Handles text measurement with proper Paint widths
+
+**Future Enhancements (Optional):**
+1. Custom selection handle drawables (drag circles/pins)
+2. Selection persistence across view recycling
+3. Word/paragraph selection on double-tap/triple-tap
+
 ### Message Input Cursor Thickness
 Made the message input cursor more visible by increasing its width.
 
@@ -663,3 +799,103 @@ Fixed paid (star) reactions displaying two overlapping star icons instead of one
 - `app/src/main/java/org/thunderdog/challegram/data/TGReactions.java`:
   - Line 981: Removed duplicate `Drawables.draw()` call
   - Now only draws star icon once via `drawable.draw(c)` after setting bounds/alpha/color filter
+
+---
+
+### Text Selection System Improvements & Bug Fixes
+Comprehensive improvements to the quote creation text selection system with bug fixes and unification.
+
+**Bugs Fixed:**
+
+1. **ActionMode Memory Leak:**
+   - Fixed memory leak when MessagesController is destroyed without closing ActionMode
+   - Added cleanup in `onMessageContainerDestroyed()` and `finishTextSelection()`
+   - ActionMode now properly closes when fragment is destroyed
+
+2. **Selection Handles Not Responding:**
+   - Increased touch hit radius from 40dp to 50dp
+   - Improved hit detection to account for actual handle drawable height
+   - Handles now properly respond to dragging by their lower portions
+   - Fixed touch events passing through to underlying messages
+
+3. **Selection Offset on Multiline Text:**
+   - Fixed handles and highlight "shifting" on second and subsequent lines
+   - Added dynamic layoutOffset updates in both `drawContent()` and `onTouchEvent()`
+   - Properly accounts for linkPreview position when it's above text
+   - Coordinates now stay synchronized during animations
+
+4. **Click Outside Closes ActionMode:**
+   - Click/tap anywhere outside selection handles now closes quote mode
+   - Implemented in `MessageView.onTouchEvent()` - detects unhandled ACTION_DOWN events
+
+5. **Back Button Handling:**
+   - System back button now closes ActionMode when text selection is active
+   - Added `performOnBackPressed()` override in `MessagesController`
+   - Added `hasActiveTextSelection()` static method in `TGMessage`
+
+6. **System Unification:**
+   - Moved base text selection logic to `TGMessage` base class
+   - Added documentation comments explaining how to implement in other message types
+   - Uses existing `getMessageText()` public final method (extracts text via Td.textOrCaption)
+   - System now ready for use in `TGMessageMedia` and other message types
+
+**Files Modified:**
+
+- `app/src/main/java/org/thunderdog/challegram/util/text/TextSelectionHelper.java`:
+  - Enhanced `checkHandleTouch()` with larger hit radius (50dp) and proper height calculation
+  - Improved touch detection logic for handle drawables
+
+- `app/src/main/java/org/thunderdog/challegram/data/TGMessageText.java`:
+  - Added `finishTextSelection()` override to properly clean up TextSelectionHelper
+  - Fixed callback cleanup in `showQuoteActionMode()` to avoid duplicate finishTextSelection calls
+  - Added cleanup in `onMessageContainerDestroyed()` to prevent memory leaks
+  - Fixed layoutOffset updates in `drawContent()` to account for linkPreview animation
+  - Fixed layoutOffset updates in `onTouchEvent()` for proper touch handling
+
+- `app/src/main/java/org/thunderdog/challegram/component/chat/MessageView.java`:
+  - Added logic to close ActionMode when clicking outside selection handles
+  - Touch events now properly consumed when selection is active
+
+- `app/src/main/java/org/thunderdog/challegram/ui/MessagesController.java`:
+  - Added `performOnBackPressed()` override to handle back button
+  - Back button closes text selection before falling back to default behavior
+
+- `app/src/main/java/org/thunderdog/challegram/data/TGMessage.java`:
+  - Added comprehensive documentation block explaining text selection system
+  - Added `hasActiveTextSelection()` static method for global state checking
+  - Uses existing `getMessageText()` public final method that extracts text via Td.textOrCaption
+  - System now provides clear API for implementing in subclasses
+
+**Implementation Notes:**
+
+The text selection system is now properly unified and documented. Other message types (like TGMessageMedia) can easily implement quote functionality by:
+1. Overriding `canTextSelection()` if custom logic is needed (base implementation uses getMessageText())
+2. Overriding `processTextSelection()` to show quote ActionMode
+3. Overriding `finishTextSelection()` to clean up resources
+4. Calling `registerAsActiveSelection()` and `unregisterAsActiveSelection()` appropriately
+
+The base `getMessageText()` method (public final) already extracts text from msg.content using Td.textOrCaption(), so it works for most message types without modification.
+
+**Current Status:**
+- ✅ Memory leak fixed
+- ✅ Touch handling improved
+- ✅ Multiline coordinate sync fixed (removed duplicate offset addition in drawHandles)
+- ✅ Click outside closes selection
+- ✅ Back button closes selection
+- ✅ System unified and documented
+- ✅ System highlight color used (replaced hardcoded blue with ColorId.textSelectionHighlight)
+
+**Additional Fixes (Round 2):**
+
+1. **Multiline Selection Offset Fixed (Final):**
+   - Root cause identified: `drawHandles()` was overwriting `layoutX/layoutY` and then adding `startX/startY` again
+   - This caused double offset calculation, making handles shift on second+ lines
+   - Fixed by removing redundant `layoutX/layoutY` update in `drawHandles()` (lines 273-275 removed)
+   - layoutX/layoutY now set only once via `setLayoutOffset()` before drawing
+   - Handles now render at correct positions on all lines
+
+2. **System Highlight Color:**
+   - Replaced hardcoded `0x4000A0FF` (semi-transparent blue) with system color
+   - Now uses `Theme.getColor(ColorId.textSelectionHighlight)` for proper theme support
+   - Selection highlight color adapts to user's theme (dark/light mode)
+   - File: `Text.java` line 2448-2450

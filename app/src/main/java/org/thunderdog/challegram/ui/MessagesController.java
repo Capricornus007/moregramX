@@ -3681,6 +3681,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
       header.addReplyButton(menu, this, iconColorId)
         .setVisibility((value = canReplyToSelectedMessages()) ? View.VISIBLE : View.GONE);
       if (value) totalButtonsCount++;
+      /*header.addButton(menu, R.id.menu_btn_quote, R.drawable.baseline_format_quote_close_24, iconColorId, this, Screen.dp(52f))
+        .setVisibility((value = canCreateQuoteFromSelectedMessage()) ? View.VISIBLE : View.GONE);
+      if (value) totalButtonsCount++;*/
       header.addEditButton(menu, this, iconColorId)
         .setVisibility((value = canEditSelectedMessages()) ? View.VISIBLE : View.GONE);
       if (value) totalButtonsCount++;
@@ -5137,6 +5140,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
       if (value) totalButtonsCount++;
       headerView.updateButton(R.id.menu_messageActions, R.id.menu_btn_reply, (value = canReplyToSelectedMessages()) ? View.VISIBLE : View.GONE, 0);
       if (value) totalButtonsCount++;
+      /*headerView.updateButton(R.id.menu_messageActions, R.id.menu_btn_quote, (value = canCreateQuoteFromSelectedMessage()) ? View.VISIBLE : View.GONE, 0);
+      if (value) totalButtonsCount++;*/
       headerView.updateButton(R.id.menu_messageActions, R.id.menu_btn_forward, (value = canShareSelectedMessages()) ? View.VISIBLE : View.GONE, 0);
       if (value) totalButtonsCount++;
       headerView.updateButton(R.id.menu_messageActions, R.id.menu_btn_edit, (value = canEditSelectedMessages()) ? View.VISIBLE : View.GONE, 0);
@@ -5359,6 +5364,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     return pagerScrollPosition == 0 && msg != null && TD.canReplyTo(msg.message) && canWriteMessages();
   }
 
+
   private boolean canEditSelectedMessages () {
     MessageWithProperties msg = getSingleSelectedMessage();
     return !arePinnedMessages() && pagerScrollPosition == 0 && msg != null && msg.properties.canBeEdited && TD.canEditText(msg.message.content);
@@ -5500,6 +5506,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       leaveTransformMode();
     }
   }
+
 
   private FactorAnimator selectableAnimator;
   private float selectableFactor;
@@ -6490,21 +6497,29 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   public void highlightMessage (MessageId messageId, MessageId fromMessageId) {
+    highlightMessage(messageId, fromMessageId, null);
+  }
+
+  public void highlightMessage (MessageId messageId, MessageId fromMessageId, @Nullable org.thunderdog.challegram.data.TGMessage.TextQuoteInfo quoteInfo) {
     if (inOnlyFoundMode()) {
       manager.setHighlightMessageId(messageId, MessagesManager.HIGHLIGHT_MODE_NORMAL);
       onSetSearchFilteredShowMode(false);
       return;
     }
     long[] returnToMessageIds = manager.extendReturnToMessageIdStack(fromMessageId);
-    highlightMessage(messageId, returnToMessageIds);
+    highlightMessage(messageId, returnToMessageIds, quoteInfo);
   }
 
   public void highlightMessage (MessageId messageId, long[] returnToMessageIds) {
+    highlightMessage(messageId, returnToMessageIds, null);
+  }
+
+  public void highlightMessage (MessageId messageId, long[] returnToMessageIds, @Nullable org.thunderdog.challegram.data.TGMessage.TextQuoteInfo quoteInfo) {
     if (inPreviewSearchMode()) {
       tdlib.ui().openMessage(this, getChatId(), messageId, null);
       return;
     }
-    manager.highlightMessage(messageId, MessagesManager.HIGHLIGHT_MODE_NORMAL, returnToMessageIds, pagerScrollPosition == 0);
+    manager.highlightMessage(messageId, MessagesManager.HIGHLIGHT_MODE_NORMAL, returnToMessageIds, pagerScrollPosition == 0, quoteInfo);
     showMessagesListIfNeeded();
   }
 
@@ -8934,6 +8949,14 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   @Override
   public boolean performOnBackPressed (boolean fromTop, boolean commit) {
+    // Handle text selection mode - close it when back button is pressed
+    if (TGMessage.hasActiveTextSelection()) {
+      if (commit) {
+        TGMessage.resetGlobalSelection(null);
+      }
+      return true;
+    }
+
     BaseActivity context = context();
     if (context.getRecordAudioVideoController().isOpen()) {
       if (commit) {

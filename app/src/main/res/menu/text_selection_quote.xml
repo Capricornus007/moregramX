@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@android:id/copy"
+        android:icon="@drawable/baseline_content_copy_24"
+        android:title="@android:string/copy"
+        android:showAsAction="ifRoom" />
+    <item
+        android:id="@id/menu_btn_create_quote"
+        android:showAsAction="always"
+        android:icon="@drawable/baseline_format_quote_close_24"
+        android:title="@string/TextFormatQuote" />
+</menu>

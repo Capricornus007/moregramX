@@ -30,6 +30,7 @@ import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.RecyclerView;
 
 import org.drinkless.tdlib.TdApi;
+import org.thunderdog.challegram.Log;
 import org.thunderdog.challegram.R;
 import org.thunderdog.challegram.config.Config;
 import org.thunderdog.challegram.core.Lang;
@@ -151,6 +152,7 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
     if (Config.HARDWARE_MESSAGE_LAYER) {
       Views.setLayerType(this, LAYER_TYPE_HARDWARE);
     }
+    setClipToOutline(false);
   }
 
   public void setManager (MessagesManager manager) {
@@ -485,6 +487,8 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
   private boolean isAttached = true;
 
   public void onAttachedToRecyclerView () {
+    findParentRecyclerView().setClipChildren(false);
+    findParentRecyclerView().setClipToPadding(false);
     getMessage().checkHighlightedText();
     if (!isAttached) {
       isAttached = true;
@@ -509,6 +513,9 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
   }
 
   public void onDetachedFromRecyclerView () {
+    if(msg != null){
+      TGMessage.resetGlobalSelection(null);
+    }
     if (isAttached) {
       isAttached = false;
       avatarReceiver.detach();
@@ -1385,6 +1392,13 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
     }
     MessagesController m = (MessagesController) c;
     if (msg.canBeSelected()) {
+      // Check if message is already selected
+      if (m.isMessageSelected(msg.getChatId(), msg.getId(), msg)) {
+
+        android.util.Log.d("MessageView", "Message already selected, returning false to allow quote mode");
+        return false;
+      }
+      // Message not selected - select it
       selectMessage(m, msg, touchX, touchY);
       return true;
     }
@@ -1441,7 +1455,15 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
   }
 
   private void onLongPress () {
+    Log.d("FLAG_CAUGHT_CLICK %s", (flags & FLAG_CAUGHT_CLICK) != 0);
+    Log.d("FLAG_CAUGHT_MESSAGE_TOUCH %s", (flags & FLAG_CAUGHT_MESSAGE_TOUCH) != 0);
     if ((flags & FLAG_CAUGHT_CLICK) != 0) {
+      if(msg.canTextSelection() && msg.isCurrentMessageSelected() && !msg.isTextSelectionActive()){
+        msg.processTextSelection(this, touchX, touchY);
+        flags &= ~FLAG_CAUGHT_CLICK;
+        setLongPressed(true);
+        return;
+      }
       if (performLongPress()) {
         flags &= ~FLAG_CAUGHT_CLICK;
         setLongPressed(true);
@@ -1519,7 +1541,7 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
   }
 
   @Override
-  public boolean onTouchEvent (MotionEvent e) {
+  public boolean onTouchEvent(MotionEvent e) {
     if (msg == null) {
       return false;
     }
@@ -1535,8 +1557,31 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
     if (UI.getContext(getContext()).getRecordAudioVideoController().isOpen()) {
       return false;
     }
+
+    if (msg.isTextSelectionActive()) {
+      if (e.getAction() == MotionEvent.ACTION_DOWN) {
+        touchX = e.getX();
+        touchY = e.getY();
+      }
+
+      // Всегда обрабатываем события, когда текстовое выделение активно
+      boolean handled = msg.onTouchEvent(this, e);
+
+      // Если событие не было обработано (не попало в ползунки) и это ACTION_DOWN,
+      // закрываем текстовое выделение
+      if (!handled && e.getAction() == MotionEvent.ACTION_DOWN) {
+        msg.finishTextSelection();
+        invalidate();
+        // Продолжаем обработку события как обычный клик
+      } else if (handled) {
+        // Событие было обработано ползунками - потребляем его
+        return true;
+      }
+    }
+
     switch (e.getAction()) {
       case MotionEvent.ACTION_DOWN: {
+        TGMessage.resetGlobalSelection(msg);
         if (msg.shouldIgnoreTap(e)) {
           return false;
         }
@@ -1551,6 +1596,8 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
         } else {
           preventLongPress();
         }
+
+        // Здесь обрабатываются обычные клики (например, по ссылкам), если выделение НЕ активно
         if (c.inSelectMode() || !msg.onTouchEvent(this, e)) {
           flags |= FLAG_CAUGHT_CLICK;
         } else {
@@ -1631,5 +1678,4 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
       }
     }
     return false;
-  }
-}
+  }}
