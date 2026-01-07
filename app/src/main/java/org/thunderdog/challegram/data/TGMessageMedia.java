@@ -64,6 +64,83 @@ public class TGMessageMedia extends TGMessage {
   private int timerWidth;
   // private int pTimerRight, pTimerTop;
 
+  private boolean hasTextHighlight;
+  private int highlightCharStart;
+  private int highlightCharEnd;
+  private float highlightAlpha;
+
+  public void setTextHighlight(int utf16Position, int utf16Length) {
+    if (caption == null || caption.text == null || wrapper == null) {
+      return;
+    }
+
+    String messageText = caption.text;
+    int charStart = convertUtf16ToCharIndex(messageText, utf16Position);
+    int charEnd = convertUtf16ToCharIndex(messageText, utf16Position + utf16Length);
+
+    this.highlightCharStart = charStart;
+    this.highlightCharEnd = charEnd;
+    this.hasTextHighlight = true;
+
+    org.thunderdog.challegram.util.text.Text textObj = wrapper.getCurrent();
+    if (textObj != null) {
+      textObj.setQuoteHighlight(charStart, charEnd, 1f);
+    }
+
+    animateHighlight();
+  }
+
+  private void animateHighlight() {
+    android.animation.ValueAnimator animator = android.animation.ValueAnimator.ofFloat(0f, 1f, 0f);
+    animator.setDuration(2000); // 2 seconds total
+    animator.addUpdateListener(animation -> {
+      highlightAlpha = (float) animation.getAnimatedValue();
+
+      if (wrapper != null) {
+        org.thunderdog.challegram.util.text.Text textObj = wrapper.getCurrent();
+        if (textObj != null) {
+          textObj.setQuoteHighlight(highlightCharStart, highlightCharEnd, highlightAlpha);
+        }
+      }
+
+      invalidate();
+    });
+    animator.addListener(new android.animation.AnimatorListenerAdapter() {
+      @Override
+      public void onAnimationEnd(android.animation.Animator animation) {
+        hasTextHighlight = false;
+
+        if (wrapper != null) {
+          org.thunderdog.challegram.util.text.Text textObj = wrapper.getCurrent();
+          if (textObj != null) {
+            textObj.clearQuoteHighlight();
+          }
+        }
+
+        invalidate();
+      }
+    });
+    animator.start();
+  }
+
+  private int convertUtf16ToCharIndex(String text, int utf16Position) {
+    if (utf16Position == 0) {
+      return 0;
+    }
+
+    int charIndex = 0;
+    int utf16Count = 0;
+
+    while (charIndex < text.length() && utf16Count < utf16Position) {
+      int codePoint = text.codePointAt(charIndex);
+      int charCount = Character.charCount(codePoint);
+      charIndex += charCount;
+      utf16Count += charCount;
+    }
+
+    return Math.min(charIndex, text.length());
+  }
+
   protected TGMessageMedia (MessagesManager context, TdApi.Message msg, @NonNull TdApi.MessagePhoto photo, TdApi.FormattedText caption) {
     super(context, msg);
     MediaWrapper mediaWrapper = new MediaWrapper(context(), tdlib, photo, msg.chatId, msg.id, this, true);
