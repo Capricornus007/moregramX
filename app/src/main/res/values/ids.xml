@@ -118,6 +118,7 @@
 
   <item type="id" name="edit_first_name" />
   <item type="id" name="edit_last_name" />
+  <item type="id" name="edit_note" />
   <item type="id" name="edit_proxy_server" />
   <item type="id" name="edit_proxy_tcpOnly" />
   <item type="id" name="edit_proxy_port" />
@@ -1508,4 +1509,5 @@
 
 
   <item type="id" name="btn_profileChannel" />
+  <item type="id" name="btn_profileNote"/>
 </resources>

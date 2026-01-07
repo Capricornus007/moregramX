@@ -5907,4 +5907,11 @@
   <string name="RestrictedContent">Restricted Content</string>
   <string name="SensitiveContent">Sensitive Content</string>
 
+
+  <string name="TabProfileAudios">Profile Audios</string>
+
+  <string name="xProfileAudios_one">%1$s profile audio</string>
+  <string name="xProfileAudios_other">%1$s profile audios</string>
+
+  <string name="ProfileNote">Note</string>
 </resources>

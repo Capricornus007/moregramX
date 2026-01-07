@@ -1815,6 +1815,9 @@ public class ProfileController extends ViewController<ProfileController.Args> im
           } else {
             view.setName(TD.isBot(user) ? R.string.BotInfo : isUserMode() ? R.string.UserBio : R.string.Description);
           }
+        } else if (itemId == R.id.btn_profileNote) {
+          view.setText(profileNoteWrapper);
+          view.setName(R.string.ProfileNote);
         } else if (itemId == R.id.btn_manageInviteLinks) {
           if (inviteLinksCount == -1) {
             view.setData(Lang.getString(R.string.LoadingInformation));
@@ -2370,6 +2373,9 @@ public class ProfileController extends ViewController<ProfileController.Args> im
   private TextWrapper aboutWrapper;
   private TdApi.FormattedText currentAbout;
 
+  private TextWrapper profileNoteWrapper;
+  private TdApi.FormattedText currentProfileNote;
+
   private static int getTextWidth (int width) {
     return Math.max(0, width - Screen.dp(73f) - Screen.dp(17f));
   }
@@ -2396,6 +2402,24 @@ public class ProfileController extends ViewController<ProfileController.Args> im
         aboutWrapper.prepare(getTextWidth(Screen.currentWidth()));
       } else {
         aboutWrapper = null;
+      }
+      return true;
+    }
+    return false;
+  }
+
+  private boolean setProfileNote (TdApi.FormattedText text) {
+    if (Td.isEmpty(text)) {
+      text = null;
+    }
+    if (this.currentProfileNote == null || !Td.equalsTo(this.currentProfileNote, text)) {
+      currentProfileNote = text;
+      if (text != null) {
+        profileNoteWrapper = new TextWrapper(tdlib, text, Paints.robotoStyleProvider(15f), TextColorSets.Regular.NORMAL, new TdlibUi.UrlOpenParameters().sourceChat(getChatId()), null);
+        profileNoteWrapper.addTextFlags(Text.FLAG_CUSTOM_LONG_PRESS | (Lang.rtl() ? Text.FLAG_ALIGN_RIGHT : 0));
+        profileNoteWrapper.prepare(getTextWidth(Screen.currentWidth()));
+      } else {
+        profileNoteWrapper = null;
       }
       return true;
     }
@@ -2442,6 +2466,10 @@ public class ProfileController extends ViewController<ProfileController.Args> im
     return new ListItem(ListItem.TYPE_INFO_MULTILINE, R.id.btn_description, R.drawable.baseline_info_24, TD.isBot(user) ? R.string.BotInfo : isUserMode() ? R.string.UserBio : R.string.Description);
   }
 
+  private ListItem newProfileNoteItem () {
+    return new ListItem(ListItem.TYPE_INFO_MULTILINE, R.id.btn_profileNote, R.drawable.baseline_edit_24, R.string.ProfileNote);
+  }
+
   private ListItem newPeerIdItem () {
     return new ListItem(ListItem.TYPE_INFO_SETTING, R.id.btn_peer_id, R.drawable.baseline_identifier_24, R.string.PeerId);
   }
@@ -2458,6 +2486,7 @@ public class ProfileController extends ViewController<ProfileController.Args> im
     DoubleTextWrapper channelWrapper = new DoubleTextWrapper(tdlib, tdlib().chat(userFull.personalChatId));
     return new ListItem(ListItem.TYPE_CHAT_SMALL, R.id.btn_profileChannel).setData(channelWrapper);
   }
+
 
   private void buildUserCells () {
     ArrayList<ListItem> items = new ArrayList<>(15);
@@ -2506,6 +2535,13 @@ public class ProfileController extends ViewController<ProfileController.Args> im
         items.add(newDescriptionItem());
         addedCount++;
       }
+      if (!Td.isEmpty(userFull.note)) {
+        if (addedCount > 0) {
+          items.add(new ListItem(ListItem.TYPE_SEPARATOR));
+        }
+        items.add(newProfileNoteItem());
+        addedCount++;
+      }
     }
 
     if (!TD.isBot(user)) {
@@ -2548,11 +2584,13 @@ public class ProfileController extends ViewController<ProfileController.Args> im
   @WorkerThread
   private void prepareFullCells (final TdApi.UserFullInfo userFull) {
     setDescription();
+    setProfileNote(userFull.note);
   }
 
   private void addFullCells (TdApi.UserFullInfo userFull) {
     checkBirthdate();
     checkDescription();
+    checkProfileNote();
     checkGroupsInCommon();
     checkProfileChannel();
     /*if (userFull.commonChatCount > 0) {
@@ -2649,6 +2687,9 @@ public class ProfileController extends ViewController<ProfileController.Args> im
           index++;
         }
         if (baseAdapter.indexOfViewById(R.id.btn_description) != -1) {
+          index++;
+        }
+        if(baseAdapter.indexOfViewById(R.id.btn_profileNote) != -1){
           index++;
         }
         addTopItem(newPhoneItem(), index); // after peer_id, username, description
@@ -2871,6 +2912,44 @@ public class ProfileController extends ViewController<ProfileController.Args> im
     } else if (hasDescription) {
       if (setDescription()) {
         updateValuedItem(R.id.btn_description);
+      }
+    }
+  }
+
+  private void checkProfileNote () {
+    if (isEditing())
+      return;
+    int foundIndex = baseAdapter.indexOfViewById(R.id.btn_profileNote);
+    boolean hadProfileNote = foundIndex != -1;
+    boolean hasProfileNote = userFull != null && !Td.isEmpty(userFull.note);
+    if (hadProfileNote != hasProfileNote) {
+      if (hadProfileNote) {
+        removeTopItem(foundIndex);
+      } else {
+        ListItem profileNoteItem = newProfileNoteItem();
+        setProfileNote(userFull.note);
+
+        int index = 0;
+        if (baseAdapter.indexOfViewById(R.id.btn_profileChannel) != -1) {
+          index++;
+        }
+        if (Settings.instance().showPeerIds() && baseAdapter.indexOfViewById(R.id.btn_peer_id) != -1) {
+          index++;
+        }
+        if (baseAdapter.indexOfViewById(R.id.btn_username) != -1) {
+          index++;
+        }
+        if (baseAdapter.indexOfViewById(R.id.btn_birthdate) != -1) {
+          index++;
+        }
+        if (baseAdapter.indexOfViewById(R.id.btn_description) != -1) {
+          index++;
+        }
+        addTopItem(profileNoteItem, index); // after peer_id, username, birthdate, description
+      }
+    } else if (hasProfileNote) {
+      if (setProfileNote(userFull.note)) {
+        updateValuedItem(R.id.btn_profileNote);
       }
     }
   }
@@ -5753,6 +5832,12 @@ public class ProfileController extends ViewController<ProfileController.Args> im
             return Math.max(aboutWrapper.getHeight() + Screen.dp(21f + 13f) - Screen.dp(13f) + Screen.dp(12f) + Screen.dp(25), Screen.dp(76f));
           }
           return Screen.dp(76f);
+        } else if (itemId == R.id.btn_profileNote) {
+          if (profileNoteWrapper != null) {
+            profileNoteWrapper.get(getTextWidth(width));
+            return Math.max(profileNoteWrapper.getHeight() + Screen.dp(21f + 13f) - Screen.dp(13f) + Screen.dp(12f) + Screen.dp(25), Screen.dp(76f));
+          }
+          return Screen.dp(76f);
         }
         throw new UnsupportedOperationException();
       }
@@ -5876,7 +5961,7 @@ public class ProfileController extends ViewController<ProfileController.Args> im
   }
 
   private void onGlobalHeightChanged () {
-    if (baseAdapter.indexOfViewById(R.id.btn_description) != -1 || baseAdapter.indexOfViewById(R.id.description) != -1) {
+    if (baseAdapter.indexOfViewById(R.id.btn_description) != -1 || baseAdapter.indexOfViewById(R.id.btn_profileNote) != -1 || baseAdapter.indexOfViewById(R.id.description) != -1) {
       onItemsHeightProbablyChanged();
     }
     baseRecyclerView.invalidateItemDecorations();
@@ -6140,10 +6225,17 @@ public class ProfileController extends ViewController<ProfileController.Args> im
             case Mode.USER:
             case Mode.SECRET:
               TdApi.UserFullInfo userFull = tdlib.cache().userFull(user.id);
-              if (userFull != null && userFull.groupInCommonCount > 0) {
-                SharedChatsController c = new SharedChatsController(context, tdlib);
-                c.setMode(SharedChatsController.Mode.GROUPS_IN_COMMON);
-                controllers.add(c);
+              if (userFull != null) {
+                if (userFull.firstProfileAudio != null) {
+                  SharedProfileAudiosController audioController = new SharedProfileAudiosController(context, tdlib);
+                  audioController.setUserId(user.id);
+                  controllers.add(audioController);
+                }
+                if (userFull.groupInCommonCount > 0) {
+                  SharedChatsController c = new SharedChatsController(context, tdlib);
+                  c.setMode(SharedChatsController.Mode.GROUPS_IN_COMMON);
+                  controllers.add(c);
+                }
               }
               break;
             case Mode.CHANNEL:
@@ -6563,6 +6655,7 @@ public class ProfileController extends ViewController<ProfileController.Args> im
         checkUserButtons();
         checkGroupsInCommon();
         checkDescription();
+        checkProfileNote();
         if (mode == Mode.EDIT_BOT_USER) {
           updateValuedItem(R.id.btn_botDescription);
         }
@@ -7076,6 +7169,11 @@ public class ProfileController extends ViewController<ProfileController.Args> im
       aboutWrapper.setTextFlagEnabled(Text.FLAG_ALIGN_RIGHT, Lang.rtl());
       if (baseAdapter != null)
         updateValuedItem(R.id.btn_description);
+    }
+    if (profileNoteWrapper != null) {
+      profileNoteWrapper.setTextFlagEnabled(Text.FLAG_ALIGN_RIGHT, Lang.rtl());
+      if (baseAdapter != null)
+        updateValuedItem(R.id.btn_profileNote);
     }
     if (topCellView != null) {
       topCellView.checkRtl();

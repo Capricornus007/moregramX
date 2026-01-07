@@ -166,4 +166,13 @@
     <string name="PaymentCardNumber">Номер карты</string>
     <string name="PaymentCardExpiry">ММ/ГГ</string>
     <string name="PaymentPay">Оплатить %1$s</string>
+
+    <!-- Profile Audios -->
+    <string name="TabProfileAudios">Музыка профиля</string>
+
+    <string name="xProfileAudios">%1$s аудио профиля</string>
+    <string name="xProfileAudios_one">%1$s аудио профиля</string>
+    <string name="xProfileAudios_other">%1$s аудио профиля</string>
+
+    <string name="ProfileNote">Заметка</string>
 </resources>

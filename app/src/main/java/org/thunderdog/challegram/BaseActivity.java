@@ -173,6 +173,7 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
   private static final int OPEN_CAMERA_BY_TAP = 1;
   private static final int DISPATCH_ACTIVITY_STATE = 2;
 
+
   private Handler handler;
 
   protected BaseRootLayout rootView;
@@ -2873,6 +2874,9 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
   }
 
   private void setDisallowScreenshots (boolean disallow) {
+    if(BuildConfig.DEBUG){
+      return; // Why is this enabling when it's not supposed to?
+    }
     setWindowFlags(disallow ? WindowManager.LayoutParams.FLAG_SECURE : 0, WindowManager.LayoutParams.FLAG_SECURE);
   }
 

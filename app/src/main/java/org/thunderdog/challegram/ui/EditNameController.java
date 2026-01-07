@@ -127,6 +127,7 @@ public class EditNameController extends EditBaseController<EditNameController.Ar
   private SettingsAdapter adapter;
   private ListItem firstName, shareMyNumber;
   private @Nullable ListItem lastName;
+  private @Nullable ListItem noteItem;
 
   @Override
   protected void onCreateView (Context context, FrameLayoutFix contentView, RecyclerView recyclerView) {
@@ -163,10 +164,18 @@ public class EditNameController extends EditBaseController<EditNameController.Ar
         break;
       }
     }
-    String firstNameValue, lastNameValue;
+    String firstNameValue, lastNameValue, noteValue = "";
     if (user != null) {
       firstNameValue = user.firstName;
       lastNameValue = user.lastName;
+
+      // Load existing note for contact
+      if (mode == Mode.RENAME_CONTACT || mode == Mode.ADD_CONTACT) {
+        TdApi.UserFullInfo userFull = tdlib.cache().userFull(user.id);
+        if (userFull != null && userFull.note != null) {
+          noteValue = userFull.note.text;
+        }
+      }
 
       setDoneVisible(isGoodInput(firstNameValue, lastNameValue));
     } else {
@@ -204,6 +213,15 @@ public class EditNameController extends EditBaseController<EditNameController.Ar
         .setStringValue(lastNameValue)
         .setInputFilters(new InputFilter[] {
           new CodePointCountFilter(TdConstants.MAX_NAME_LENGTH),
+          new EmojiFilter(),
+          new CharacterStyleFilter()
+        }).setOnEditorActionListener(mode == Mode.RENAME_CONTACT || mode == Mode.ADD_CONTACT ? null : new SimpleEditorActionListener(EditorInfo.IME_ACTION_DONE, this))));
+    }
+    if (mode == Mode.RENAME_CONTACT || mode == Mode.ADD_CONTACT) {
+      items.add((noteItem = new ListItem(ListItem.TYPE_EDITTEXT_NO_PADDING, R.id.edit_note, 0, R.string.ProfileNote)
+        .setStringValue(noteValue)
+        .setInputFilters(new InputFilter[] {
+          new CodePointCountFilter(256), // Note max length
           new EmojiFilter(),
           new CharacterStyleFilter()
         }).setOnEditorActionListener(new SimpleEditorActionListener(EditorInfo.IME_ACTION_DONE, this))));
@@ -341,7 +359,24 @@ public class EditNameController extends EditBaseController<EditNameController.Ar
               null
             );
             boolean sharePhoneNumber = shareMyNumber != null && shareMyNumber.isSelected();
-            tdlib.client().send(new TdApi.AddContact(user.id, contact, sharePhoneNumber), this);
+
+            // Save contact first, then update note
+            final String noteText = noteItem != null ? noteItem.getStringValue().trim() : "";
+            tdlib.client().send(new TdApi.AddContact(user.id, contact, sharePhoneNumber), result -> {
+              if (result.getConstructor() == TdApi.ImportedContacts.CONSTRUCTOR || result.getConstructor() == TdApi.Ok.CONSTRUCTOR) {
+                // After successful contact save, update note if provided
+                if (!StringUtils.isEmpty(noteText)) {
+                  TdApi.FormattedText formattedNote = new TdApi.FormattedText(noteText, new TdApi.TextEntity[0]);
+                  tdlib.client().send(new TdApi.SetUserNote(user.id, formattedNote), this);
+                } else {
+                  // Clear note if empty
+                  tdlib.client().send(new TdApi.SetUserNote(user.id, new TdApi.FormattedText("", new TdApi.TextEntity[0])), this);
+                }
+              } else {
+                // If contact save failed, just pass the error through
+                onResult(result);
+              }
+            });
           }
           break;
         }
@@ -401,6 +436,8 @@ public class EditNameController extends EditBaseController<EditNameController.Ar
     } else if (id == R.id.edit_last_name && lastName != null) {
       lastName.setStringValue(text);
       updateDoneState();
+    } else if (id == R.id.edit_note && noteItem != null) {
+      noteItem.setStringValue(text);
     }
   }
 
