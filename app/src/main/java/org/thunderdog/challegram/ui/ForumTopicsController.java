@@ -597,6 +597,9 @@ public class ForumTopicsController extends TelegramViewController<ForumTopicsCon
     // Create header view for clickable chat header
     headerCell = new ChatHeaderView(context, tdlib, this);
     headerCell.setCallback(this);
+    // Increase right margin to prevent overlapping with menu buttons (search + more)
+    // More button: 48dp, Search button: 48dp, padding: 8dp = ~104dp total
+    headerCell.setInnerMargins(Screen.dp(56f), Screen.dp(104f));
     if (chat != null) {
       headerCell.setChat(tdlib, chat, null, null);
     }

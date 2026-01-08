@@ -1077,3 +1077,38 @@ Added ability to edit user notes when adding or renaming contacts in EditNameCon
 4. Empty notes are explicitly saved as empty FormattedText to clear existing notes
 5. Max length set to 256 characters (will be updated to use TDLib option)
 6. Uses same input filters as name fields (emoji support, no special formatting)
+
+---
+
+## ForumTopicsController UI Bug Fixes
+
+Fixed text overlapping issues in forum topics list.
+
+### Bugs Fixed
+
+1. **Chat title overlapping menu buttons in ActionBar**
+   - Problem: ChatHeaderView title could extend too far right and overlap the "more" (three dots) and search buttons
+   - Fix: Increased right margin in ChatHeaderView from 49dp to 104dp (ForumTopicsController.java:602)
+   - Calculation: More button (48dp) + Search button (48dp) + padding (8dp) = 104dp
+
+2. **Topic text overlapping time/counters in cells**
+   - Problem: Topic name, sender name, and message preview could overlap with time and unread counters on the right
+   - Fix: Reserve space for right-side elements in buildTextLayouts() before calculating available text width
+   - Reserved space includes: time text width + status icon (if outgoing) + unread counter + reactions counter + padding
+   - Implementation: ForumTopicView.java:352-369
+
+### Files Modified
+- `app/src/main/java/org/thunderdog/challegram/ui/ForumTopicsController.java`:
+  - Line 602: Increased headerCell right margin to 104dp via setInnerMargins()
+- `app/src/main/java/org/thunderdog/challegram/ui/ForumTopicView.java`:
+  - Lines 352-369: Added reservedRightWidth calculation in buildTextLayouts()
+  - Calculates space needed for time, status icons, and counters
+  - Subtracts reserved space from available text width to prevent overlap
+
+### Technical Details
+- Time is measured using timePaint.measureText()
+- Outgoing message status icons add 22dp extra width
+- Unread counter width from Counter.getScaledWidth(1f) + 4dp padding
+- Reactions counter width from Counter.getScaledWidth(1f) + 4dp padding
+- Base padding of 12dp added to reserved space
+- Text layouts now properly truncate with ellipsis instead of overlapping

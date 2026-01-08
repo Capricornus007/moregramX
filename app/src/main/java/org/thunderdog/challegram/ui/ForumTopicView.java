@@ -348,7 +348,25 @@ public class ForumTopicView extends BaseView implements TdlibEmojiManager.Watche
 
     int textLeft = Screen.dp(PADDING_LEFT);
     int textRight = width - Screen.dp(PADDING_RIGHT);
-    int availWidth = textRight - textLeft;
+
+    // Reserve space for time and counters on the right
+    int reservedRightWidth = Screen.dp(12f); // Base padding
+    if (!StringUtils.isEmpty(timeText)) {
+      reservedRightWidth += timePaint.measureText(timeText);
+      if (isOutgoing) {
+        reservedRightWidth += Screen.dp(22f); // Space for status icon
+      }
+    }
+    // Reserve space for unread counter
+    if (unreadCounter != null) {
+      reservedRightWidth += (int) (unreadCounter.getScaledWidth(1) + Screen.dp(4f));
+    }
+    // Reserve space for reactions counter
+    if (reactionsCounter != null) {
+      reservedRightWidth += (int) (reactionsCounter.getScaledWidth(1) + Screen.dp(4f));
+    }
+
+    int availWidth = textRight - textLeft - reservedRightWidth;
 
     // Build title Text with emoji support (4-parameter constructor for String)
     if (!StringUtils.isEmpty(titleText)) {
