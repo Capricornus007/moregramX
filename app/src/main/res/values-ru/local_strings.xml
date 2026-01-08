@@ -175,4 +175,11 @@
     <string name="xProfileAudios_other">%1$s аудио профиля</string>
 
     <string name="ProfileNote">Заметка</string>
+
+    <string name="reXSettings">Настройки reX</string>
+    <string name="HideButtonInInputField">Скрыть кнопки в панели ввода</string>
+    <string name="NothingHid">Ничего не скрыто</string>
+    <string name="hid_Camera">Камера</string>
+    <string name="hid_Commands">Команды</string>
+    <string name="hid_SendAs">Отправить как</string>
 </resources>

@@ -285,6 +285,7 @@ import me.vkryl.core.lambda.CancellableRunnable;
 import me.vkryl.core.lambda.Future;
 import me.vkryl.core.lambda.RunnableBool;
 import me.vkryl.core.lambda.RunnableData;
+import ni.shikatu.rex.ReXConfig;
 import tgx.td.ChatId;
 import tgx.td.MessageId;
 import tgx.td.Td;
@@ -1225,15 +1226,16 @@ public class MessagesController extends ViewController<MessagesController.Argume
     recordButton.setHasTouchControls(true);
     addThemeInvalidateListener(recordButton);
     recordButton.setLayoutParams(lp);
-
-    attachButtons.addView(commandButton);
+    if(!ReXConfig.isCommandsButtonHidden()){
+      attachButtons.addView(commandButton);
+    }
     if (silentButton != null) {
       attachButtons.addView(silentButton);
     }
     if (scheduleButton != null) {
       attachButtons.addView(scheduleButton);
     }
-    if (cameraButton != null) {
+    if (cameraButton != null && !ReXConfig.isCameraButtonHidden()) {
       attachButtons.addView(cameraButton);
     }
     attachButtons.addView(mediaButton);
@@ -1471,7 +1473,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
       contentView.addView(emojiButton);
       contentView.addView(attachButtons);
       contentView.addView(sendButton);
-      contentView.addView(messageSenderButton);
+      if(!ReXConfig.isSendAsButtonHidden()){
+        contentView.addView(messageSenderButton);
+
+      }
 
       initSearchControls();
       contentView.addView(searchControlsLayout);

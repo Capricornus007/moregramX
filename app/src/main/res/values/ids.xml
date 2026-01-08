@@ -1510,4 +1510,7 @@
 
   <item type="id" name="btn_profileChannel" />
   <item type="id" name="btn_profileNote"/>
+
+  <item type="id" name="btn_reXSettings" />
+  <item type="id" name="controller_reXSettings" />
 </resources>

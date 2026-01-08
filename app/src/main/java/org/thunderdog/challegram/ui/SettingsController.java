@@ -101,6 +101,7 @@ import me.vkryl.core.StringUtils;
 import me.vkryl.core.collection.IntList;
 import me.vkryl.core.lambda.CancellableRunnable;
 import me.vkryl.core.reference.ReferenceList;
+import ni.shikatu.rex.ReXSettingsController;
 import tgx.td.ChatId;
 import tgx.td.Td;
 
@@ -634,7 +635,8 @@ public class SettingsController extends ViewController<Void> implements
     if (addedActionItems > 0) {
       items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
     }
-
+    items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
+    items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_reXSettings, R.drawable.baseline_extension_24, R.string.reXSettings));
     items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
     items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_devices, R.drawable.baseline_devices_other_24, R.string.Devices));
     items.add(new ListItem(ListItem.TYPE_SEPARATOR));
@@ -1255,6 +1257,8 @@ public class SettingsController extends ViewController<Void> implements
     } else if (viewId == R.id.btn_suggestion) {
       ListItem listItem = (ListItem) v.getTag();
       showSuggestionPopup(v, (TdApi.SuggestedAction) listItem.getData());
+    } else if (viewId == R.id.btn_reXSettings) {
+      navigateTo(new ReXSettingsController(context, tdlib));
     } else if (viewId == R.id.btn_build) {
       if (Settings.instance().hasLogsEnabled()) {
         showBuildOptions(true);

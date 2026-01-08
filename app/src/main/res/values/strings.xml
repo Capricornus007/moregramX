@@ -5914,4 +5914,11 @@
   <string name="xProfileAudios_other">%1$s profile audios</string>
 
   <string name="ProfileNote">Note</string>
+
+  <string name="reXSettings">reX Settings</string>
+  <string name="HideButtonInInputField">Hide buttons in input field</string>
+  <string name="NothingHid">Nothing hidden</string>
+  <string name="hid_Camera">Camera</string>
+  <string name="hid_Commands">Commands</string>
+  <string name="hid_SendAs">Send As</string>
 </resources>

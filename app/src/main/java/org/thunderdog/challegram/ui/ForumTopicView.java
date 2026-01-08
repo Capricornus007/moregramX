@@ -614,7 +614,7 @@ public class ForumTopicView extends BaseView implements TdlibEmojiManager.Watche
         // Position icon right after title text with 4dp spacing
         int titleWidth = displayTitle.getWidth();
         int muteIconX = textLeft + titleWidth + Screen.dp(4f);
-        int muteIconY = titleY - Screen.dp(2); // Align with title text top
+        int muteIconY = titleY; // Align with title text top
         if (muteIcon != null) {
           muteIcon.setBounds(muteIconX, muteIconY, muteIconX + muteIconSize, muteIconY + muteIconSize);
           Drawables.draw(canvas, muteIcon, muteIconX, muteIconY, Paints.getIconLightPorterDuffPaint());
