@@ -83,6 +83,7 @@ public class ForumTopicView extends BaseView implements TdlibEmojiManager.Watche
   private Counter reactionsCounter;
   private boolean isMuted;
   private String highlightQuery;
+  private boolean showTopSeparator;
 
   // Message status for outgoing messages
   private boolean isSending;
@@ -221,17 +222,7 @@ public class ForumTopicView extends BaseView implements TdlibEmojiManager.Watche
 
     // Build title
     this.titleText = topic.info.name;
-    if (topic.info.isClosed) {
-      this.titleText = "\uD83D\uDD12 " + titleText; // Lock emoji
-    }
-    if (topic.isPinned) {
-      this.titleText = "\uD83D\uDCCC " + titleText; // Pin emoji
-    }
-    // Check if muted (respects useDefaultMuteFor and parent chat settings)
-    boolean isMuted = tdlib.forumTopicNeedsMuteIcon(topic.info.chatId, topic);
-    if (isMuted) {
-      this.titleText = "\uD83D\uDD07 " + titleText; // Muted speaker emoji
-    }
+    // Don't add pin/mute/lock emojis to title - will draw icons instead
 
     // Check if we should show draft (draft exists with text input)
     boolean hasDraft = topic.draftMessage != null &&
@@ -357,6 +348,14 @@ public class ForumTopicView extends BaseView implements TdlibEmojiManager.Watche
         reservedRightWidth += Screen.dp(22f); // Space for status icon
       }
     }
+    // Reserve space for mute icon after title (if topic is muted)
+    if (isMuted) {
+      reservedRightWidth += Screen.dp(18f); // Space for mute icon after title
+    }
+    // Reserve space for lock icon (for closed topics with no unread messages)
+    if (topic != null && topic.info.isClosed && unreadCounter == null) {
+      reservedRightWidth += Screen.dp(22f); // Space for lock icon
+    }
     // Reserve space for unread counter
     if (unreadCounter != null) {
       reservedRightWidth += (int) (unreadCounter.getScaledWidth(1) + Screen.dp(4f));
@@ -435,6 +434,13 @@ public class ForumTopicView extends BaseView implements TdlibEmojiManager.Watche
    */
   public void setMessageSearchResult (Tdlib tdlib, TdApi.ForumTopic topic, TdApi.Message foundMessage, String highlightQuery) {
     setTopic(tdlib, topic, highlightQuery);
+  }
+
+  public void setShowTopSeparator (boolean show) {
+    if (this.showTopSeparator != show) {
+      this.showTopSeparator = show;
+      invalidate();
+    }
   }
 
   private void loadTopicIcon () {
@@ -567,21 +573,25 @@ public class ForumTopicView extends BaseView implements TdlibEmojiManager.Watche
     // Draw time on the right
     float timeWidth = 0;
     float statusIconWidth = 0;
+    float rightOffset = 0; // Track cumulative offset from right edge
+
     if (!StringUtils.isEmpty(timeText)) {
       timeWidth = timePaint.measureText(timeText);
       canvas.drawText(timeText, textRight - timeWidth, Screen.dp(28f), timePaint);
+      rightOffset = timeWidth;
 
-      // Draw status icon for outgoing messages (to the left of time)
+
+      // Draw status icon for outgoing messages (to the left of mute icon or time)
       if (isOutgoing) {
         float iconY = Screen.dp(28f);
         if (isSending) {
           // Clock icon for sending messages
-          int iconX = (int) (textRight - timeWidth - Screen.dp(4f) - Screen.dp(Icons.CLOCK_SHIFT_X) - Screen.dp(10f));
+          int iconX = (int) (textRight - rightOffset - Screen.dp(4f) - Screen.dp(Icons.CLOCK_SHIFT_X) - Screen.dp(10f));
           Drawables.draw(canvas, Icons.getClockIcon(ColorId.iconLight), iconX, iconY - Screen.dp(Icons.CLOCK_SHIFT_Y) - Screen.dp(10f), Paints.getIconLightPorterDuffPaint());
           statusIconWidth = Screen.dp(14f);
         } else {
           // Single tick for sent, double tick for read
-          int iconX = (int) (textRight - timeWidth - Screen.dp(4f) - Screen.dp(Icons.TICKS_SHIFT_X) - Screen.dp(14f));
+          int iconX = (int) (textRight - rightOffset - Screen.dp(4f) - Screen.dp(Icons.TICKS_SHIFT_X) - Screen.dp(14f));
           Drawable tickIcon = isMessageUnread ? Icons.getSingleTick(ColorId.ticks) : Icons.getDoubleTick(ColorId.ticks);
           Paint tickPaint = isMessageUnread ? Paints.getTicksPaint() : Paints.getTicksReadPaint();
           Drawables.draw(canvas, tickIcon, iconX, iconY - Screen.dp(Icons.TICKS_SHIFT_Y) - Screen.dp(10f), tickPaint);
@@ -595,14 +605,42 @@ public class ForumTopicView extends BaseView implements TdlibEmojiManager.Watche
     if (displayTitle != null) {
       int titleY = Screen.dp(12f);
       displayTitle.draw(canvas, textLeft, titleY);
+
+      // Draw mute icon after title (if topic is muted)
+      if (isMuted) {
+        Drawable muteIcon = getSparseDrawable(R.drawable.deproko_baseline_notifications_off_24, 0);
+        
+        int muteIconSize = Screen.dp(14f);
+        // Position icon right after title text with 4dp spacing
+        int titleWidth = displayTitle.getWidth();
+        int muteIconX = textLeft + titleWidth + Screen.dp(4f);
+        int muteIconY = titleY - Screen.dp(2); // Align with title text top
+        if (muteIcon != null) {
+          muteIcon.setBounds(muteIconX, muteIconY, muteIconX + muteIconSize, muteIconY + muteIconSize);
+          Drawables.draw(canvas, muteIcon, muteIconX, muteIconY, Paints.getIconLightPorterDuffPaint());
+        }
+      }
     }
 
     // Draw counters on the right side
     int previewRight = textRight;
     float counterCenterY = height / 2 + Screen.dp(12f);
 
+    // Draw lock icon for closed topics with no unread messages (instead of unread counter)
+    if (topic != null && topic.info.isClosed && unreadCounter == null) {
+      Drawable lockIcon = getSparseDrawable(R.drawable.deproko_baseline_lock_24, 0);
+      if (lockIcon != null) {
+        int lockIconSize = Screen.dp(18f);
+        int lockIconX = (int) (textRight - lockIconSize - Screen.dp(4f));
+        int lockIconY = (int) (counterCenterY - lockIconSize / 2);
+        lockIcon.setBounds(lockIconX, lockIconY, lockIconX + lockIconSize, lockIconY + lockIconSize);
+        Drawables.draw(canvas, lockIcon, lockIconX, lockIconY, Paints.getIconLightPorterDuffPaint());
+        previewRight -= (int) (lockIconSize + Screen.dp(8f));
+        textRight -= (int) (lockIconSize + Screen.dp(4f));
+      }
+    }
     // Draw unread counter (rightmost)
-    if (unreadCounter != null) {
+    else if (unreadCounter != null) {
       float counterWidth = unreadCounter.getWidth();
       previewRight -= (int) (counterWidth + Screen.dp(8f));
       unreadCounter.draw(canvas, textRight - counterWidth / 2, counterCenterY, Gravity.CENTER, 1f);

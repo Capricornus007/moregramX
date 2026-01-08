@@ -1112,3 +1112,47 @@ Fixed text overlapping issues in forum topics list.
 - Reactions counter width from Counter.getScaledWidth(1f) + 4dp padding
 - Base padding of 12dp added to reserved space
 - Text layouts now properly truncate with ellipsis instead of overlapping
+
+### Additional Fix: Muted Topics Icon
+
+Replaced muted topic emoji (🔕) in title with proper mute icon after topic name.
+
+**Changes:**
+- Removed mute emoji from topic title text (ForumTopicView.java:227)
+- Added mute icon rendering after topic title (ForumTopicView.java:604-615)
+- Icon: `deproko_baseline_notifications_off_24`
+- Icon size: 14dp, positioned 4dp right of title text
+- Reserved 18dp space for mute icon in text layout calculation (line 358)
+- Uses same icon style as main chat list (consistent UX)
+
+### Additional Fix: Pinned Topics
+
+Removed pin emoji (📌) from topic titles and added separator between pinned and unpinned topics.
+
+**Changes:**
+- Removed pin emoji from topic title text (ForumTopicView.java:225)
+- Implemented separator as a separate RecyclerView item (not part of each cell):
+  - Created `SeparatorItem` marker class (ForumTopicsController.java:1852-1853)
+  - Added `VIEW_TYPE_SEPARATOR` and `VIEW_TYPE_TOPIC` constants (1854-1855)
+  - Modified adapter to use `List<Object>` for mixed items (1860)
+  - Built items list with SEPARATOR inserted between pinned/unpinned (1869-1892)
+  - Created `SeparatorViewHolder` using `SeparatorView.simpleSeparator()` (1914-1917, 1977-1980)
+  - `SeparatorView` is 6dp tall with filling color and separator line
+- Separator is a single shared item, not applied to each cell
+- No ripple effect extends to separator area (it's a separate non-clickable View)
+- Uses standard `SeparatorView` class for consistent appearance across app
+- Matches behavior of main chat list
+
+### Additional Fix: Closed Topics Lock Icon
+
+Replaced lock emoji (🔒) in topic title with lock icon displayed in place of unread counter for closed topics with no unread messages.
+
+**Changes:**
+- Removed lock emoji from topic title text (ForumTopicView.java:225)
+- Added lock icon rendering instead of unread counter when topic is closed and has no unread messages (ForumTopicView.java:625-637):
+  - Icon: `deproko_baseline_lock_24`
+  - Icon size: 18dp, positioned where unread counter would normally appear
+  - Only shown when `topic.info.isClosed && unreadCounter == null`
+  - Uses light icon color with PorterDuff paint
+- Reserved 22dp space for lock icon in text layout calculation (line 356-358)
+- Prevents text from overlapping with lock icon

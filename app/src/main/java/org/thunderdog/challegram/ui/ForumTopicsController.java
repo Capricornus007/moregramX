@@ -50,6 +50,7 @@ import org.thunderdog.challegram.tool.UI;
 import org.thunderdog.challegram.v.CustomRecyclerView;
 import org.thunderdog.challegram.widget.CircleButton;
 import org.thunderdog.challegram.widget.ListInfoView;
+import org.thunderdog.challegram.widget.SeparatorView;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -1848,10 +1849,16 @@ public class ForumTopicsController extends TelegramViewController<ForumTopicsCon
     }
   }
 
+  // Separator item marker
+  private static class SeparatorItem { }
+  private static final SeparatorItem SEPARATOR = new SeparatorItem();
+  private static final int VIEW_TYPE_TOPIC = 0;
+  private static final int VIEW_TYPE_SEPARATOR = 1;
+
   // Inner adapter class
-  private static class ForumTopicsAdapter extends RecyclerView.Adapter<ForumTopicViewHolder> {
+  private static class ForumTopicsAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private final ForumTopicsController controller;
-    private List<TdApi.ForumTopic> topics = new ArrayList<>();
+    private List<Object> items = new ArrayList<>(); // Can contain TdApi.ForumTopic or SeparatorItem
     private List<TopicMessageSearchResult> messageSearchResults = new ArrayList<>();
     private boolean isMessageSearchMode = false;
     private String highlightQuery;
@@ -1861,9 +1868,27 @@ public class ForumTopicsController extends TelegramViewController<ForumTopicsCon
     }
 
     void setTopics (List<TdApi.ForumTopic> topics, @Nullable String highlightQuery) {
-      this.topics = topics;
       this.highlightQuery = highlightQuery;
       this.isMessageSearchMode = false;
+
+      // Build items list with separator between pinned and unpinned
+      items.clear();
+      if (topics != null) {
+        boolean addedSeparator = false;
+        for (int i = 0; i < topics.size(); i++) {
+          TdApi.ForumTopic topic = topics.get(i);
+          // Add separator before first unpinned topic
+          if (!addedSeparator && !topic.isPinned && i > 0) {
+            TdApi.ForumTopic prevTopic = topics.get(i - 1);
+            if (prevTopic.isPinned) {
+              items.add(SEPARATOR);
+              addedSeparator = true;
+            }
+          }
+          items.add(topic);
+        }
+      }
+
       notifyDataSetChanged();
     }
 
@@ -1874,51 +1899,84 @@ public class ForumTopicsController extends TelegramViewController<ForumTopicsCon
       notifyDataSetChanged();
     }
 
-    @NonNull
     @Override
-    public ForumTopicViewHolder onCreateViewHolder (@NonNull ViewGroup parent, int viewType) {
-      ForumTopicView view = new ForumTopicView(parent.getContext());
-      view.setLayoutParams(new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(78f)));
-      view.setOnClickListener(controller);
-      view.setOnLongClickListener(controller);
-      return new ForumTopicViewHolder(view);
+    public int getItemViewType(int position) {
+      if (isMessageSearchMode) {
+        return VIEW_TYPE_TOPIC;
+      }
+      Object item = items.get(position);
+      return item instanceof SeparatorItem ? VIEW_TYPE_SEPARATOR : VIEW_TYPE_TOPIC;
     }
 
+    @NonNull
     @Override
-    public void onBindViewHolder (@NonNull ForumTopicViewHolder holder, int position) {
-      if (isMessageSearchMode) {
-        TopicMessageSearchResult result = messageSearchResults.get(position);
-        holder.bindMessageSearchResult(controller.tdlib, result);
+    public RecyclerView.ViewHolder onCreateViewHolder (@NonNull ViewGroup parent, int viewType) {
+      if (viewType == VIEW_TYPE_SEPARATOR) {
+        SeparatorView separatorView = new SeparatorView(parent.getContext());
+        separatorView.setLayoutParams(new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(8f)));
+        separatorView.setNoAlign();
+        separatorView.setUseFilling();
+        separatorView.setAlignBottom();
+        separatorView.setSeparatorHeight(Screen.dp(8f)); // Thicker separator line
+        return new SeparatorViewHolder(separatorView);
       } else {
-        TdApi.ForumTopic topic = topics.get(position);
-        holder.bind(controller.tdlib, topic, highlightQuery);
+        ForumTopicView view = new ForumTopicView(parent.getContext());
+        view.setLayoutParams(new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(78f)));
+        view.setOnClickListener(controller);
+        view.setOnLongClickListener(controller);
+        return new ForumTopicViewHolder(view);
       }
     }
 
     @Override
-    public void onViewAttachedToWindow (@NonNull ForumTopicViewHolder holder) {
-      if (holder.itemView instanceof ForumTopicView) {
+    public void onBindViewHolder (@NonNull RecyclerView.ViewHolder holder, int position) {
+      if (holder instanceof SeparatorViewHolder) {
+        // Separator - nothing to bind
+      } else if (holder instanceof ForumTopicViewHolder) {
+        ForumTopicViewHolder topicHolder = (ForumTopicViewHolder) holder;
+        if (isMessageSearchMode) {
+          TopicMessageSearchResult result = messageSearchResults.get(position);
+          topicHolder.bindMessageSearchResult(controller.tdlib, result);
+        } else {
+          Object item = items.get(position);
+          if (item instanceof TdApi.ForumTopic) {
+            TdApi.ForumTopic topic = (TdApi.ForumTopic) item;
+            topicHolder.bind(controller.tdlib, topic, highlightQuery);
+          }
+        }
+      }
+    }
+
+    @Override
+    public void onViewAttachedToWindow (@NonNull RecyclerView.ViewHolder holder) {
+      if (holder instanceof ForumTopicViewHolder && holder.itemView instanceof ForumTopicView) {
         ((ForumTopicView) holder.itemView).attach();
       }
     }
 
     @Override
-    public void onViewDetachedFromWindow (@NonNull ForumTopicViewHolder holder) {
-      if (holder.itemView instanceof ForumTopicView) {
+    public void onViewDetachedFromWindow (@NonNull RecyclerView.ViewHolder holder) {
+      if (holder instanceof ForumTopicViewHolder && holder.itemView instanceof ForumTopicView) {
         ((ForumTopicView) holder.itemView).detach();
       }
     }
 
     @Override
-    public void onViewRecycled (@NonNull ForumTopicViewHolder holder) {
-      if (holder.itemView instanceof ForumTopicView) {
+    public void onViewRecycled (@NonNull RecyclerView.ViewHolder holder) {
+      if (holder instanceof ForumTopicViewHolder && holder.itemView instanceof ForumTopicView) {
         ((ForumTopicView) holder.itemView).destroy();
       }
     }
 
     @Override
     public int getItemCount () {
-      return isMessageSearchMode ? messageSearchResults.size() : topics.size();
+      return isMessageSearchMode ? messageSearchResults.size() : items.size();
+    }
+  }
+
+  private static class SeparatorViewHolder extends RecyclerView.ViewHolder {
+    SeparatorViewHolder (@NonNull View itemView) {
+      super(itemView);
     }
   }
 
