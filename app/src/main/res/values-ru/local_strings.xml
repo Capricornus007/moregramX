@@ -182,4 +182,6 @@
     <string name="hid_Camera">Камера</string>
     <string name="hid_Commands">Команды</string>
     <string name="hid_SendAs">Отправить как</string>
+
+    <string name="EnableMessageAnimator">Включить анимацию сообщений</string>
 </resources>

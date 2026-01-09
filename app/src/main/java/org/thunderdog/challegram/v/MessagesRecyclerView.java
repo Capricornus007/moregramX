@@ -40,6 +40,7 @@ import me.vkryl.android.AnimatorUtils;
 import me.vkryl.android.ViewUtils;
 import me.vkryl.android.animator.FactorAnimator;
 import me.vkryl.core.MathUtils;
+import ni.shikatu.rex.ReXConfig;
 
 public class MessagesRecyclerView extends RecyclerView implements FactorAnimator.Target {
   public static final long ITEM_ANIMATOR_DURATION = Config.DEBUG_REACTIONS_ANIMATIONS ? 1400l : 140L;
@@ -70,7 +71,9 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
   public void setMessageAnimatorEnabled (boolean isEnabled) {
     if (this.animatorEnabled != isEnabled) {
       this.animatorEnabled = isEnabled;
-      // setItemAnimator(isEnabled ? itemAnimator : null);
+      if(ReXConfig.isMessageAnimatorEnabled()){
+        setItemAnimator(isEnabled ? itemAnimator : null); // Why it was commented?
+      }
     }
   }
 
@@ -96,6 +99,7 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
 
   private void init () {
     setOverScrollMode(Config.HAS_NICE_OVER_SCROLL_EFFECT ? OVER_SCROLL_IF_CONTENT_SCROLLS : OVER_SCROLL_NEVER);
+    // Original: AnimatorUtils.DECELERATE_INTERPOLATOR
     itemAnimator = new CustomItemAnimator(AnimatorUtils.DECELERATE_INTERPOLATOR, ITEM_ANIMATOR_DURATION);
     itemAnimator.setSupportsChangeAnimations(false);
     setItemAnimator(null);

@@ -267,7 +267,7 @@ android {
     }
     variantBuilder.enable = sdkVariant.minSdk >= abiVariant.minSdk &&
       !(abiVariant.flavor == "universal" && sdkVariant.flavor == "legacy") &&
-      (variantBuilder.buildType != "debug" || sdkVariant.flavor == "legacy" || (abiVariant.flavor == "x86" || abiVariant.flavor == "x64" || abiVariant.flavor == "universal"))
+      (variantBuilder.buildType != "debug" || sdkVariant.flavor == "legacy" || (abiVariant.flavor == "x86" || abiVariant.flavor == "x64" || abiVariant.flavor == "universal" || abiVariant.flavor == "arm64"))
   }
   productFlavors {
     Sdk.VARIANTS.forEach { (sdk, variant) ->
@@ -362,7 +362,7 @@ android {
       create(variant.flavor) {
         dimension = "ABI"
         versionCode = (abi + 1)
-        isDefault = abi == 0
+        isDefault = abi == 2 // ARM64_V8A by default for faster development builds
         ndkVersion = if (variant.is64Bit) {
           config.primaryNdkVersion
         } else {

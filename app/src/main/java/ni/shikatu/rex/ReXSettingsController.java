@@ -28,6 +28,7 @@ public class ReXSettingsController extends RecyclerViewController<Void> implemen
 
     private static final int ID_HIDE_BUTTONS_SENDER = 4;
 
+    private static final int ID_ENABLE_MESSAGE_ANIMATOR = 5;
     public ReXSettingsController(Context context, Tdlib tdlib) {
         super(context, tdlib);
         this.context = context;
@@ -47,6 +48,9 @@ public class ReXSettingsController extends RecyclerViewController<Void> implemen
                 if (item.getId() == ID_HIDE_BUTTONS) {
                     view.setData(getHiddenButtonsSummary());
                 }
+                if(item.getId() == ID_ENABLE_MESSAGE_ANIMATOR){
+                    view.getToggler().setRadioEnabled(ReXConfig.isMessageAnimatorEnabled(), isUpdate);
+                }
             }
         };
 
@@ -54,7 +58,8 @@ public class ReXSettingsController extends RecyclerViewController<Void> implemen
                 new ListItem(ListItem.TYPE_HEADER_PADDED, 0, 0, R.string.reXSettings),
                 new ListItem(ListItem.TYPE_SHADOW_TOP),
                 new ListItem(ListItem.TYPE_VALUED_SETTING, ID_HIDE_BUTTONS, 0, R.string.HideButtonInInputField),
-                new ListItem(ListItem.TYPE_SHADOW_BOTTOM)
+                new ListItem(ListItem.TYPE_SHADOW_TOP),
+                new ListItem(ListItem.TYPE_RADIO_SETTING, ID_ENABLE_MESSAGE_ANIMATOR, 0, R.string.EnableMessageAnimator)
         };
 
         adapter.setItems(rawItems, false);
@@ -86,6 +91,9 @@ public class ReXSettingsController extends RecyclerViewController<Void> implemen
                     })
                     .setIntDelegate(this)
             );
+        }
+        if(id == ID_ENABLE_MESSAGE_ANIMATOR){
+            ReXConfig.setIsMessageAnimatorEnabled(this.context, adapter.toggleView(v));
         }
     }
 
