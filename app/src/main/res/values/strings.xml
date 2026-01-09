@@ -5922,5 +5922,5 @@
   <string name="hid_Commands">Commands</string>
   <string name="hid_SendAs">Send As</string>
 
-  <string name="EnableMessageAnimator">Enable message animator</string>
+  <string name="EnableMessageAnimator">Message animator</string>
 </resources>
