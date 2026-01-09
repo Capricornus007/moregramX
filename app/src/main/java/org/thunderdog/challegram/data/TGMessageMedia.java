@@ -44,6 +44,7 @@ import org.thunderdog.challegram.tool.UI;
 import org.thunderdog.challegram.util.text.Highlight;
 import org.thunderdog.challegram.util.text.Text;
 import org.thunderdog.challegram.util.text.TextEntity;
+import org.thunderdog.challegram.util.text.TextSelectionHelper;
 import org.thunderdog.challegram.util.text.TextWrapper;
 
 import java.util.ArrayList;
@@ -266,18 +267,32 @@ public class TGMessageMedia extends TGMessage {
     registerAsActiveSelection();
     textSelectionHelper.setSelection(start, end);
 
-    textSelectionHelper.showActionMode(view,
-            (quoteText, utf16Position) -> {
-              TdApi.InputTextQuote quote = new TdApi.InputTextQuote(quoteText, utf16Position);
-              if (manager != null && manager.controller() != null) {
-                TdApi.Message captionMsg = getMessage(captionMessageId);
-                if (captionMsg != null) {
-                    getMessageWithProperties(captionMsg, messageWithProps -> {
-                      manager.controller().showReply(messageWithProps, quote, 0, true, true);
-                    });
-                }
+    textSelectionHelper.showActionMode(view, new TextSelectionHelper.QuoteCallback() {
+              @Override
+              public void onQuoteCreated(TdApi.FormattedText text, int utf16Position) {
+                  TdApi.InputTextQuote quote = new TdApi.InputTextQuote(text, utf16Position);
+                  if (manager != null && manager.controller() != null) {
+                    TdApi.Message captionMsg = getMessage(captionMessageId);
+                    if (captionMsg != null) {
+                      getMessageWithProperties(captionMsg, messageWithProps -> {
+                        manager.controller().showReply(messageWithProps, quote, 0, true, true);
+                      });
+                    }
+                  }
+                  finishTextSelection();
               }
-              finishTextSelection();
+
+              @Override
+              public void onQuoteInOtherChatCreated(TdApi.FormattedText text, int utf16Position) {
+                  TdApi.InputTextQuote quote = new TdApi.InputTextQuote(text, utf16Position);
+                  if (manager != null && manager.controller() != null) {
+                    TdApi.Message captionMsg = getMessage(captionMessageId);
+                    if (captionMsg != null) {
+                      manager.controller().replyMessageInOtherChat(msg, quote);
+                    }
+                  }
+                  finishTextSelection();
+              }
             },
             this::finishTextSelection
     );

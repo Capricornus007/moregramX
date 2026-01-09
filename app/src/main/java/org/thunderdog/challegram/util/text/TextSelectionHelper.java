@@ -21,6 +21,8 @@ public class TextSelectionHelper {
 
   public interface QuoteCallback {
     void onQuoteCreated(TdApi.FormattedText text, int utf16Position);
+
+    void onQuoteInOtherChatCreated(TdApi.FormattedText text, int utf16Position);
   }
   public interface CancelCallback {
     void onActionModeCancelled();
@@ -88,6 +90,10 @@ public class TextSelectionHelper {
               if (quoteItem != null) {
                   quoteItem.setTitle(Lang.getString(R.string.TextFormatQuote));
               }
+              MenuItem quoteInOtherChatItem = menu.findItem(R.id.menu_btn_quote_in_other_chat);
+              if (quoteInOtherChatItem != null) {
+                  quoteInOtherChatItem.setTitle(Lang.getString(R.string.QuoteInOtherChat));
+              }
           }
           return true;
         }
@@ -101,6 +107,10 @@ public class TextSelectionHelper {
           }
           if (item.getItemId() == android.R.id.copy) {
             copySelection();
+            return true;
+          }
+          if(item.getItemId() == R.id.menu_btn_quote_in_other_chat){
+            createQuoteInOtherChat();
             return true;
           }
           return false;
@@ -342,6 +352,27 @@ public class TextSelectionHelper {
 
     if (targetCallback != null) {
       targetCallback.onQuoteCreated(new TdApi.FormattedText(sub, new TdApi.TextEntity[0]), finalPos);
+    }
+  }
+
+  private void createQuoteInOtherChat(){
+    if (selectionStart < 0 || selectionEnd <= selectionStart) return;
+
+    String full = fullFormattedText.text;
+    int maxLen = full.length();
+
+    if (selectionStart > maxLen) selectionStart = maxLen;
+    if (selectionEnd > maxLen) selectionEnd = maxLen;
+
+    String sub = full.substring(selectionStart, selectionEnd);
+    int finalPos = selectionStart;
+
+    QuoteCallback targetCallback = callback;
+
+    finish();
+
+    if (targetCallback != null) {
+      targetCallback.onQuoteInOtherChatCreated(new TdApi.FormattedText(sub, new TdApi.TextEntity[0]), finalPos);
     }
   }
 

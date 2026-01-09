@@ -344,6 +344,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   private @Nullable InputView inputView;
 
   private TdApi.Message messageReplyToExternalMessage;
+  private TdApi.InputTextQuote messageReplyToExternalMessageQuote;
   private final ClickHelper inputViewDisabledClickHelper = new ClickHelper(new ClickHelper.Delegate() {
     @Override
     public boolean needClickAt (View view, float x, float y) {
@@ -2479,6 +2480,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     public @Nullable TdApi.Background wallpaperObject;
 
     public @Nullable TdApi.Message messageReplyToExternalMessage;
+    public @Nullable TdApi.InputTextQuote messageReplyToExternalMessageQuote;
 
     public Arguments (Tdlib tdlib, TdApi.ChatList chatList, TdApi.Chat chat, @Nullable ThreadInfo messageThread, @Nullable TdApi.MessageTopic messageTopicId, TdApi.SearchMessagesFilter filter) {
       this.constructor = 0;
@@ -2626,8 +2628,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
       return this;
     }
 
-    public Arguments setInputReplyToExternalMessage(TdApi.Message replyToExternalMessage){
+    public Arguments setInputReplyToExternalMessage(TdApi.Message replyToExternalMessage, @Nullable TdApi.InputTextQuote replyToExternalMessageQuote){
       this.messageReplyToExternalMessage = replyToExternalMessage;
+      this.messageReplyToExternalMessageQuote = replyToExternalMessageQuote;
       return this;
     }
   }
@@ -2702,6 +2705,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     this.foundMessageId = args.foundMessageId;
     this.fillDraft = args.fillDraft;
     this.messageReplyToExternalMessage = args.messageReplyToExternalMessage;
+    this.messageReplyToExternalMessageQuote = args.messageReplyToExternalMessageQuote;
     if (contentView != null) {
       updateView();
     }
@@ -2870,7 +2874,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       });
     }
     if(replyBarView != null && messageReplyToExternalMessage != null){
-      showReply(new MessageWithProperties(messageReplyToExternalMessage, ReXUtils.emptyReplyMessageProperties()), null, 0, true, true);
+      showReply(new MessageWithProperties(messageReplyToExternalMessage, ReXUtils.emptyReplyMessageProperties()), messageReplyToExternalMessageQuote, 0, true, true);
     }
 
     TdApi.Chat headerChat = messageThread != null ? tdlib.chatSync(messageThread.getContextChatId()) : null;
@@ -5917,7 +5921,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       } else if(id == R.id.btn_messageReplyInOtherChat) {
         cancelSheduledKeyboardOpeningAndHideAllKeyboards();
         if(selectedMessage.canBeForwarded()) {
-          replyMessageInOtherChat(selectedMessage.getMessage());
+          replyMessageInOtherChat(selectedMessage.getMessage(), null);
         }
       } else if (id == R.id.btn_chatTranslate) {
         cancelSheduledKeyboardOpeningAndHideAllKeyboards();
@@ -7540,14 +7544,14 @@ public class MessagesController extends ViewController<MessagesController.Argume
     hideCursorsForInputView();
   }
 
-  public void replyMessageInOtherChat(TdApi.Message message) {
+  public void replyMessageInOtherChat(TdApi.Message message, @Nullable TdApi.InputTextQuote quote) {
     if(message == null) return;
     hideAllKeyboards();
     final ShareController c = new ShareController(context, tdlib);
-    c.setArguments(new ShareController.Args(message).setIsReplyToOtherChat(true,(chatId, topicForum, replyToExternalMessage) -> {
+    c.setArguments(new ShareController.Args(message).setIsReplyToOtherChat(true,(chatId, topicForum) -> {
       MessagesController mc = new MessagesController(context, tdlib);
       TdApi.Chat chat = tdlib().chat(chatId);
-      mc.setArguments(new Arguments(tdlib, null, chat, null, topicForum, null).setInputReplyToExternalMessage(replyToExternalMessage));
+      mc.setArguments(new Arguments(tdlib, null, chat, null, topicForum, null).setInputReplyToExternalMessage(message, quote));
       mc.addOneShotFocusListener(() -> {
         mc.destroyStackItemAt(mc.stackSize() - 2);
       });

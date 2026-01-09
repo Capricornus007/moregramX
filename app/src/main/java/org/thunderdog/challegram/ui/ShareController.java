@@ -212,6 +212,7 @@ public class ShareController extends TelegramViewController<ShareController.Args
     private TdApi.MessageSendOptions defaultSendOptions;
 
     private boolean isReplyToOtherChat;
+    private @Nullable TdApi.InputTextQuote inputTextQuote;
     private ReplyToOtherChatDelegate replyToOtherChatDelegate;
 
     public Args (TdApi.Message message) {
@@ -350,7 +351,7 @@ public class ShareController extends TelegramViewController<ShareController.Args
   }
   @FunctionalInterface
   public interface ReplyToOtherChatDelegate {
-    void repliedTo(long chatId, @Nullable TdApi.MessageTopicForum topicForum, TdApi.Message message);
+    void repliedTo(long chatId, @Nullable TdApi.MessageTopicForum topicForum);
   }
 
   public ShareController (Context context, Tdlib tdlib) {
@@ -1833,7 +1834,7 @@ public class ShareController extends TelegramViewController<ShareController.Args
 
   private boolean processSingleTap (TGFoundChat chat) {
     if(getArguments().isReplyToOtherChat) {
-      replyToOtherChat(chat.getAnyId(), null, getArguments().messages[0]);
+      replyToOtherChat(chat.getAnyId(), null);
       return true;
     }
     if (!hasSelectedAnything && chat.isSelfChat() && selectedChats.size() == 0) {
@@ -1983,10 +1984,10 @@ public class ShareController extends TelegramViewController<ShareController.Args
 
   private final LongSet lockedChatIds = new LongSet();
 
-  private void replyToOtherChat(long chatId, TdApi.MessageTopicForum topicForum, TdApi.Message message){
+  private void replyToOtherChat(long chatId, TdApi.MessageTopicForum topicForum){
     Args args = getArguments();
     if(args == null || args.replyToOtherChatDelegate == null) return;
-    args.replyToOtherChatDelegate.repliedTo(chatId, topicForum, message);
+    args.replyToOtherChatDelegate.repliedTo(chatId, topicForum);
     popupLayout.hideWindow(true);
   }
 
@@ -2029,7 +2030,7 @@ public class ShareController extends TelegramViewController<ShareController.Args
     if (result) {
       if(!tdlib.isForum(chatId) && getArguments().isReplyToOtherChat){
         Log.d("TG", "replyToOtherChat");
-        replyToOtherChat(chatId, null, getArguments().messages[0]);
+        replyToOtherChat(chatId, null);
 
         return false;
       }
@@ -2117,7 +2118,7 @@ public class ShareController extends TelegramViewController<ShareController.Args
           showOptions(tdlib.chatTitle(chatId), ids, titles, (itemView, id) -> {
             if(getArguments().isReplyToOtherChat) {
               Log.d("TG", "replyToOtherChat");
-              replyToOtherChat(chatId, new TdApi.MessageTopicForum(id), getArguments().messages[0]);
+              replyToOtherChat(chatId, new TdApi.MessageTopicForum(id));
               return true;
             }
             selectedForumTopics.put(chatId, (long) id);

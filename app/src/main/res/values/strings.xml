@@ -5924,4 +5924,5 @@
 
   <string name="EnableMessageAnimator">Message animator</string>
   <string name="ReplyInOtherChat">Reply in other chat</string>
+  <string name="QuoteInOtherChat">Quote in other chat</string>
 </resources>
