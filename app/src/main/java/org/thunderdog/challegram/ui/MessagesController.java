@@ -286,6 +286,7 @@ import me.vkryl.core.lambda.Future;
 import me.vkryl.core.lambda.RunnableBool;
 import me.vkryl.core.lambda.RunnableData;
 import ni.shikatu.rex.ReXConfig;
+import ni.shikatu.rex.ReXUtils;
 import tgx.td.ChatId;
 import tgx.td.MessageId;
 import tgx.td.Td;
@@ -341,6 +342,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
   private BotHelper botHelper;
 
   private @Nullable InputView inputView;
+
+  private TdApi.Message messageReplyToExternalMessage;
   private final ClickHelper inputViewDisabledClickHelper = new ClickHelper(new ClickHelper.Delegate() {
     @Override
     public boolean needClickAt (View view, float x, float y) {
@@ -2475,6 +2478,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
     public @Nullable TdApi.Background wallpaperObject;
 
+    public @Nullable TdApi.Message messageReplyToExternalMessage;
+
     public Arguments (Tdlib tdlib, TdApi.ChatList chatList, TdApi.Chat chat, @Nullable ThreadInfo messageThread, @Nullable TdApi.MessageTopic messageTopicId, TdApi.SearchMessagesFilter filter) {
       this.constructor = 0;
       this.chatList = chatList;
@@ -2620,6 +2625,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
       this.eventLogUserId = eventLogUserId;
       return this;
     }
+
+    public Arguments setInputReplyToExternalMessage(TdApi.Message replyToExternalMessage){
+      this.messageReplyToExternalMessage = replyToExternalMessage;
+      return this;
+    }
   }
 
   public static class Referrer {
@@ -2691,7 +2701,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     this.openKeyboard = args.openKeyboard;
     this.foundMessageId = args.foundMessageId;
     this.fillDraft = args.fillDraft;
-
+    this.messageReplyToExternalMessage = args.messageReplyToExternalMessage;
     if (contentView != null) {
       updateView();
     }
@@ -2858,6 +2868,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
           });
         }
       });
+    }
+    if(replyBarView != null && messageReplyToExternalMessage != null){
+      showReply(new MessageWithProperties(messageReplyToExternalMessage, ReXUtils.emptyReplyMessageProperties()), null, 0, true, true);
     }
 
     TdApi.Chat headerChat = messageThread != null ? tdlib.chatSync(messageThread.getContextChatId()) : null;
@@ -5901,6 +5914,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
           shareMessages(selectedMessage.getAllMessages(), false);
         }
         return true;
+      } else if(id == R.id.btn_messageReplyInOtherChat) {
+        cancelSheduledKeyboardOpeningAndHideAllKeyboards();
+        if(selectedMessage.canBeForwarded()) {
+          replyMessageInOtherChat(selectedMessage.getMessage());
+        }
       } else if (id == R.id.btn_chatTranslate) {
         cancelSheduledKeyboardOpeningAndHideAllKeyboards();
         startTranslateMessages(selectedMessage);
@@ -7518,6 +7536,24 @@ public class MessagesController extends ViewController<MessagesController.Argume
     hideAllKeyboards();
     final ShareController c = new ShareController(context, tdlib);
     c.setArguments(new ShareController.Args(messages).setDisallowReply(isExplicitSelection).setAfter(() -> finishSelectMode(-1)));
+    c.show();
+    hideCursorsForInputView();
+  }
+
+  public void replyMessageInOtherChat(TdApi.Message message) {
+    if(message == null) return;
+    hideAllKeyboards();
+    final ShareController c = new ShareController(context, tdlib);
+    c.setArguments(new ShareController.Args(message).setIsReplyToOtherChat(true,(chatId, topicForum, replyToExternalMessage) -> {
+      MessagesController mc = new MessagesController(context, tdlib);
+      TdApi.Chat chat = tdlib().chat(chatId);
+      mc.setArguments(new Arguments(tdlib, null, chat, null, topicForum, null).setInputReplyToExternalMessage(replyToExternalMessage));
+      mc.addOneShotFocusListener(() -> {
+        mc.destroyStackItemAt(mc.stackSize() - 2);
+      });
+      navigateTo(mc);
+
+    }));
     c.show();
     hideCursorsForInputView();
   }
@@ -10825,6 +10861,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
       actions = new SparseIntArray(5);
     }
     Tdlib.ResultHandler<TdApi.Ok> handler = (ok, error) -> {
+      if(error != null){
+        if("Chat doesn't have threads".equals(error.message) || "Chat is not a forum".equals(error.message)){
+          return;
+        }
+      }
       if (error != null && (error.code != 400 || !"Have no rights to send a message".equals(error.message))) {
         tdlib.okHandler().onResult(error);
       }

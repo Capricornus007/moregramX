@@ -1513,4 +1513,6 @@
 
   <item type="id" name="btn_reXSettings" />
   <item type="id" name="controller_reXSettings" />
+
+  <item type="id" name="btn_messageReplyInOtherChat" />
 </resources>

@@ -823,6 +823,10 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
         ids.append(R.id.btn_messageShare);
         strings.append(R.string.Share);
         icons.append(R.drawable.baseline_forward_24);
+
+        ids.append(R.id.btn_messageReplyInOtherChat);
+        strings.append(R.string.ReplyInOtherChat);
+        icons.append(R.drawable.baseline_chat_bubble_24);
       }
     }
 

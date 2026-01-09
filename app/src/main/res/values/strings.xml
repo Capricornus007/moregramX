@@ -5923,4 +5923,5 @@
   <string name="hid_SendAs">Send As</string>
 
   <string name="EnableMessageAnimator">Message animator</string>
+  <string name="ReplyInOtherChat">Reply in other chat</string>
 </resources>
