@@ -5907,4 +5907,7 @@
   <string name="RestrictedContent">Restricted Content</string>
   <string name="SensitiveContent">Sensitive Content</string>
 
+  <string name="ReplyInOtherChat">Reply in other chat</string>
+  <string name="QuoteInOtherChat">Quote in other chat</string>
+
 </resources>

@@ -3088,6 +3088,10 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
   }
 
   public void highlightMessage (MessageId messageId, int highlightMode, long[] returnToMessageIds, boolean allowSmooth) {
+    highlightMessage(messageId, highlightMode, returnToMessageIds, allowSmooth, null);
+  }
+
+  public void highlightMessage (MessageId messageId, int highlightMode, long[] returnToMessageIds, boolean allowSmooth, @androidx.annotation.Nullable org.thunderdog.challegram.data.TGMessage.TextQuoteInfo quoteInfo) {
     if (isEventLog()) {
       return;
     }
@@ -3108,6 +3112,12 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
       }
       TGMessage msg = adapter.getMessage(index);
       msg.highlight(true);
+
+      // Apply text quote highlighting if available
+      if (quoteInfo != null && msg instanceof org.thunderdog.challegram.data.TGMessageText) {
+        ((org.thunderdog.challegram.data.TGMessageText) msg).setTextHighlight(quoteInfo.utf16Position, quoteInfo.utf16Length);
+      }
+
       scrollToMessage(index, msg, highlightMode, allowSmooth, false);
     }
   }
