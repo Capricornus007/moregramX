@@ -1999,4 +1999,9 @@ public class ForumTopicsController extends TelegramViewController<ForumTopicsCon
       }
     }
   }
+
+  @Override
+  public void onMessageSendSucceeded(TdApi.Message message, long oldMessageId) {
+    onNewMessage(message);
+  }
 }
