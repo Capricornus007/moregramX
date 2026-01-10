@@ -83,6 +83,7 @@ public class ForumTopicView extends BaseView implements TdlibEmojiManager.Watche
   private Counter reactionsCounter;
   private boolean isMuted;
   private String highlightQuery;
+  private boolean showTopSeparator;
 
   // Message status for outgoing messages
   private boolean isSending;
@@ -219,8 +220,9 @@ public class ForumTopicView extends BaseView implements TdlibEmojiManager.Watche
       statusHelper.attachToChat(topic.info.chatId, new TdApi.MessageTopicForum(topic.info.forumTopicId));
     }
 
-    // Build title (no emoji prefixes - icons are drawn separately)
+    // Build title
     this.titleText = topic.info.name;
+    // Don't add pin/mute/lock emojis to title - will draw icons instead
 
     // Check if we should show draft (draft exists with text input)
     boolean hasDraft = topic.draftMessage != null &&
@@ -338,22 +340,29 @@ public class ForumTopicView extends BaseView implements TdlibEmojiManager.Watche
     int textLeft = Screen.dp(PADDING_LEFT);
     int textRight = width - Screen.dp(PADDING_RIGHT);
 
-    // Calculate reserved right width to prevent text overlap with time/status/counters
+    // Reserve space for time and counters on the right
     int reservedRightWidth = Screen.dp(12f); // Base padding
     if (!StringUtils.isEmpty(timeText)) {
-      reservedRightWidth += (int) timePaint.measureText(timeText);
+      reservedRightWidth += timePaint.measureText(timeText);
+      if (isOutgoing) {
+        reservedRightWidth += Screen.dp(22f); // Space for status icon
+      }
     }
-    if (isOutgoing) {
-      reservedRightWidth += Screen.dp(22f); // Status icon width
-    }
-    if (unreadCounter != null) {
-      reservedRightWidth += (int) unreadCounter.getWidth() + Screen.dp(4f);
-    }
-    if (reactionsCounter != null) {
-      reservedRightWidth += (int) reactionsCounter.getWidth() + Screen.dp(4f);
-    }
+    // Reserve space for mute icon after title (if topic is muted)
     if (isMuted) {
-      reservedRightWidth += Screen.dp(18f); // Mute icon space
+      reservedRightWidth += Screen.dp(18f); // Space for mute icon after title
+    }
+    // Reserve space for lock icon (for closed topics with no unread messages)
+    if (topic != null && topic.info.isClosed && unreadCounter == null) {
+      reservedRightWidth += Screen.dp(22f); // Space for lock icon
+    }
+    // Reserve space for unread counter
+    if (unreadCounter != null) {
+      reservedRightWidth += (int) (unreadCounter.getScaledWidth(1) + Screen.dp(4f));
+    }
+    // Reserve space for reactions counter
+    if (reactionsCounter != null) {
+      reservedRightWidth += (int) (reactionsCounter.getScaledWidth(1) + Screen.dp(4f));
     }
 
     int availWidth = textRight - textLeft - reservedRightWidth;
@@ -390,15 +399,16 @@ public class ForumTopicView extends BaseView implements TdlibEmojiManager.Watche
     }
 
     // Build preview Text with custom emoji support
+    // Build preview Text with emoji support (use FormattedText for custom emoji)
     if (previewFormattedText != null && !StringUtils.isEmpty(previewFormattedText.text)) {
       displayPreview = new Text.Builder(
         tdlib,
         previewFormattedText,
-        null, // urlOpenParameters
+        null,
         availWidth,
         Paints.robotoStyleProvider(15f),
         TextColorSets.Regular.LIGHT,
-        this // textMediaListener for custom emoji loading
+        this
       ).singleLine()
        .ignoreNewLines()
        .build();
@@ -424,6 +434,13 @@ public class ForumTopicView extends BaseView implements TdlibEmojiManager.Watche
    */
   public void setMessageSearchResult (Tdlib tdlib, TdApi.ForumTopic topic, TdApi.Message foundMessage, String highlightQuery) {
     setTopic(tdlib, topic, highlightQuery);
+  }
+
+  public void setShowTopSeparator (boolean show) {
+    if (this.showTopSeparator != show) {
+      this.showTopSeparator = show;
+      invalidate();
+    }
   }
 
   private void loadTopicIcon () {
@@ -556,21 +573,25 @@ public class ForumTopicView extends BaseView implements TdlibEmojiManager.Watche
     // Draw time on the right
     float timeWidth = 0;
     float statusIconWidth = 0;
+    float rightOffset = 0; // Track cumulative offset from right edge
+
     if (!StringUtils.isEmpty(timeText)) {
       timeWidth = timePaint.measureText(timeText);
       canvas.drawText(timeText, textRight - timeWidth, Screen.dp(28f), timePaint);
+      rightOffset = timeWidth;
 
-      // Draw status icon for outgoing messages (to the left of time)
+
+      // Draw status icon for outgoing messages (to the left of mute icon or time)
       if (isOutgoing) {
         float iconY = Screen.dp(28f);
         if (isSending) {
           // Clock icon for sending messages
-          int iconX = (int) (textRight - timeWidth - Screen.dp(4f) - Screen.dp(Icons.CLOCK_SHIFT_X) - Screen.dp(10f));
+          int iconX = (int) (textRight - rightOffset - Screen.dp(4f) - Screen.dp(Icons.CLOCK_SHIFT_X) - Screen.dp(10f));
           Drawables.draw(canvas, Icons.getClockIcon(ColorId.iconLight), iconX, iconY - Screen.dp(Icons.CLOCK_SHIFT_Y) - Screen.dp(10f), Paints.getIconLightPorterDuffPaint());
           statusIconWidth = Screen.dp(14f);
         } else {
           // Single tick for sent, double tick for read
-          int iconX = (int) (textRight - timeWidth - Screen.dp(4f) - Screen.dp(Icons.TICKS_SHIFT_X) - Screen.dp(14f));
+          int iconX = (int) (textRight - rightOffset - Screen.dp(4f) - Screen.dp(Icons.TICKS_SHIFT_X) - Screen.dp(14f));
           Drawable tickIcon = isMessageUnread ? Icons.getSingleTick(ColorId.ticks) : Icons.getDoubleTick(ColorId.ticks);
           Paint tickPaint = isMessageUnread ? Paints.getTicksPaint() : Paints.getTicksReadPaint();
           Drawables.draw(canvas, tickIcon, iconX, iconY - Screen.dp(Icons.TICKS_SHIFT_Y) - Screen.dp(10f), tickPaint);
@@ -579,28 +600,24 @@ public class ForumTopicView extends BaseView implements TdlibEmojiManager.Watche
       }
     }
 
-    // Calculate right offset for icons that appear after title
-    float rightOffset = timeWidth + statusIconWidth + Screen.dp(8f);
-    if (isMuted) {
-      rightOffset += Screen.dp(18f); // Space for mute icon
-    }
-
     // Draw title with emoji support
-    int titleRight = (int) (textRight - rightOffset);
+    int titleRight = (int) (textRight - timeWidth - statusIconWidth - Screen.dp(8f));
     if (displayTitle != null) {
       int titleY = Screen.dp(12f);
       displayTitle.draw(canvas, textLeft, titleY);
 
-      // Draw mute icon right after title text
-      if (isMuted && displayTitle.getWidth() > 0) {
-        int muteIconX = textLeft + displayTitle.getWidth() + Screen.dp(4f);
-        int muteIconY = titleY - Screen.dp(1f);
-        Drawable muteIcon = Drawables.get(getResources(), R.drawable.deproko_baseline_notifications_off_24);
+      // Draw mute icon after title (if topic is muted)
+      if (isMuted) {
+        Drawable muteIcon = getSparseDrawable(R.drawable.deproko_baseline_notifications_off_24, 0);
+        
+        int muteIconSize = Screen.dp(14f);
+        // Position icon right after title text with 4dp spacing
+        int titleWidth = displayTitle.getWidth();
+        int muteIconX = textLeft + titleWidth + Screen.dp(4f);
+        int muteIconY = titleY; // Align with title text top
         if (muteIcon != null) {
-          int muteIconSize = Screen.dp(14f);
           muteIcon.setBounds(muteIconX, muteIconY, muteIconX + muteIconSize, muteIconY + muteIconSize);
-          muteIcon.setColorFilter(Theme.getColor(ColorId.iconLight), android.graphics.PorterDuff.Mode.SRC_IN);
-          muteIcon.draw(canvas);
+          Drawables.draw(canvas, muteIcon, muteIconX, muteIconY, Paints.getIconLightPorterDuffPaint());
         }
       }
     }
@@ -609,23 +626,21 @@ public class ForumTopicView extends BaseView implements TdlibEmojiManager.Watche
     int previewRight = textRight;
     float counterCenterY = height / 2 + Screen.dp(12f);
 
-    // Draw lock icon if topic is closed and has no unread messages
-    boolean showLockIcon = topic.info.isClosed && (unreadCounter == null || topic.unreadCount == 0);
-    if (showLockIcon) {
-      int lockIconSize = Screen.dp(18f);
-      int lockIconX = textRight - lockIconSize;
-      int lockIconY = (int) counterCenterY - lockIconSize / 2;
-      Drawable lockIcon = Drawables.get(getResources(), R.drawable.deproko_baseline_lock_24);
+    // Draw lock icon for closed topics with no unread messages (instead of unread counter)
+    if (topic != null && topic.info.isClosed && unreadCounter == null) {
+      Drawable lockIcon = getSparseDrawable(R.drawable.deproko_baseline_lock_24, 0);
       if (lockIcon != null) {
+        int lockIconSize = Screen.dp(18f);
+        int lockIconX = (int) (textRight - lockIconSize - Screen.dp(4f));
+        int lockIconY = (int) (counterCenterY - lockIconSize / 2);
         lockIcon.setBounds(lockIconX, lockIconY, lockIconX + lockIconSize, lockIconY + lockIconSize);
-        lockIcon.setColorFilter(Theme.getColor(ColorId.iconLight), android.graphics.PorterDuff.Mode.SRC_IN);
-        lockIcon.draw(canvas);
+        Drawables.draw(canvas, lockIcon, lockIconX, lockIconY, Paints.getIconLightPorterDuffPaint());
+        previewRight -= (int) (lockIconSize + Screen.dp(8f));
+        textRight -= (int) (lockIconSize + Screen.dp(4f));
       }
-      previewRight -= (int) (lockIconSize + Screen.dp(4f));
     }
-
     // Draw unread counter (rightmost)
-    if (unreadCounter != null) {
+    else if (unreadCounter != null) {
       float counterWidth = unreadCounter.getWidth();
       previewRight -= (int) (counterWidth + Screen.dp(8f));
       unreadCounter.draw(canvas, textRight - counterWidth / 2, counterCenterY, Gravity.CENTER, 1f);
@@ -671,10 +686,10 @@ public class ForumTopicView extends BaseView implements TdlibEmojiManager.Watche
         int previewTop = (int) previewY - Screen.dp(12f);
         displayPreview.draw(canvas, textLeft, previewTop, null, 1f, textMediaReceiver);
       }
-    }
 
-    // Draw separator line at bottom
-    canvas.drawLine(textLeft, height - 1, width, height - 1, Paints.strokeSeparatorPaint(ColorId.separator));
+      // Draw separator line at bottom
+      canvas.drawLine(textLeft, height - 1, width, height - 1, Paints.strokeSeparatorPaint(ColorId.separator));
+    }
   }
 
   private void drawCustomEmojiIcon (Canvas canvas, int left, int top, int right, int bottom) {

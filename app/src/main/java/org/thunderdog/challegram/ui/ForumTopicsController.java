@@ -31,6 +31,7 @@ import org.thunderdog.challegram.component.attach.CustomItemAnimator;
 import org.thunderdog.challegram.component.chat.ChatHeaderView;
 import org.thunderdog.challegram.component.chat.MessagesManager;
 import org.thunderdog.challegram.core.Lang;
+import org.thunderdog.challegram.ui.MessagesController;
 import org.thunderdog.challegram.navigation.BackHeaderButton;
 import org.thunderdog.challegram.navigation.HeaderView;
 import org.thunderdog.challegram.navigation.Menu;
@@ -49,6 +50,7 @@ import org.thunderdog.challegram.tool.UI;
 import org.thunderdog.challegram.v.CustomRecyclerView;
 import org.thunderdog.challegram.widget.CircleButton;
 import org.thunderdog.challegram.widget.ListInfoView;
+import org.thunderdog.challegram.widget.SeparatorView;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -596,8 +598,8 @@ public class ForumTopicsController extends TelegramViewController<ForumTopicsCon
     // Create header view for clickable chat header
     headerCell = new ChatHeaderView(context, tdlib, this);
     headerCell.setCallback(this);
-    // Set inner margins to prevent title overlap with menu buttons
-    // Right margin: 48dp (more button) + 48dp (search button) + 8dp (padding) = 104dp
+    // Increase right margin to prevent overlapping with menu buttons (search + more)
+    // More button: 48dp, Search button: 48dp, padding: 8dp = ~104dp total
     headerCell.setInnerMargins(Screen.dp(56f), Screen.dp(104f));
     if (chat != null) {
       headerCell.setChat(tdlib, chat, null, null);
@@ -710,14 +712,16 @@ public class ForumTopicsController extends TelegramViewController<ForumTopicsCon
       tdlib.client().send(new TdApi.ToggleChatViewAsTopics(chatId, false), result -> {
         if (result.getConstructor() == TdApi.Ok.CONSTRUCTOR) {
           tdlib.ui().post(() -> {
-            // Create MessagesController directly to prevent re-opening in tabs mode
-            MessagesController messagesController = new MessagesController(context, tdlib);
-            messagesController.setArguments(new MessagesController.Arguments(null, chat, null, null, null, 0, null));
-            // Remove this controller from stack after transition
-            messagesController.addOneShotFocusListener(() -> {
-              messagesController.destroyStackItemAt(messagesController.stackSize() - 2);
+            // Create the messages controller and replace current controller
+            MessagesController c = new MessagesController(context, tdlib);
+            c.setArguments(new MessagesController.Arguments(tdlib, null, chat, null, null, null));
+
+            // Navigate to messages controller and remove this controller from stack after navigation
+            c.addOneShotFocusListener(() -> {
+              // Destroy the ForumTopicsController from the stack (it's now at position stackSize - 2)
+              c.destroyStackItemAt(c.stackSize() - 2);
             });
-            navigateTo(messagesController);
+            navigateTo(c);
           });
         }
       });
@@ -1756,13 +1760,6 @@ public class ForumTopicsController extends TelegramViewController<ForumTopicsCon
   }
 
   @Override
-  public void onMessageSendSucceeded (TdApi.Message message, long oldMessageId) {
-    // When a message send succeeds, the message now has topicId populated
-    // Re-route to onNewMessage to update the topic list
-    onNewMessage(message);
-  }
-
-  @Override
   public void onMessageContentChanged (long chatId, long messageId, TdApi.MessageContent newContent) {
     if (chatId != this.chatId) return;
 
@@ -1852,10 +1849,16 @@ public class ForumTopicsController extends TelegramViewController<ForumTopicsCon
     }
   }
 
+  // Separator item marker
+  private static class SeparatorItem { }
+  private static final SeparatorItem SEPARATOR = new SeparatorItem();
+  private static final int VIEW_TYPE_TOPIC = 0;
+  private static final int VIEW_TYPE_SEPARATOR = 1;
+
   // Inner adapter class
-  private static class ForumTopicsAdapter extends RecyclerView.Adapter<ForumTopicViewHolder> {
+  private static class ForumTopicsAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private final ForumTopicsController controller;
-    private List<TdApi.ForumTopic> topics = new ArrayList<>();
+    private List<Object> items = new ArrayList<>(); // Can contain TdApi.ForumTopic or SeparatorItem
     private List<TopicMessageSearchResult> messageSearchResults = new ArrayList<>();
     private boolean isMessageSearchMode = false;
     private String highlightQuery;
@@ -1865,9 +1868,27 @@ public class ForumTopicsController extends TelegramViewController<ForumTopicsCon
     }
 
     void setTopics (List<TdApi.ForumTopic> topics, @Nullable String highlightQuery) {
-      this.topics = topics;
       this.highlightQuery = highlightQuery;
       this.isMessageSearchMode = false;
+
+      // Build items list with separator between pinned and unpinned
+      items.clear();
+      if (topics != null) {
+        boolean addedSeparator = false;
+        for (int i = 0; i < topics.size(); i++) {
+          TdApi.ForumTopic topic = topics.get(i);
+          // Add separator before first unpinned topic
+          if (!addedSeparator && !topic.isPinned && i > 0) {
+            TdApi.ForumTopic prevTopic = topics.get(i - 1);
+            if (prevTopic.isPinned) {
+              items.add(SEPARATOR);
+              addedSeparator = true;
+            }
+          }
+          items.add(topic);
+        }
+      }
+
       notifyDataSetChanged();
     }
 
@@ -1878,51 +1899,84 @@ public class ForumTopicsController extends TelegramViewController<ForumTopicsCon
       notifyDataSetChanged();
     }
 
-    @NonNull
     @Override
-    public ForumTopicViewHolder onCreateViewHolder (@NonNull ViewGroup parent, int viewType) {
-      ForumTopicView view = new ForumTopicView(parent.getContext());
-      view.setLayoutParams(new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(78f)));
-      view.setOnClickListener(controller);
-      view.setOnLongClickListener(controller);
-      return new ForumTopicViewHolder(view);
+    public int getItemViewType(int position) {
+      if (isMessageSearchMode) {
+        return VIEW_TYPE_TOPIC;
+      }
+      Object item = items.get(position);
+      return item instanceof SeparatorItem ? VIEW_TYPE_SEPARATOR : VIEW_TYPE_TOPIC;
     }
 
+    @NonNull
     @Override
-    public void onBindViewHolder (@NonNull ForumTopicViewHolder holder, int position) {
-      if (isMessageSearchMode) {
-        TopicMessageSearchResult result = messageSearchResults.get(position);
-        holder.bindMessageSearchResult(controller.tdlib, result);
+    public RecyclerView.ViewHolder onCreateViewHolder (@NonNull ViewGroup parent, int viewType) {
+      if (viewType == VIEW_TYPE_SEPARATOR) {
+        SeparatorView separatorView = new SeparatorView(parent.getContext());
+        separatorView.setLayoutParams(new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(8f)));
+        separatorView.setNoAlign();
+        separatorView.setUseFilling();
+        separatorView.setAlignBottom();
+        separatorView.setSeparatorHeight(Screen.dp(8f)); // Thicker separator line
+        return new SeparatorViewHolder(separatorView);
       } else {
-        TdApi.ForumTopic topic = topics.get(position);
-        holder.bind(controller.tdlib, topic, highlightQuery);
+        ForumTopicView view = new ForumTopicView(parent.getContext());
+        view.setLayoutParams(new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(78f)));
+        view.setOnClickListener(controller);
+        view.setOnLongClickListener(controller);
+        return new ForumTopicViewHolder(view);
       }
     }
 
     @Override
-    public void onViewAttachedToWindow (@NonNull ForumTopicViewHolder holder) {
-      if (holder.itemView instanceof ForumTopicView) {
+    public void onBindViewHolder (@NonNull RecyclerView.ViewHolder holder, int position) {
+      if (holder instanceof SeparatorViewHolder) {
+        // Separator - nothing to bind
+      } else if (holder instanceof ForumTopicViewHolder) {
+        ForumTopicViewHolder topicHolder = (ForumTopicViewHolder) holder;
+        if (isMessageSearchMode) {
+          TopicMessageSearchResult result = messageSearchResults.get(position);
+          topicHolder.bindMessageSearchResult(controller.tdlib, result);
+        } else {
+          Object item = items.get(position);
+          if (item instanceof TdApi.ForumTopic) {
+            TdApi.ForumTopic topic = (TdApi.ForumTopic) item;
+            topicHolder.bind(controller.tdlib, topic, highlightQuery);
+          }
+        }
+      }
+    }
+
+    @Override
+    public void onViewAttachedToWindow (@NonNull RecyclerView.ViewHolder holder) {
+      if (holder instanceof ForumTopicViewHolder && holder.itemView instanceof ForumTopicView) {
         ((ForumTopicView) holder.itemView).attach();
       }
     }
 
     @Override
-    public void onViewDetachedFromWindow (@NonNull ForumTopicViewHolder holder) {
-      if (holder.itemView instanceof ForumTopicView) {
+    public void onViewDetachedFromWindow (@NonNull RecyclerView.ViewHolder holder) {
+      if (holder instanceof ForumTopicViewHolder && holder.itemView instanceof ForumTopicView) {
         ((ForumTopicView) holder.itemView).detach();
       }
     }
 
     @Override
-    public void onViewRecycled (@NonNull ForumTopicViewHolder holder) {
-      if (holder.itemView instanceof ForumTopicView) {
+    public void onViewRecycled (@NonNull RecyclerView.ViewHolder holder) {
+      if (holder instanceof ForumTopicViewHolder && holder.itemView instanceof ForumTopicView) {
         ((ForumTopicView) holder.itemView).destroy();
       }
     }
 
     @Override
     public int getItemCount () {
-      return isMessageSearchMode ? messageSearchResults.size() : topics.size();
+      return isMessageSearchMode ? messageSearchResults.size() : items.size();
+    }
+  }
+
+  private static class SeparatorViewHolder extends RecyclerView.ViewHolder {
+    SeparatorViewHolder (@NonNull View itemView) {
+      super(itemView);
     }
   }
 
@@ -1944,5 +1998,10 @@ public class ForumTopicsController extends TelegramViewController<ForumTopicsCon
         itemView.setTag(result);
       }
     }
+  }
+
+  @Override
+  public void onMessageSendSucceeded(TdApi.Message message, long oldMessageId) {
+    onNewMessage(message);
   }
 }
