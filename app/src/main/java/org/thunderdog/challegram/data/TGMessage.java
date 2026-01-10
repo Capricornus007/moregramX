@@ -2979,7 +2979,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
                 if (replyToMessage.chatId == 0 || replyToMessage.messageId == 0) {
                   buildContentHint(view, getReplyLocationProvider(), false).show(tdlib, Lang.getString(R.string.MessageReplyPrivate));
                 } else {
-                  tdlib.ui().openMessage(controller(), replyToMessage.chatId, new MessageId(replyToMessage), openParameters());
+                  openMessageInOtherChat(replyToMessage.chatId, replyToMessage.messageId);
                 }
               } else if (isScheduled()) {
                 tdlib.ui().openMessage(controller(), replyToMessage.chatId, new MessageId(replyToMessage), openParameters());
@@ -3009,6 +3009,30 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
   protected final void highlightOtherMessage (long otherMessageId) {
     highlightOtherMessage(new MessageId(msg.chatId, otherMessageId));
+  }
+
+  private void openMessageInOtherChat (long chatId, long messageId) {
+    MessageId targetMessageId = new MessageId(chatId, messageId);
+    if (tdlib.isForum(chatId)) {
+      // For forum chats, we need to get the message to know its topic
+      tdlib.send(new TdApi.GetMessage(chatId, messageId), (message, error) -> {
+        if (message != null && message.topicId != null &&
+            message.topicId.getConstructor() == TdApi.MessageTopicForum.CONSTRUCTOR) {
+          // Open message in the specific forum topic
+          tdlib.ui().openChat(controller(), chatId, new TdlibUi.ChatOpenParameters()
+            .keepStack()
+            .highlightMessage(targetMessageId)
+            .ensureHighlightAvailable()
+            .messageTopic(message.topicId)
+            .urlOpenParameters(openParameters()));
+        } else {
+          // Fallback to regular message opening
+          tdlib.ui().openMessage(controller(), chatId, targetMessageId, openParameters());
+        }
+      });
+    } else {
+      tdlib.ui().openMessage(controller(), chatId, targetMessageId, openParameters());
+    }
   }
 
   private float mInitialTouchX;
