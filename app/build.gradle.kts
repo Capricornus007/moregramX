@@ -396,7 +396,7 @@ android {
       else -> error(sdkVariant.flavor)
     }.get().version!!
 
-    val versionCodeOverride = versionCode * 1000 + if (buildType.name != "debug") (sdk * 100 + abi) else 0
+    val versionCodeOverride = versionCode * 1000 + if (!buildType.isDebuggable) (sdk * 100 + abi) else 0
     val versionNameOverride = StringBuilder("${versionName}.${defaultConfig.versionCode}").apply {
       if (extra.has("app_version_suffix")) {
         append(extra["app_version_suffix"])
@@ -424,7 +424,6 @@ android {
     buildConfigField("int", "ABI", abi.toString())
     buildConfigField("String", "ORIGINAL_VERSION_NAME", "\"${versionName}.${defaultConfig.versionCode}\"")
     buildConfigField("String", "RECAPTCHA_VERSION", "\"${recaptchaVersion}\"")
-    buildConfigField("boolean", "INAPP_UPDATES_AVAILABLE", (sdkVariant.flavor == "latest").toString())
 
     outputs.map { it as ApkVariantOutputImpl }.forEach { output ->
       output.versionCodeOverride = versionCodeOverride

@@ -5403,7 +5403,7 @@ public class TD {
       case TdApi.MessagePaidMedia.CONSTRUCTOR:
         return true;
       default:
-        Td.assertMessageContent_e0365d1c();
+        Td.assertMessageContent_11bff7df();
         break;
     }
     return false;
@@ -5895,9 +5895,10 @@ public class TD {
       case TdApi.InputMessageForwarded.CONSTRUCTOR:
       case TdApi.InputMessageText.CONSTRUCTOR:
       case TdApi.InputMessagePaidMedia.CONSTRUCTOR:
+      case TdApi.InputMessageStakeDice.CONSTRUCTOR:
         return null;
       default:
-        Td.assertInputMessageContent_65313187();
+        Td.assertInputMessageContent_eb9f33ef();
         throw Td.unsupported(content);
     }
   }
@@ -5932,9 +5933,10 @@ public class TD {
       case TdApi.InputMessageForwarded.CONSTRUCTOR:
       case TdApi.InputMessageText.CONSTRUCTOR:
       case TdApi.InputMessagePaidMedia.CONSTRUCTOR:
+      case TdApi.InputMessageStakeDice.CONSTRUCTOR:
         return null;
       default:
-        Td.assertInputMessageContent_65313187();
+        Td.assertInputMessageContent_eb9f33ef();
         throw Td.unsupported(content);
     }
   }
@@ -5977,9 +5979,10 @@ public class TD {
       case TdApi.InputMessageForwarded.CONSTRUCTOR:
       case TdApi.InputMessageText.CONSTRUCTOR:
       case TdApi.InputMessagePaidMedia.CONSTRUCTOR:
+      case TdApi.InputMessageStakeDice.CONSTRUCTOR:
         return;
       default:
-        Td.assertInputMessageContent_65313187();
+        Td.assertInputMessageContent_eb9f33ef();
         throw Td.unsupported(content);
     }
   }
@@ -6013,9 +6016,10 @@ public class TD {
       case TdApi.InputMessageForwarded.CONSTRUCTOR:
       case TdApi.InputMessageText.CONSTRUCTOR:
       case TdApi.InputMessagePaidMedia.CONSTRUCTOR:
+      case TdApi.InputMessageStakeDice.CONSTRUCTOR:
         return null;
       default:
-        Td.assertInputMessageContent_65313187();
+        Td.assertInputMessageContent_eb9f33ef();
         throw Td.unsupported(content);
     }
   }

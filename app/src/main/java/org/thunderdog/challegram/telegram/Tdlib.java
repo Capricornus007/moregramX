@@ -4747,7 +4747,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
       case TdApi.MessageAnimation.CONSTRUCTOR:
         return !photoVideoOnly;
       default:
-        Td.assertMessageContent_e0365d1c();
+        Td.assertMessageContent_11bff7df();
         break;
     }
 
@@ -4831,7 +4831,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
         case TdApi.MessageAnimatedEmoji.CONSTRUCTOR:
           return Td.textOrCaption(messageText);
       }
-      Td.assertMessageContent_e0365d1c();
+      Td.assertMessageContent_11bff7df();
       throw Td.unsupported(messageText);
     }
     MessageEditMediaPending pendingEditMedia = getPendingMessageMedia(chatId, messageId);
@@ -10304,6 +10304,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
       case TdApi.UpdateLiveStoryTopDonors.CONSTRUCTOR:
       case TdApi.UpdateGiftAuctionState.CONSTRUCTOR:
       case TdApi.UpdateActiveGiftAuctions.CONSTRUCTOR:
+      case TdApi.UpdateStakeDiceState.CONSTRUCTOR:
         break;
 
       // for bots only.
@@ -10332,7 +10333,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
         throw Td.unsupported(update);
       }
       default: {
-        Td.assertUpdate_3a0802b2();
+        Td.assertUpdate_98126c66();
         throw Td.unsupported(update);
       }
     }
@@ -10660,18 +10661,20 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
   }
 
   public void findUpdateFile (@NonNull RunnableData<UpdateFileInfo> onDone) {
-    final String abi = U.getCpuAbi();
-    final String hashtag;
-    switch (abi) {
-      case "armeabi-v7a": hashtag = "arm32"; break;
-      case "arm64-v8a": hashtag = "arm64"; break;
-      case "x86": hashtag = "x86"; break;
-      case "x86_64": case "x64": hashtag = "x64"; break;
-      default: {
-        onDone.runWithData(null);
-        return;
-      }
+    final String abiFlavor = U.getPreferredAbiFlavor();
+    if (abiFlavor == null) {
+      onDone.runWithData(null);
+      return;
     }
+    final String hashtag;
+    if (!BuildConfig.LATEST_FLAVOR) {
+      hashtag = abiFlavor + StringUtils.ucfirst(BuildConfig.FLAVOR_SDK);
+    } else {
+      hashtag = abiFlavor;
+    }
+    final String query = "#apk " +
+      (Settings.instance().getNewSetting(Settings.SETTING_FLAG_DOWNLOAD_BETAS) ? "" : "#stable ") +
+      "#" + hashtag;
     clientHolder().updates.findResource(message -> {
       if (message != null && Td.isDocument(message.content)) {
         TdApi.Document document = ((TdApi.MessageDocument) message.content).document;
@@ -10704,9 +10707,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
         }
         onDone.runWithData(ok ? new UpdateFileInfo(document, buildNo, version, commit) : null);
       }
-    }, "#apk " + (
-      Settings.instance().getNewSetting(Settings.SETTING_FLAG_DOWNLOAD_BETAS) ? "" : "#stable "
-    ) + "#" + hashtag, BuildConfig.COMMIT_DATE);
+    }, query, BuildConfig.COMMIT_DATE);
   }
 
   public <T extends Settings.CloudSetting> void fetchCloudSettings (@NonNull RunnableData<List<T>> callback, String requiredHashtag, @NonNull Future<T> currentSettingProvider, @NonNull Future<T> builtinItemProvider, @NonNull WrapperProvider<T, TdApi.Message> instanceProvider) {
@@ -11306,7 +11307,8 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
         case TdApi.MessageGift.CONSTRUCTOR:
         case TdApi.MessageUpgradedGift.CONSTRUCTOR:
         case TdApi.MessageUpgradedGiftPurchaseOffer.CONSTRUCTOR:
-        case TdApi.MessageUpgradedGiftPurchaseOfferDeclined.CONSTRUCTOR:
+        case TdApi.MessageUpgradedGiftPurchaseOfferRejected.CONSTRUCTOR:
+        case TdApi.MessageStakeDice.CONSTRUCTOR:
         case TdApi.MessageRefundedUpgradedGift.CONSTRUCTOR:
         case TdApi.MessagePaidMessagePriceChanged.CONSTRUCTOR:
         case TdApi.MessagePaidMessagesRefunded.CONSTRUCTOR:
@@ -11344,7 +11346,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
           // assuming we want to check RightId.SEND_BASIC_MESSAGES
           return getBasicMessageRestrictionText(chat);
         default:
-          Td.assertMessageContent_e0365d1c();
+          Td.assertMessageContent_11bff7df();
           throw Td.unsupported(message.content);
       }
     }
@@ -11389,9 +11391,10 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
         case TdApi.InputMessageContact.CONSTRUCTOR:
         case TdApi.InputMessageStory.CONSTRUCTOR:
         case TdApi.InputMessagePaidMedia.CONSTRUCTOR:
+        case TdApi.InputMessageStakeDice.CONSTRUCTOR:
           return getBasicMessageRestrictionText(chat);
         default:
-          Td.assertInputMessageContent_65313187();
+          Td.assertInputMessageContent_eb9f33ef();
           throw Td.unsupported(content);
       }
     }
