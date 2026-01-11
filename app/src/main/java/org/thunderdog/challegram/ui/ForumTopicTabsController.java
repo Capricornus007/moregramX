@@ -35,6 +35,7 @@ import org.thunderdog.challegram.navigation.ViewPagerController;
 import org.thunderdog.challegram.navigation.ViewPagerTopView;
 import org.thunderdog.challegram.telegram.Tdlib;
 import org.thunderdog.challegram.telegram.TdlibCache;
+import org.thunderdog.challegram.telegram.TdlibSettingsManager;
 import org.thunderdog.challegram.tool.Screen;
 import org.thunderdog.challegram.tool.UI;
 import org.thunderdog.challegram.widget.ProgressComponentView;
@@ -397,6 +398,8 @@ public class ForumTopicTabsController extends ViewPagerController<ForumTopicTabs
       profileController.setArguments(new ProfileController.Args(chat, null, false));
       navigateTo(profileController);
     } else if (id == R.id.btn_viewAsTopics) {
+      // Save preference for topics list view
+      tdlib.settings().setForumViewPreference(chatId, TdlibSettingsManager.FORUM_VIEW_TOPICS);
       // Switch to topics list view (ForumTopicsController)
       ForumTopicsController listController = new ForumTopicsController(context, tdlib);
       listController.setArguments(new ForumTopicsController.Arguments(chat));
