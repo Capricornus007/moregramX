@@ -5925,4 +5925,37 @@
   <string name="EnableMessageAnimator">Message animator</string>
   <string name="ReplyInOtherChat">Reply in other chat</string>
   <string name="QuoteInOtherChat">Quote in other chat</string>
+
+  <!-- Whisper Settings -->
+  <string name="WhisperSettings">Whisper Speech Recognition</string>
+  <string name="WhisperModel">Model</string>
+  <string name="WhisperDownload">Download Model</string>
+  <string name="WhisperSelectModel">Select Whisper Model</string>
+  <string name="WhisperModelNotSelected">Not selected</string>
+  <string name="WhisperSelectModelFirst">Select a model first</string>
+  <string name="WhisperClickToDownload">Click to download</string>
+  <string name="WhisperDownloading">Downloading…</string>
+  <string name="WhisperModelReady">Ready (tap to delete)</string>
+  <string name="WhisperDownloadComplete">Model downloaded successfully</string>
+  <string name="WhisperDownloadFailed">Download failed</string>
+  <string name="WhisperDeleteModel">Delete Model</string>
+  <string name="WhisperDeleteModelConfirm">Are you sure you want to delete the downloaded model?</string>
+  <string name="WhisperModelDeleted">Model deleted</string>
+  <string name="Close">Close</string>
+
+  <!-- Transcription -->
+  <string name="Transcription">Transcription</string>
+  <string name="TranscriptionLoading">Loading…</string>
+  <string name="TranscriptionDownloading">Downloading voice message…</string>
+  <string name="TranscriptionProcessing">Transcribing audio…</string>
+  <string name="TranscriptionComplete">Transcription complete</string>
+  <string name="TranscriptionDetectedLanguage">Detected: %1$s</string>
+  <string name="TranscriptionErrorNoFile">Voice file not available</string>
+  <string name="TranscriptionErrorDownload">Failed to download voice message</string>
+  <string name="TranscriptionErrorNoModel">Whisper model not downloaded. Go to reX Settings to download.</string>
+  <string name="TranscriptionErrorModel">Failed to load Whisper model</string>
+  <string name="TranscriptionErrorConvert">Failed to convert audio</string>
+  <string name="TranscriptionErrorEmpty">No speech detected</string>
+  <string name="TranscriptionErrorFailed">Transcription failed</string>
+  <string name="TranscriptionError">Error</string>
 </resources>

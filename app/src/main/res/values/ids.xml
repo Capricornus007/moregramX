@@ -128,6 +128,7 @@
   <item type="id" name="edit_proxy_secret" />
 
   <item type="id" name="controller_msgTranslate" />
+  <item type="id" name="controller_whisperTranscription" />
   <item type="id" name="controller_storiesSettings" />
   <item type="id" name="controller_storyColorPicker" />
   <item type="id" name="controller_simplePager" />
@@ -1516,4 +1517,7 @@
   <item type="id" name="controller_reXSettings" />
 
   <item type="id" name="btn_messageReplyInOtherChat" />
+
+  <item type="id" name="controller_transcription" />
+  <item type="id" name="btn_transcribe" />
 </resources>

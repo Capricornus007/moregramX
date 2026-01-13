@@ -1,3 +1,195 @@
+# Whisper.cpp Integration
+
+## Overview
+Integration of whisper.cpp speech recognition library for Android.
+
+## Files Created
+
+### CMake Build
+- `app/jni/BuildWhisper.cmake` - CMake build configuration for whisper.cpp
+  - Builds ggml-base (core GGML library)
+  - Builds ggml-cpu (CPU backend with ARM/x86 optimizations)
+  - Builds whisper (main whisper library)
+  - ARM64 optimizations: dotprod + fp16
+
+### JNI Bindings
+- `app/jni/whisper_jni.cpp` - JNI wrapper for whisper.cpp
+  - `initContext(modelPath, useGpu)` - Load model from file
+  - `initContextFromBuffer(modelData, useGpu)` - Load model from byte array
+  - `freeContext(contextPtr)` - Release resources
+  - `transcribe(contextPtr, samples, threads, language, translate)` - Transcribe audio
+  - `getSegmentCount/Text/StartTime/EndTime` - Access transcription results
+  - `getFullText(contextPtr)` - Get concatenated transcription
+  - `getDetectedLanguage(contextPtr)` - Get auto-detected language
+  - `isMultilingual(contextPtr)` - Check model type
+  - `getSampleRate()` - Returns 16000 (required sample rate)
+  - `getVersion()/getSystemInfo()` - Library info
+
+### Kotlin Wrapper
+- `app/src/main/java/ni/shikatu/rex/Whisper.kt` - High-level Kotlin API
+  - `Whisper` class with thread-safe model management
+  - `loadModel(path/data, useGpu)` - Initialize model
+  - `transcribe(samples, threads, language, translate)` - Returns `TranscriptionResult`
+  - `getFullText()`, `getDetectedLanguage()`, `isMultilingual()`
+  - Companion object with `SAMPLE_RATE`, `version()`, `systemInfo()`
+  - Data classes: `TranscriptionResult`, `TranscriptionSegment`, `TranscriptionToken`
+
+## Files Modified
+
+### CMakeLists.txt (app/jni/CMakeLists.txt)
+- Added `include("${CMAKE_HOME_DIRECTORY}/BuildWhisper.cmake")` after ffmpeg
+- Added `whisper_jni.cpp` to source files
+- Added whisper include directories
+- Added `whisper` to target_link_libraries
+- Added `libwhisper.a`, `libggml-base.a`, `libggml-cpu.a` to EXCLUDE_LIBS
+
+## Usage Example
+
+```kotlin
+val whisper = Whisper()
+
+// Load model
+whisper.loadModel("/path/to/ggml-base.bin")
+
+// Transcribe audio (16kHz mono float samples)
+val result = whisper.transcribe(
+    samples = audioSamples,
+    numThreads = 4,
+    language = "auto",  // or "en", "ru", etc.
+    translate = false
+)
+
+// Get results
+println(result?.fullText)
+result?.segments?.forEach { segment ->
+    println("${segment.startTime}ms - ${segment.endTime}ms: ${segment.text}")
+}
+
+// Release
+whisper.release()
+```
+
+## Requirements
+- Audio must be 16kHz mono float32 PCM samples
+- Model files: ggml-base.bin, ggml-small.bin, etc. from whisper.cpp releases
+- ARM64: Uses dotprod + fp16 optimizations
+
+## Current Status
+- ✅ CMake build configuration
+- ✅ JNI bindings
+- ✅ Kotlin wrapper
+- ✅ Settings UI for model selection and download
+- ⏳ Build verification pending
+
+## Model Download UI (ReXSettingsController)
+
+Added Whisper section in reX Settings with:
+- **Model selection**: Dropdown with available models (tiny, base, small - both full and quantized versions)
+- **Download button**: Downloads selected model from HuggingFace with progress indicator
+- **Delete option**: Tap on downloaded model to delete it
+
+### Files Modified
+
+- `app/src/main/java/ni/shikatu/rex/ReXConfig.java`:
+  - Added `WHISPER_MODEL_URL_TEMPLATE` - HuggingFace download URL template
+  - Added `WHISPER_MODELS` - Array of available models with display names and sizes
+  - Added `whisperModel` / `whisperModelPath` fields and getters/setters
+  - Added `isWhisperModelDownloaded()` - Check if model file exists
+  - Added `getWhisperModelsDir()` - Get/create models directory
+  - Added helper methods: `getWhisperModelDisplayName()`, `getWhisperModelUrl()`, `getWhisperModelFileName()`
+
+- `app/src/main/java/ni/shikatu/rex/ReXSettingsController.java`:
+  - Added Whisper settings section with model picker and download button
+  - `showWhisperModelPicker()` - AlertDialog with single-choice list of models
+  - `startModelDownload()` - Background download with progress updates
+  - `showDeleteModelDialog()` - Confirmation dialog for deleting downloaded model
+
+- `app/src/main/res/values/strings.xml`:
+  - Added all Whisper-related strings (WhisperSettings, WhisperModel, etc.)
+
+### Available Models
+| Model | Size | Description |
+|-------|------|-------------|
+| tiny-q5_1 | 39 MB | Quantized, fastest |
+| tiny | 75 MB | Full precision |
+| base-q5_1 | 61 MB | Quantized, good balance |
+| base | 142 MB | Full precision |
+| small-q5_1 | 190 MB | Quantized, better accuracy |
+| small | 466 MB | Full precision |
+
+English-only versions (.en) also available for all sizes.
+
+## Voice Message Converter
+
+Added converter for Telegram voice messages (OGG/Opus 48kHz) to Whisper format (16kHz mono float32).
+
+### Implementation
+
+**JNI** (`app/jni/whisper_jni.cpp`):
+- `convertOggOpusToSamples(filePath)` - decodes OGG/Opus file using opusfile library
+- Resamples 48kHz → 16kHz (simple decimation by factor of 3)
+- Converts int16 → float32 (normalized to [-1.0, 1.0])
+
+**Kotlin** (`app/src/main/java/ni/shikatu/rex/Whisper.kt`):
+- `Whisper.convertVoiceMessage(filePath)` - static method to convert voice message
+
+### Usage
+
+```kotlin
+// Convert voice message to samples
+val samples = Whisper.convertVoiceMessage("/path/to/voice.ogg")
+
+// Transcribe
+val result = whisper.transcribe(samples!!)
+println(result?.fullText)
+```
+
+### Technical Details
+- Telegram voice: OGG/Opus, 48kHz mono, int16
+- Whisper input: PCM, 16kHz mono, float32
+- Resampling: Simple decimation (every 3rd sample)
+- Normalization: sample / 32768.0f
+
+## Voice Message Transcription Button
+
+Added a transcription button to voice messages that opens a dialog with speech-to-text transcription.
+
+### Files Created/Modified
+
+**Created:**
+- `app/src/main/java/ni/shikatu/rex/TranscriptionController.java` - AlertDialog-based controller for transcription
+  - Shows progress during transcription
+  - Displays detected language
+  - Allows copying transcription text
+  - Handles file download if needed
+
+**Modified:**
+- `app/src/main/java/org/thunderdog/challegram/data/FileComponent.java`:
+  - Added transcription button drawing (baseline_file_caption_24 icon)
+  - Added touch handling for the button
+  - Added `openTranscription()` method
+  - Button only shows if Whisper model is downloaded
+  - Button appears to the right of the waveform
+
+- `app/src/main/res/values/strings.xml`:
+  - Added transcription-related strings (Transcription, TranscriptionLoading, etc.)
+  - Added Close string
+
+- `app/src/main/res/values/ids.xml`:
+  - Added controller_transcription, btn_transcribe IDs
+
+### UI Behavior
+1. Button appears only when Whisper model is downloaded (check in reX Settings)
+2. Tap button → AlertDialog opens
+3. Shows progress while:
+   - Downloading voice file (if needed)
+   - Converting audio
+   - Running transcription
+4. Shows result with detected language
+5. Copy button to copy text to clipboard
+
+---
+
 # Forum Topics Implementation Tasks
 
 | Waiting | In Progress | Completed |
@@ -1156,3 +1348,79 @@ Replaced lock emoji (🔒) in topic title with lock icon displayed in place of u
   - Uses light icon color with PorterDuff paint
 - Reserved 22dp space for lock icon in text layout calculation (line 356-358)
 - Prevents text from overlapping with lock icon
+
+---
+
+## Whisper Transcription Bug Fixes
+
+Fixed issue where Whisper model correctly detected language but returned empty transcription text.
+
+### Root Causes Identified
+
+1. **suppress_blank = true by default** - This parameter suppresses "blank" tokens which can result in completely empty output, especially for short audio clips.
+
+2. **no_speech_thold too strict** - Default value of 0.6 was too aggressive for voice messages, causing valid speech to be classified as silence.
+
+3. **Poor audio resampling** - Simple decimation without anti-aliasing filter caused frequency aliasing issues.
+
+### Fixes Applied
+
+**File: `app/jni/whisper_jni.cpp`**
+
+1. **Parameters tuning:**
+   - `suppress_blank = false` - Prevents suppression of all output
+   - `greedy.best_of = 1` - Faster processing (was 5)
+   - `no_speech_thold = 0.3f` - More lenient silence detection (was 0.6)
+   - `entropy_thold = 2.8f` - More lenient fallback threshold (was 2.4)
+   - `logprob_thold = -1.5f` - More lenient fallback threshold (was -1.0)
+   - `temperature = 0.0f` - Deterministic sampling
+   - `temperature_inc = 0.2f` - Standard fallback increment
+
+2. **Enhanced logging:**
+   - Added pre-transcription logging (samples count, threads, language)
+   - Added detected language logging after processing
+   - Added per-segment logging with timestamps
+   - Added token-level logging (first 5 tokens per segment with probabilities)
+   - Helps diagnose issues when transcription still fails
+
+3. **Improved audio resampling (48kHz → 16kHz):**
+   - Added low-pass filter (5-sample moving average) before downsampling to reduce aliasing
+   - Changed from simple decimation to linear interpolation
+   - Added audio statistics logging (duration, max amplitude, RMS level)
+   - Fixed op_read buffer size calculation (was missing `* channels`)
+
+### Testing Notes
+
+After rebuilding, check logcat for `WhisperNative` tag to see detailed diagnostics:
+- `Starting transcription: samples=48000, threads=4, lang=auto`
+- `Audio stats: samples=16000, duration=1.00s, max=0.8500, RMS=0.1200`
+- `Detected language: ru (id=50)`
+- `Number of segments: 1`
+- `Segment 0 [0-300]: 'Привет мир'`
+
+### Root Cause Found
+
+**Problem**: `params.detect_language = true` causes decoder to immediately output EOT token on ARM processors. Language is detected correctly (97%+ confidence), but decoder produces 0 segments.
+
+**Solution**: Use `whisper_lang_auto_detect()` separately to detect language, then pass it explicitly to `whisper_full()` with `detect_language = false`.
+
+### Final Working Configuration
+
+```cpp
+// 1. Detect language separately
+std::vector<float> lang_probs(whisper_lang_max_id() + 1, 0.0f);
+int detected_lang_id = whisper_lang_auto_detect(ctx, 0, num_threads, lang_probs.data());
+const char* lang = whisper_lang_str(detected_lang_id);
+
+// 2. Transcribe with explicit language
+params.language = lang;
+params.detect_language = false;  // MUST be false on ARM!
+whisper_reset_timings(ctx);
+whisper_full(ctx, params, pcm_data.data(), pcm_data.size());
+```
+
+### Key Points
+- `detect_language = true` is broken on ARM in whisper.cpp
+- `whisper_lang_auto_detect()` works correctly for language detection
+- Always use `whisper_init_from_file()` without params for CPU-only mode
+- `whisper_reset_timings()` should be called before `whisper_full()`
