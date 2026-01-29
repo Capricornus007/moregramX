@@ -1349,6 +1349,9 @@ public class TdlibUi extends Handler {
             c.setMode(EditNameController.Mode.RENAME_BOT);
           } else {
             c.setMode(EditNameController.Mode.RENAME_CONTACT);
+            if (userFull != null && userFull.note != null) {
+              c.setCurrentNote(userFull.note.text);
+            }
           }
           c.setUser(user);
         }

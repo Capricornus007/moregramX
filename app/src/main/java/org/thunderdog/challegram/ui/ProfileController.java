@@ -863,6 +863,12 @@ public class ProfileController extends ViewController<ProfileController.Args> im
       if (!share(false)) {
         tdlib.ui().handleProfileOption(this, id, user);
       }
+    } else if (id == R.id.btn_profileNote_copy) {
+      copyProfileNote();
+    } else if (id == R.id.btn_profileNote_edit) {
+      tdlib.ui().handleProfileMore(this, R.id.more_btn_edit, user, userFull);
+    } else if (id == R.id.btn_profileNote_clear) {
+      tdlib.client().send(new TdApi.SetUserNote(user.id, new TdApi.FormattedText("", null)), tdlib.okHandler());
     } else {
       tdlib.ui().handleProfileOption(this, id, user);
     }
@@ -912,6 +918,12 @@ public class ProfileController extends ViewController<ProfileController.Args> im
   private void copyDescription () {
     if (aboutWrapper != null) {
       UI.copyText(aboutWrapper.getText(), R.string.CopiedText);
+    }
+  }
+
+  private void copyProfileNote () {
+    if (profileNoteWrapper != null) {
+      UI.copyText(profileNoteWrapper.getText(), R.string.CopiedText);
     }
   }
 
@@ -1802,6 +1814,9 @@ public class ProfileController extends ViewController<ProfileController.Args> im
           } else {
             view.setName(TD.isBot(user) ? R.string.BotInfo : isUserMode() ? R.string.UserBio : R.string.Description);
           }
+        } else if (itemId == R.id.btn_profileNote) {
+          view.setText(profileNoteWrapper);
+          view.setName(R.string.ProfileNote);
         } else if (itemId == R.id.btn_manageInviteLinks) {
           if (inviteLinksCount == -1) {
             view.setData(Lang.getString(R.string.LoadingInformation));
@@ -2352,8 +2367,8 @@ public class ProfileController extends ViewController<ProfileController.Args> im
 
   // User cells
 
-  private TextWrapper aboutWrapper;
-  private TdApi.FormattedText currentAbout;
+  private TextWrapper aboutWrapper, profileNoteWrapper;
+  private TdApi.FormattedText currentAbout, currentProfileNote;
 
   private static int getTextWidth (int width) {
     return Math.max(0, width - Screen.dp(73f) - Screen.dp(17f));
@@ -2381,6 +2396,24 @@ public class ProfileController extends ViewController<ProfileController.Args> im
         aboutWrapper.prepare(getTextWidth(Screen.currentWidth()));
       } else {
         aboutWrapper = null;
+      }
+      return true;
+    }
+    return false;
+  }
+
+  private boolean setProfileNote (TdApi.FormattedText text) {
+    if (Td.isEmpty(text)) {
+      text = null;
+    }
+    if (this.currentProfileNote == null || !Td.equalsTo(this.currentProfileNote, text)) {
+      currentProfileNote = text;
+      if (text != null) {
+        profileNoteWrapper = new TextWrapper(tdlib, text, Paints.robotoStyleProvider(15f), TextColorSets.Regular.NORMAL, new TdlibUi.UrlOpenParameters().sourceChat(getChatId()), null);
+        profileNoteWrapper.addTextFlags(Text.FLAG_CUSTOM_LONG_PRESS | (Lang.rtl() ? Text.FLAG_ALIGN_RIGHT : 0));
+        profileNoteWrapper.prepare(getTextWidth(Screen.currentWidth()));
+      } else {
+        profileNoteWrapper = null;
       }
       return true;
     }
@@ -2425,6 +2458,10 @@ public class ProfileController extends ViewController<ProfileController.Args> im
 
   private ListItem newDescriptionItem () {
     return new ListItem(ListItem.TYPE_INFO_MULTILINE, R.id.btn_description, R.drawable.baseline_info_24, TD.isBot(user) ? R.string.BotInfo : isUserMode() ? R.string.UserBio : R.string.Description);
+  }
+
+  private ListItem newProfileNoteItem () {
+    return new ListItem(ListItem.TYPE_INFO_MULTILINE, R.id.btn_profileNote, R.drawable.baseline_edit_24, R.string.ProfileNote);
   }
 
   private ListItem newPeerIdItem () {
@@ -2476,6 +2513,13 @@ public class ProfileController extends ViewController<ProfileController.Args> im
         items.add(newDescriptionItem());
         addedCount++;
       }
+      if (!Td.isEmpty(userFull.note)) {
+        if (addedCount > 0) {
+          items.add(new ListItem(ListItem.TYPE_SEPARATOR));
+        }
+        items.add(newProfileNoteItem());
+        addedCount++;
+      }
     }
 
     if (!TD.isBot(user)) {
@@ -2518,11 +2562,13 @@ public class ProfileController extends ViewController<ProfileController.Args> im
   @WorkerThread
   private void prepareFullCells (final TdApi.UserFullInfo userFull) {
     setDescription();
+    setProfileNote(userFull.note);
   }
 
   private void addFullCells (TdApi.UserFullInfo userFull) {
     checkBirthdate();
     checkDescription();
+    checkProfileNote();
     checkGroupsInCommon();
 
     /*if (userFull.commonChatCount > 0) {
@@ -2606,7 +2652,10 @@ public class ProfileController extends ViewController<ProfileController.Args> im
         if (baseAdapter.indexOfViewById(R.id.btn_description) != -1) {
           index++;
         }
-        addTopItem(newPhoneItem(), index); // after peer_id, username, description
+        if (baseAdapter.indexOfViewById(R.id.btn_profileNote) != -1) {
+          index++;
+        }
+        addTopItem(newPhoneItem(), index); // after peer_id, username, description, profileNote
       }
     } else if (hasPhone) {
       updateValuedItem(R.id.btn_phone);
@@ -2621,7 +2670,7 @@ public class ProfileController extends ViewController<ProfileController.Args> im
     } else {
       baseAdapter.updateValuedSettingById(id);
     }
-    if (id == R.id.btn_description) {
+    if (id == R.id.btn_description || id == R.id.btn_profileNote) {
       onItemsHeightProbablyChanged(); // height probably changed
     }
   }
@@ -2820,6 +2869,41 @@ public class ProfileController extends ViewController<ProfileController.Args> im
     } else if (hasDescription) {
       if (setDescription()) {
         updateValuedItem(R.id.btn_description);
+      }
+    }
+  }
+
+  private void checkProfileNote () {
+    if (isEditing())
+      return;
+    int foundIndex = baseAdapter.indexOfViewById(R.id.btn_profileNote);
+    boolean hadProfileNote = foundIndex != -1;
+    boolean hasProfileNote = userFull != null && !Td.isEmpty(userFull.note);
+    if (hadProfileNote != hasProfileNote) {
+      if (hadProfileNote) {
+        removeTopItem(foundIndex);
+      } else {
+        ListItem profileNoteItem = newProfileNoteItem();
+        setProfileNote(userFull.note);
+
+        int index = 0;
+        if (Settings.instance().showPeerIds() && baseAdapter.indexOfViewById(R.id.btn_peer_id) != -1) {
+          index++;
+        }
+        if (baseAdapter.indexOfViewById(R.id.btn_username) != -1) {
+          index++;
+        }
+        if (baseAdapter.indexOfViewById(R.id.btn_birthdate) != -1) {
+          index++;
+        }
+        if (baseAdapter.indexOfViewById(R.id.btn_description) != -1) {
+          index++;
+        }
+        addTopItem(profileNoteItem, index); // after peer_id, username, birthdate, description
+      }
+    } else if (hasProfileNote) {
+      if (setProfileNote(userFull.note)) {
+        updateValuedItem(R.id.btn_profileNote);
       }
     }
   }
@@ -4862,6 +4946,11 @@ public class ProfileController extends ViewController<ProfileController.Args> im
       } else {
         showDescriptionOptions(false, descriptionLanguage = null);
       }
+    } else if (viewId == R.id.btn_profileNote) {
+      showOptions(null, new int[] {R.id.btn_profileNote_edit, R.id.btn_profileNote_copy, R.id.btn_profileNote_clear},
+        new String[]{Lang.getString(R.string.Edit), Lang.getString(R.string.Copy), Lang.getString(R.string.Clear)},
+        new int[]{OptionColor.NORMAL, ViewController.OptionColor.NORMAL, OptionColor.RED},
+        new int[]{R.drawable.baseline_edit_24, R.drawable.baseline_content_copy_24, R.drawable.baseline_cancel_24});
     } else if (viewId == R.id.btn_notifications) {
       tdlib.ui().showMuteOptions(this, chat.id, true, null);
     } else if (viewId == R.id.btn_encryptionKey) {
@@ -5460,6 +5549,12 @@ public class ProfileController extends ViewController<ProfileController.Args> im
             return Math.max(aboutWrapper.getHeight() + Screen.dp(21f + 13f) - Screen.dp(13f) + Screen.dp(12f) + Screen.dp(25), Screen.dp(76f));
           }
           return Screen.dp(76f);
+        } else if (itemId == R.id.btn_profileNote) {
+          if (profileNoteWrapper != null) {
+            profileNoteWrapper.get(getTextWidth(width));
+            return Math.max(profileNoteWrapper.getHeight() + Screen.dp(21f + 13f) - Screen.dp(13f) + Screen.dp(12f) + Screen.dp(25), Screen.dp(76f));
+          }
+          return Screen.dp(76f);
         }
         throw new UnsupportedOperationException();
       }
@@ -5583,7 +5678,7 @@ public class ProfileController extends ViewController<ProfileController.Args> im
   }
 
   private void onGlobalHeightChanged () {
-    if (baseAdapter.indexOfViewById(R.id.btn_description) != -1 || baseAdapter.indexOfViewById(R.id.description) != -1) {
+    if (baseAdapter.indexOfViewById(R.id.btn_description) != -1 || baseAdapter.indexOfViewById(R.id.description) != -1 || baseAdapter.indexOfViewById(R.id.btn_profileNote) != -1) {
       onItemsHeightProbablyChanged();
     }
     baseRecyclerView.invalidateItemDecorations();
@@ -6270,6 +6365,7 @@ public class ProfileController extends ViewController<ProfileController.Args> im
         checkUserButtons();
         checkGroupsInCommon();
         checkDescription();
+        checkProfileNote();
         if (mode == Mode.EDIT_BOT_USER) {
           updateValuedItem(R.id.btn_botDescription);
         }
@@ -6783,6 +6879,11 @@ public class ProfileController extends ViewController<ProfileController.Args> im
       aboutWrapper.setTextFlagEnabled(Text.FLAG_ALIGN_RIGHT, Lang.rtl());
       if (baseAdapter != null)
         updateValuedItem(R.id.btn_description);
+    }
+    if (profileNoteWrapper != null) {
+      profileNoteWrapper.setTextFlagEnabled(Text.FLAG_ALIGN_RIGHT, Lang.rtl());
+      if (baseAdapter != null)
+        updateValuedItem(R.id.btn_profileNote);
     }
     if (topCellView != null) {
       topCellView.checkRtl();
