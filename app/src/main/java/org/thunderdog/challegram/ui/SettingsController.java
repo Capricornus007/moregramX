@@ -18,6 +18,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.text.SpannableStringBuilder;
+import android.util.Pair;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
@@ -40,6 +41,8 @@ import org.thunderdog.challegram.component.attach.MediaLayout;
 import org.thunderdog.challegram.component.base.SettingView;
 import org.thunderdog.challegram.config.Config;
 import org.thunderdog.challegram.core.Lang;
+import org.thunderdog.challegram.data.ContentPreview;
+import org.thunderdog.challegram.data.DoubleTextWrapper;
 import org.thunderdog.challegram.data.TD;
 import org.thunderdog.challegram.data.TGMessage;
 import org.thunderdog.challegram.data.TGStickerSetInfo;
@@ -852,8 +855,45 @@ public class SettingsController extends ViewController<Void> implements
     executeOnUiThreadOptional(() -> {
       this.userFull = userFull;
       checkBirthdate();
+      checkPersonalChannel();
       setBio(userFull.bio);
     });
+  }
+
+  private void applyPersonalChannel (ListItem item, TdApi.Chat chat) {
+    TdApi.FormattedText preview = null;
+    String time = null;
+    if (chat.lastMessage != null) {
+      preview = ContentPreview.getChatListPreview(tdlib, chat.id, chat.lastMessage, false).buildFormattedText(false);
+      time = Lang.time(chat.lastMessage.date, TimeUnit.SECONDS);
+    }
+    item.setData(new Pair<>(new DoubleTextWrapper(tdlib, chat, false, false), preview));
+    item.setStringValue(time);
+    item.setIntValue(tdlib.chatMemberCount(chat.id));
+  }
+
+  private void checkPersonalChannel () {
+    TdApi.Chat chat = userFull != null && userFull.personalChatId != 0 ? tdlib.chat(userFull.personalChatId) : null;
+    int position = adapter.indexOfViewById(R.id.btn_personalChannel);
+    boolean had = position != -1;
+    boolean has = chat != null;
+    if (had != has) {
+      if (has) {
+        int peerIdIndex = adapter.indexOfViewById(R.id.btn_peer_id);
+        int insertAt = peerIdIndex != -1 ? peerIdIndex : adapter.indexOfViewById(R.id.btn_username);
+        ListItem item = new ListItem(ListItem.TYPE_CHAT_PROFILE, R.id.btn_personalChannel);
+        applyPersonalChannel(item, chat);
+        adapter.addItems(insertAt,
+          item,
+          new ListItem(ListItem.TYPE_SEPARATOR)
+        );
+      } else {
+        adapter.removeRange(position, 2);
+      }
+    } else if (has) {
+      applyPersonalChannel(adapter.getItems().get(position), chat);
+      adapter.notifyItemChanged(position);
+    }
   }
 
   private static ListItem newBirthdateItem () {
@@ -1143,6 +1183,10 @@ public class SettingsController extends ViewController<Void> implements
       navigateTo(c);
     } else if (viewId == R.id.btn_birthdate) {
       tdlib.ui().openBirthdateEditor(this, v, TdlibUi.BirthdateOpenOrigin.PROFILE);
+    } else if (viewId == R.id.btn_personalChannel) {
+      if (userFull != null && userFull.personalChatId != 0) {
+        tdlib.ui().openChat(this, userFull.personalChatId, new TdlibUi.ChatOpenParameters().keepStack().removeDuplicates());
+      }
     } else if (viewId == R.id.btn_peer_id) {
       long selfId = tdlib.myUserId(true);
       if (selfId == 0) return;
