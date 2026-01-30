@@ -277,8 +277,6 @@ public class SettingsThemeController extends RecyclerViewController<SettingsThem
           }
         } else if (itemId == R.id.btn_hqRounds) {
           v.getToggler().setRadioEnabled(Settings.instance().needHqRoundVideos(), isUpdate);
-        } else if (itemId == R.id.btn_rearRounds) {
-          v.getToggler().setRadioEnabled(Settings.instance().startRoundWithRear(), isUpdate);
         } else if (itemId == R.id.btn_autoNightModeScheduled_timeOff || itemId == R.id.btn_autoNightModeScheduled_timeOn) {
           int time = v.getId() == R.id.btn_autoNightModeScheduled_timeOn ? Settings.instance().getNightModeScheduleOn() : Settings.instance().getNightModeScheduleOff();
           v.setData(U.timeToString(time));
@@ -610,8 +608,6 @@ public class SettingsThemeController extends RecyclerViewController<SettingsThem
       items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.VideoMessages));
       items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
       items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_earpieceModeVideo, 0, R.string.EarpieceMode));
-      items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
-      items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_rearRounds, 0, R.string.UseRearRoundVideos));
       if (!Device.NEED_HQ_ROUND_VIDEOS && Config.ROUND_VIDEOS_RECORD_SUPPORTED) {
         items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
         items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_hqRounds, 0, R.string.UseHqRoundVideos));
@@ -1101,8 +1097,6 @@ public class SettingsThemeController extends RecyclerViewController<SettingsThem
       }
     } else if (viewId == R.id.btn_hqRounds) {
       Settings.instance().setNeedHqRoundVideos(adapter.toggleView(v));
-    } else if (viewId == R.id.btn_rearRounds) {
-      Settings.instance().setStartRoundWithRear(adapter.toggleView(v));
     } else if (viewId == R.id.btn_autoNightModeScheduled_location) {
       if (locationHelper == null) {
         locationHelper = LocationHelper.requestLocation(context, 10000, true, true, (errorCode, location) -> {

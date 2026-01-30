@@ -86,4 +86,8 @@
   <string name="ProfileNote">Note</string>
   <string name="Edit">Edit</string>
   <string name="ProfileNoteHint">Notes are only visible for you.</string>
+  <string name="SelectRoundVideos">Camera in round videos</string>
+  <string name="frontCamera">Frontal</string>
+  <string name="RearCamera">Rear</string>
+  <string name="Ask">Ask</string>
 </resources>

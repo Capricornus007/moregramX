@@ -9,6 +9,7 @@ import androidx.annotation.Nullable;
 import org.drinkmore.Tracer;
 import org.thunderdog.challegram.Log;
 import org.thunderdog.challegram.tool.UI;
+import org.thunderdog.challegram.unsorted.Settings;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -51,6 +52,11 @@ public class MoexConfig {
   public static final String KEY_SILENT_MESSAGE = "silent_message";
   public static final String KEY_CHAT_QUICK_EDIT = "quick_edit";
   public static final String KEY_CHAT_QUICK_FEATURED = "quick_featured";
+
+  public static final String KEY_ROUND_VIDEOS = "round_videos";
+  public static final int START_WITH_FRONT = 0;
+  public static final int START_WITH_REAR = 1;
+  public static final int START_WITH_ASK = 2;
 
   public static final int SIZE_LIMIT_800 = 0;
   public static final int SIZE_LIMIT_1280 = 1;
@@ -358,4 +364,13 @@ public class MoexConfig {
   public void toggleQuickFeatured () {
     putBoolean(KEY_CHAT_QUICK_FEATURED, quickFeatured ^= true);
   }
+
+  public int getRoundVideos () {
+    return getInt(KEY_ROUND_VIDEOS, Settings.instance().startRoundWithRear() ? START_WITH_REAR : START_WITH_FRONT);
+  }
+
+  public void setRoundVideos (int value) {
+    putInt(KEY_ROUND_VIDEOS, value);
+  }
+
 }

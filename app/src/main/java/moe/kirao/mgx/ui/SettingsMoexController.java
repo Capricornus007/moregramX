@@ -138,6 +138,8 @@ public class SettingsMoexController extends RecyclerViewController<SettingsMoexC
     } else if (viewId == R.id.btn_silent) {
       MoexConfig.instance().toggleSilentMessage();
       adapter.updateValuedSettingById(viewId);
+    } else if (viewId == R.id.btn_rearRounds) {
+      showRoundVideoCameraOptions();
     }
   }
 
@@ -219,6 +221,27 @@ public class SettingsMoexController extends RecyclerViewController<SettingsMoexC
 
       MoexConfig.instance().setHeaderText(defaultOption);
       adapter.updateValuedSettingById(R.id.btn_headerText);
+    }));
+  }
+
+  private void showRoundVideoCameraOptions () {
+    int selected = MoexConfig.instance().getRoundVideos();
+    showSettings(new SettingsWrapBuilder(R.id.btn_rearRounds).setRawItems(new ListItem[] {
+      new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.frontRoundVideo, 0, R.string.frontCamera, R.id.btn_rearRounds, selected == MoexConfig.START_WITH_FRONT),
+      new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.rearRoundVideo, 0, R.string.RearCamera, R.id.btn_rearRounds, selected == MoexConfig.START_WITH_REAR),
+      new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.askRoundVideo, 0, R.string.Ask, R.id.btn_rearRounds, selected == MoexConfig.START_WITH_ASK),
+    }).setIntDelegate((id, result) -> {
+      int newMode = selected;
+      final int resultId = result.get(R.id.btn_rearRounds);
+      if (resultId == R.id.frontRoundVideo) {
+        newMode = MoexConfig.START_WITH_FRONT;
+      } else if (resultId == R.id.rearRoundVideo) {
+        newMode = MoexConfig.START_WITH_REAR;
+      } else if (resultId == R.id.askRoundVideo) {
+        newMode = MoexConfig.START_WITH_ASK;
+      }
+      MoexConfig.instance().setRoundVideos(newMode);
+      adapter.updateValuedSettingById(R.id.btn_rearRounds);
     }));
   }
 
@@ -327,6 +350,18 @@ public class SettingsMoexController extends RecyclerViewController<SettingsMoexC
           view.getToggler().setRadioEnabled(MoexConfig.darkenDrawer, isUpdate);
         } else if (itemId == R.id.btn_silent) {
           view.getToggler().setRadioEnabled(MoexConfig.silentMessage, isUpdate);
+        } else if (itemId == R.id.btn_rearRounds) {
+          switch (MoexConfig.instance().getRoundVideos()) {
+            case MoexConfig.START_WITH_FRONT:
+              view.setData(R.string.frontCamera);
+              break;
+            case MoexConfig.START_WITH_REAR:
+              view.setData(R.string.RearCamera);
+              break;
+            case MoexConfig.START_WITH_ASK:
+              view.setData(R.string.Ask);
+              break;
+          }
         }
       }
     };
@@ -368,6 +403,8 @@ public class SettingsMoexController extends RecyclerViewController<SettingsMoexC
         items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.MoexHideButtons));
         items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
         items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_hideMessagePanelButtons, 0, R.string.HideMessagePanelButtons));
+        items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
+        items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_rearRounds, 0, R.string.SelectRoundVideos));
         items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
         items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_hideBottomBar, 0, R.string.HideBottomBar));
         break;
