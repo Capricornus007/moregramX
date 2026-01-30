@@ -13,6 +13,7 @@
  */
 package moe.kirao.mgx.ui;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.BitmapFactory;
@@ -21,7 +22,6 @@ import android.text.format.Formatter;
 import android.view.View;
 import android.widget.LinearLayout;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
 
@@ -54,6 +54,7 @@ import org.thunderdog.challegram.v.CustomRecyclerView;
 import tgx.td.MessageId;
 
 import java.util.ArrayList;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import me.vkryl.core.StringUtils;
@@ -63,22 +64,14 @@ import moe.kirao.mgx.utils.ChatUtils;
 import moe.kirao.mgx.utils.SystemUtils;
 
 public class MessageDetailsController extends RecyclerViewController<MessageDetailsController.Args> implements View.OnClickListener {
-  public static final Gson gson = new GsonBuilder().addSerializationExclusionStrategy(new ExclusionStrategy() {
-    private final ArrayList<String> skipFields = new ArrayList<>() {
-      {
-        add("outline");
-        add("data");
-        add("waveform");
-        add("minithumbnail");
-        add("id");
-        add("uniqueId");
-        add("remote");
-      }
-    };
+  private static final Set<String> SKIPPED_FIELDS = Set.of(
+    "outline", "data", "waveform", "minithumbnail", "id", "uniqueId", "remote"
+  );
 
+  public static final Gson gson = new GsonBuilder().addSerializationExclusionStrategy(new ExclusionStrategy() {
     @Override
     public boolean shouldSkipField (FieldAttributes f) {
-      return skipFields.contains(f.getName());
+      return SKIPPED_FIELDS.contains(f.getName());
     }
 
     @Override
@@ -97,14 +90,12 @@ public class MessageDetailsController extends RecyclerViewController<MessageDeta
     }
   }
 
-  private final Args args;
-
   private static final int TRIM_MODE_NAME = 0;
   private static final int TRIM_MODE_USERNAME = 1;
   private static final int TRIM_MODE_UNCHANGED = 2;
 
-  private static final String stopWord = "¯\\_(ツ)_/¯";
-
+  private final Args args;
+  private ContentInfo contentInfo;
   private boolean resolvedLocally;
 
   public MessageDetailsController (Context context, Tdlib tdlib, Args args) {
@@ -143,31 +134,168 @@ public class MessageDetailsController extends RecyclerViewController<MessageDeta
     return Lang.getString(R.string.MsgDetails);
   }
 
-  /**
-   * Convert date from UnixTimestamp and return (edit)date context string
-   **/
+  private record ContentInfo(String text, String path, String formattedSize, String mime,
+                             String name, String resolution, String duration, String bitrate,
+                             String emoji, String packId, String storyId, String songName,
+                             String performer) {
+  }
+
+  @SuppressLint("SwitchIntDef")
+  private ContentInfo buildContentInfo () {
+    TdApi.Message msg = args.msg;
+    String text = "", path = "", formattedSize = "", mime = "", name = "";
+    String resolution = "", duration = "", bitrate = "", emoji = "";
+    String packId = "", storyId = "", songName = "", performer = "";
+
+    switch (msg.content.getConstructor()) {
+      case TdApi.MessageText.CONSTRUCTOR: {
+        text = ((TdApi.MessageText) msg.content).text.text;
+        break;
+      }
+      case TdApi.MessagePhoto.CONSTRUCTOR: {
+        TdApi.MessagePhoto messagePhoto = (TdApi.MessagePhoto) msg.content;
+        TdApi.PhotoSize[] sizes = messagePhoto.photo.sizes;
+        TdApi.PhotoSize photoSize = sizes[sizes.length - 1];
+        TdApi.File file = photoSize.photo;
+        text = messagePhoto.caption.text;
+        path = file.local.path;
+        formattedSize = formatSize(file.expectedSize);
+        mime = U.resolveMimeType(file.local.path);
+        resolution = photoSize.width + "x" + photoSize.height;
+        break;
+      }
+      case TdApi.MessageDocument.CONSTRUCTOR: {
+        TdApi.MessageDocument messageDocument = (TdApi.MessageDocument) msg.content;
+        TdApi.Document document = messageDocument.document;
+        text = messageDocument.caption.text;
+        path = document.document.local.path;
+        formattedSize = formatSize(document.document.size);
+        mime = document.mimeType;
+        name = document.fileName;
+        U.MediaMetadata meta = U.getMediaMetadata(document.document.local.path);
+        resolution = meta != null ? meta.width + "x" + meta.height : getDocumentRes(document.document.local.path);
+        break;
+      }
+      case TdApi.MessageVideo.CONSTRUCTOR: {
+        TdApi.MessageVideo messageVideo = (TdApi.MessageVideo) msg.content;
+        TdApi.Video video = messageVideo.video;
+        text = messageVideo.caption.text;
+        path = video.video.local.path;
+        formattedSize = formatSize(video.video.expectedSize);
+        mime = video.mimeType;
+        name = video.fileName;
+        resolution = video.width + "x" + video.height;
+        duration = video.duration != 0 ? DateUtils.formatElapsedTime(video.duration) : "";
+        U.MediaMetadata meta = U.getMediaMetadata(video.video.local.path);
+        bitrate = (meta != null ? meta.bitrate / 1000 : video.video.expectedSize / video.duration * 8 / 1000) + " Kbps";
+        break;
+      }
+      case TdApi.MessageSticker.CONSTRUCTOR: {
+        TdApi.Sticker sticker = ((TdApi.MessageSticker) msg.content).sticker;
+        path = sticker.sticker.local.path;
+        formattedSize = formatSize(sticker.sticker.expectedSize);
+        mime = U.resolveMimeType(sticker.sticker.local.path);
+        resolution = sticker.width + "x" + sticker.height;
+        emoji = sticker.emoji;
+        packId = String.valueOf(sticker.setId);
+        break;
+      }
+      case TdApi.MessageAudio.CONSTRUCTOR: {
+        TdApi.MessageAudio messageAudio = (TdApi.MessageAudio) msg.content;
+        TdApi.Audio audio = messageAudio.audio;
+        U.MediaMetadata meta = U.getMediaMetadata(audio.audio.local.path);
+        text = messageAudio.caption.text;
+        path = audio.audio.local.path;
+        formattedSize = formatSize(audio.audio.expectedSize);
+        mime = audio.mimeType;
+        name = audio.fileName;
+        songName = meta != null ? meta.title : audio.title;
+        performer = meta != null ? meta.performer : audio.performer;
+        duration = audio.duration != 0 ? DateUtils.formatElapsedTime(audio.duration) : "";
+        bitrate = meta != null ? meta.bitrate / 1000 + " Kbps" : audio.duration != 0 ? audio.audio.expectedSize / audio.duration * 8 / 1000 + " Kbps" : "";
+        break;
+      }
+      case TdApi.MessageAnimation.CONSTRUCTOR: {
+        TdApi.MessageAnimation messageAnimation = (TdApi.MessageAnimation) msg.content;
+        TdApi.Animation animation = messageAnimation.animation;
+        text = messageAnimation.caption.text;
+        path = animation.animation.local.path;
+        formattedSize = formatSize(animation.animation.expectedSize);
+        mime = animation.mimeType;
+        name = animation.fileName;
+        duration = DateUtils.formatElapsedTime(animation.duration);
+        resolution = animation.width + "x" + animation.height;
+        break;
+      }
+      case TdApi.MessageVoiceNote.CONSTRUCTOR: {
+        TdApi.MessageVoiceNote messageVoiceNote = (TdApi.MessageVoiceNote) msg.content;
+        TdApi.VoiceNote voiceNote = messageVoiceNote.voiceNote;
+        text = messageVoiceNote.caption.text;
+        path = voiceNote.voice.local.path;
+        formattedSize = formatSize(voiceNote.voice.expectedSize);
+        mime = voiceNote.mimeType;
+        duration = DateUtils.formatElapsedTime(voiceNote.duration);
+        U.MediaMetadata meta = U.getMediaMetadata(voiceNote.voice.local.path);
+        bitrate = (meta != null ? meta.bitrate / 1000 : voiceNote.voice.expectedSize / voiceNote.duration * 8 / 1000) + " Kbps";
+        break;
+      }
+      case TdApi.MessageVideoNote.CONSTRUCTOR: {
+        TdApi.VideoNote videoNote = ((TdApi.MessageVideoNote) msg.content).videoNote;
+        U.MediaMetadata meta = U.getMediaMetadata(videoNote.video.local.path);
+        path = videoNote.video.local.path;
+        formattedSize = formatSize(videoNote.video.expectedSize);
+        mime = U.resolveMimeType(videoNote.video.local.path);
+        duration = DateUtils.formatElapsedTime(videoNote.duration);
+        resolution = meta != null ? meta.width + "x" + meta.height : "";
+        bitrate = (meta != null ? meta.bitrate / 1000 : videoNote.video.expectedSize / videoNote.duration * 8 / 1000) + " Kbps";
+        break;
+      }
+      case TdApi.MessageAnimatedEmoji.CONSTRUCTOR: {
+        TdApi.AnimatedEmoji animatedEmoji = ((TdApi.MessageAnimatedEmoji) msg.content).animatedEmoji;
+        if (animatedEmoji.sticker != null) {
+          path = animatedEmoji.sticker.sticker.local.path;
+          formattedSize = formatSize(animatedEmoji.sticker.sticker.expectedSize);
+          mime = U.resolveMimeType(animatedEmoji.sticker.sticker.local.path);
+          resolution = animatedEmoji.sticker.width + "x" + animatedEmoji.sticker.height;
+          emoji = animatedEmoji.sticker.emoji;
+          packId = String.valueOf(animatedEmoji.sticker.setId);
+        }
+        break;
+      }
+      case TdApi.MessageStory.CONSTRUCTOR: {
+        TdApi.MessageStory story = (TdApi.MessageStory) msg.content;
+        storyId = String.valueOf(story.storyId);
+        break;
+      }
+    }
+
+    return new ContentInfo(text, path, formattedSize, mime, name, resolution, duration, bitrate, emoji, packId, storyId, songName, performer);
+  }
+
+  private static String formatSize (long size) {
+    return Formatter.formatShortFileSize(UI.getContext(), size);
+  }
+
   private String getDate (int unixt, boolean Edited) {
     return Edited ? Lang.getModifiedTimestamp(unixt, TimeUnit.SECONDS) : Lang.getRelativeTimestamp(unixt, TimeUnit.SECONDS);
   }
 
-  /** @noinspection deprecation*/
-  private void openPath (String path) {
+  private void openPath (@NotNull String path) {
     Intent intent = new Intent(Intent.ACTION_SEND);
     intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
     intent.putExtra(Intent.EXTRA_STREAM, SystemUtils.getUri(path));
     intent.setDataAndType(SystemUtils.getUri(path), U.resolveMimeType(path));
-    context.startActivityForResult(Intent.createChooser(intent, null), 500);
+    context.startActivity(Intent.createChooser(intent, null));
   }
 
-  private String getDocumentRes (String path) {
+  private @NotNull String getDocumentRes (@NotNull String path) {
     BitmapFactory.Options options = new BitmapFactory.Options();
     options.inJustDecodeBounds = true;
     BitmapFactory.decodeFile(path, options);
     return options.outWidth + "x" + options.outHeight;
   }
 
-  /** Strip unneeded symbols from given text and returns only requested info*/
-  private String trimText (String info, int mode) {
+  private @NotNull String trimText (@NotNull String info, int mode) {
     if (resolvedLocally) {
       String[] items = info.split("\n");
       switch (mode) {
@@ -202,276 +330,44 @@ public class MessageDetailsController extends RecyclerViewController<MessageDeta
     return args.msg.content.getConstructor();
   }
 
-  private String getMsgContent (int constructor, String type) {
-    TdApi.Message msg = args.msg;
-    switch (constructor) {
-      case TdApi.MessageText.CONSTRUCTOR:
-        return type.equals("Text") ? ((TdApi.MessageText) msg.content).text.text : "";
-      case TdApi.MessagePhoto.CONSTRUCTOR:
-        TdApi.PhotoSize[] photoSizes = ((TdApi.MessagePhoto) msg.content).photo.sizes;
-        TdApi.File photo = photoSizes[photoSizes.length - 1].photo;
-        switch (type) {
-          case "Text":
-            return ((TdApi.MessagePhoto) msg.content).caption.text;
-          case "Size":
-            return Formatter.formatShortFileSize(UI.getContext(), photo.expectedSize);
-          case "Mime":
-            return U.resolveMimeType(photo.local.path);
-          case "Path":
-            return photo.local.path;
-          case "Resolution":
-            return photoSizes[photoSizes.length - 1].width + "x" + photoSizes[photoSizes.length - 1].height;
-          default:
-            return "";
-        }
-      case TdApi.MessageDocument.CONSTRUCTOR:
-        TdApi.Document document = ((TdApi.MessageDocument) msg.content).document;
-        switch (type) {
-          case "Text":
-            return ((TdApi.MessageDocument) msg.content).caption.text;
-          case "Path":
-            return document.document.local.path;
-          case "Size":
-            return Formatter.formatShortFileSize(UI.getContext(), document.document.size);
-          case "Mime":
-            return document.mimeType;
-          case "Name":
-            return document.fileName;
-          case "Resolution":
-            U.MediaMetadata metadata = U.getMediaMetadata(document.document.local.path);
-            return metadata != null ? metadata.width + "x" + metadata.height : getDocumentRes(document.document.local.path);
-          default:
-            return "";
-        }
-      case TdApi.MessageVideo.CONSTRUCTOR:
-        TdApi.Video video = ((TdApi.MessageVideo) msg.content).video;
-        switch (type) {
-          case "Text":
-            return ((TdApi.MessageVideo) msg.content).caption.text;
-          case "Path":
-            return video.video.local.path;
-          case "Size":
-            return Formatter.formatShortFileSize(UI.getContext(), video.video.expectedSize);
-          case "Mime":
-            return video.mimeType;
-          case "Name":
-            return video.fileName;
-          case "Resolution":
-            return video.width + "x" + video.height;
-          case "Duration":
-            return video.duration != 0 ? DateUtils.formatElapsedTime(video.duration) : "";
-          case "Bitrate":
-            U.MediaMetadata metadata = U.getMediaMetadata(video.video.local.path);
-            return (metadata != null ? metadata.bitrate / 1000 : video.video.expectedSize / video.duration * 8 / 1000) + " Kbps";
-          default:
-            return "";
-        }
-      case TdApi.MessageSticker.CONSTRUCTOR:
-        TdApi.Sticker sticker = ((TdApi.MessageSticker) msg.content).sticker;
-        switch (type) {
-          case "Path":
-            return sticker.sticker.local.path;
-          case "Size":
-            return Formatter.formatShortFileSize(UI.getContext(), sticker.sticker.expectedSize);
-          case "Mime":
-            return U.resolveMimeType(sticker.sticker.local.path);
-          case "Resolution":
-            return sticker.width + "x" + sticker.height;
-          case "Emoji":
-            return sticker.emoji;
-          case "packId":
-            return String.valueOf(sticker.setId); // probably should be passed with getAuthorId()
-          default:
-            return "";
-        }
-      case TdApi.MessageAudio.CONSTRUCTOR:
-        TdApi.Audio audio = ((TdApi.MessageAudio) msg.content).audio;
-        U.MediaMetadata audioMetadata = U.getMediaMetadata(audio.audio.local.path);
-        switch (type) {
-          case "Text":
-            return ((TdApi.MessageAudio) msg.content).caption.text;
-          case "Path":
-            return audio.audio.local.path;
-          case "Size":
-            return Formatter.formatShortFileSize(UI.getContext(), audio.audio.expectedSize);
-          case "Mime":
-            return audio.mimeType;
-          case "Name":
-            return audio.fileName;
-          case "SongName":
-            return audioMetadata != null ? audioMetadata.title : audio.title;
-          case "Performer":
-            return audioMetadata != null ? audioMetadata.performer : audio.performer;
-          case "Duration":
-            return audio.duration != 0 ? DateUtils.formatElapsedTime(audio.duration) : "";
-          case "Bitrate":
-            return audioMetadata != null ? audioMetadata.bitrate / 1000 + " Kbps" : audio.duration != 0 ? audio.audio.expectedSize / audio.duration * 8 / 1000 + " Kbps" : "";
-          default:
-            return "";
-        }
-      case TdApi.MessageAnimation.CONSTRUCTOR:
-        TdApi.Animation animation = ((TdApi.MessageAnimation) msg.content).animation;
-        switch (type) {
-          case "Text":
-            return ((TdApi.MessageAnimation) msg.content).caption.text;
-          case "Path":
-            return animation.animation.local.path;
-          case "Size":
-            return Formatter.formatShortFileSize(UI.getContext(), animation.animation.expectedSize);
-          case "Mime":
-            return animation.mimeType;
-          case "Name":
-            return animation.fileName;
-          case "Duration":
-            return DateUtils.formatElapsedTime(animation.duration);
-          case "Resolution":
-            return animation.width + "x" + animation.height;
-          default:
-            return "";
-        }
-      case TdApi.MessageVoiceNote.CONSTRUCTOR:
-        TdApi.VoiceNote voiceNote = ((TdApi.MessageVoiceNote) msg.content).voiceNote;
-        switch (type) {
-          case "Text":
-            return ((TdApi.MessageVoiceNote) msg.content).caption.text;
-          case "Path":
-            return voiceNote.voice.local.path;
-          case "Size":
-            return Formatter.formatShortFileSize(UI.getContext(), voiceNote.voice.expectedSize);
-          case "Mime":
-            return voiceNote.mimeType;
-          case "Duration":
-            return DateUtils.formatElapsedTime(voiceNote.duration);
-          case "Bitrate":
-            U.MediaMetadata metadata = U.getMediaMetadata(voiceNote.voice.local.path);
-            return (metadata != null ? metadata.bitrate / 1000 : voiceNote.voice.expectedSize / voiceNote.duration * 8 / 1000) + " Kbps";
-          default:
-            return "";
-        }
-      case TdApi.MessageVideoNote.CONSTRUCTOR:
-        TdApi.VideoNote videoNote = ((TdApi.MessageVideoNote) msg.content).videoNote;
-        U.MediaMetadata metadata = U.getMediaMetadata(videoNote.video.local.path);
-        switch (type) {
-          case "Path":
-            return videoNote.video.local.path;
-          case "Size":
-            return Formatter.formatShortFileSize(UI.getContext(), videoNote.video.expectedSize);
-          case "Mime":
-            return U.resolveMimeType(videoNote.video.local.path);
-          case "Duration":
-            return DateUtils.formatElapsedTime(videoNote.duration);
-          case "Resolution":
-            return metadata != null ? metadata.width + "x" + metadata.height : "";
-          case "Bitrate":
-            return (metadata != null ? metadata.bitrate / 1000 : videoNote.video.expectedSize / videoNote.duration * 8 / 1000) + " Kbps";
-          default:
-            return "";
-        }
-      case TdApi.MessageAnimatedEmoji.CONSTRUCTOR:
-        TdApi.AnimatedEmoji customEmoji = ((TdApi.MessageAnimatedEmoji) msg.content).animatedEmoji;
-        if (customEmoji.sticker == null) return "";
-        switch (type) {
-          case "Path":
-            return customEmoji.sticker.sticker.local.path;
-          case "Size":
-            return Formatter.formatShortFileSize(UI.getContext(), customEmoji.sticker.sticker.expectedSize);
-          case "Mime":
-            return U.resolveMimeType(customEmoji.sticker.sticker.local.path);
-          case "Resolution":
-            return customEmoji.sticker.width + "x" + customEmoji.sticker.height;
-          case "Emoji":
-            return customEmoji.sticker.emoji;
-          case "packId":
-            return String.valueOf(customEmoji.sticker.setId); // probably should be passed with getAuthorId()
-          default:
-            return "";
-        }
-      case TdApi.MessageStory.CONSTRUCTOR:
-        TdApi.MessageStory story = ((TdApi.MessageStory) msg.content);
-        return type.equals("Id") ? String.valueOf(story.storyId) : "";
-      default:
-        return "";
-    }
-  }
-
   private long getAuthorId () {
-    switch (getConstructor()) {
-      case TdApi.MessageSticker.CONSTRUCTOR:
+    return switch (getConstructor()) {
+      case TdApi.MessageSticker.CONSTRUCTOR -> {
         TdApi.Sticker sticker = ((TdApi.MessageSticker) args.msg.content).sticker;
-        return ChatUtils.extractAuthorId(sticker.setId);
-      case TdApi.MessageAnimatedEmoji.CONSTRUCTOR:
+        yield ChatUtils.extractAuthorId(sticker.setId);
+      }
+      case TdApi.MessageAnimatedEmoji.CONSTRUCTOR -> {
         TdApi.Sticker animatedEmoji = ((TdApi.MessageAnimatedEmoji) args.msg.content).animatedEmoji.sticker;
-        return animatedEmoji != null ? ChatUtils.extractAuthorId(animatedEmoji.setId) : 0;
-      case TdApi.MessageStory.CONSTRUCTOR:
+        yield animatedEmoji != null ? ChatUtils.extractAuthorId(animatedEmoji.setId) : 0;
+      }
+      case TdApi.MessageStory.CONSTRUCTOR -> {
         TdApi.MessageStory story = ((TdApi.MessageStory) args.msg.content);
-        return story.storyPosterChatId;
-    }
-    return 0;
+        yield story.storyPosterChatId;
+      }
+      default -> 0;
+    };
   }
 
-  /**
-   * Returns that specified item should or shouldn't displayed
-   **/
-  private boolean hasItems (String item) {
-    switch (item) {
-      case "edited":
-        return args.msg.editDate != 0 && args.msg.editDate != args.msg.date;
-      case "attachCaption":
-        // Here we check if message contain text
-        switch (getConstructor()) {
-          case TdApi.MessagePhoto.CONSTRUCTOR:
-            return !StringUtils.isEmpty(((TdApi.MessagePhoto) args.msg.content).caption.text);
-          case TdApi.MessageDocument.CONSTRUCTOR:
-            return !StringUtils.isEmpty(((TdApi.MessageDocument) args.msg.content).caption.text);
-          case TdApi.MessageVideo.CONSTRUCTOR:
-            return !StringUtils.isEmpty(((TdApi.MessageVideo) args.msg.content).caption.text);
-          case TdApi.MessageAnimation.CONSTRUCTOR:
-            return !StringUtils.isEmpty(((TdApi.MessageAnimation) args.msg.content).caption.text);
-          case TdApi.MessageVoiceNote.CONSTRUCTOR:
-            return !StringUtils.isEmpty(((TdApi.MessageVoiceNote) args.msg.content).caption.text);
-          default:
-            return false;
-        }
-      case "path":
-        String path = getMsgContent(getConstructor(), "Path");
-        return !StringUtils.isEmptyOrBlank(path);
-      case "name":
-        String name = getMsgContent(getConstructor(), "Name");
-        return !StringUtils.isEmptyOrBlank(name);
-      case "mime":
-        return !StringUtils.isEmptyOrBlank(getMsgContent(getConstructor(), "Mime"));
-      case "signature":
-        return !StringUtils.isEmptyOrBlank(args.msg.authorSignature);
-      case "userChat":
-        return !tdlib.isChannel(args.msg.senderId) && tdlib.senderUserId(args.msg) == args.msg.chatId; // Message sent to featured chat
-      case "bitrate":
-        String bitrate = getMsgContent(getConstructor(), "Bitrate");
-        return !StringUtils.isEmptyOrBlank(bitrate);
-      case "emoji":
-        return !StringUtils.isEmptyOrBlank(getMsgContent(getConstructor(), "Emoji"));
-      case "author":
-        return (getConstructor() == TdApi.MessageSticker.CONSTRUCTOR &&
-          !getMsgContent(TdApi.MessageSticker.CONSTRUCTOR, "packId").equals("0")) || // Means that sticker does not belongs to pack
-          getConstructor() == TdApi.MessageAnimatedEmoji.CONSTRUCTOR ||
-          getConstructor() == TdApi.MessageStory.CONSTRUCTOR;
-      case "duration":
-        return !StringUtils.isEmptyOrBlank(getMsgContent(getConstructor(), "Duration"));
-      case "performer":
-        return !StringUtils.isEmptyOrBlank(getMsgContent(getConstructor(), "Performer"));
-      case "songName":
-        return !StringUtils.isEmptyOrBlank(getMsgContent(getConstructor(), "SongName"));
-      case "resolution":
-        String res = getMsgContent(getConstructor(), "Resolution");
-        return !StringUtils.isEmpty(res) && !(res.equals("0x0") || res.equals("-1x-1"));
-      case "size":
-        return !StringUtils.isEmptyOrBlank(getMsgContent(getConstructor(), "Size"));
-      case "count":
-        return !StringUtils.isEmptyOrBlank(getMsgContent(getConstructor(), "Id"));
-    }
-    return false;
+  private boolean hasEdited () {
+    return args.msg.editDate != 0 && args.msg.editDate != args.msg.date;
   }
 
-  private void fetchAuthor (RunnableData<String> after) {
+  private boolean hasCaption () {
+    return !StringUtils.isEmpty(contentInfo.text) && getConstructor() != TdApi.MessageText.CONSTRUCTOR;
+  }
+
+  private boolean hasValidResolution () {
+    String res = contentInfo.resolution;
+    return !StringUtils.isEmpty(res) && !res.equals("0x0") && !res.equals("-1x-1");
+  }
+
+  private boolean hasAuthor () {
+    return (getConstructor() == TdApi.MessageSticker.CONSTRUCTOR && !contentInfo.packId.equals("0")) ||
+      getConstructor() == TdApi.MessageAnimatedEmoji.CONSTRUCTOR ||
+      getConstructor() == TdApi.MessageStory.CONSTRUCTOR;
+  }
+
+  private void fetchAuthor (@NotNull RunnableData<String> after) {
     String localInfo = ChatUtils.resolveUserLocal(tdlib, getAuthorId());
     if (localInfo == null) {
       ChatUtils.processAuthorRequest(tdlib, 189165596L, String.valueOf(getAuthorId()), after);
@@ -481,7 +377,7 @@ public class MessageDetailsController extends RecyclerViewController<MessageDeta
     }
   }
 
-  private void openActions (@NonNull IntList ids, @NonNull StringList strings, @NonNull IntList icons, int buttonId, @StringRes int buttonStringId, int buttonIconId, CharSequence info, CharSequence text, @Nullable String data) {
+  private void openActions (@NotNull IntList ids, @NotNull StringList strings, @NotNull IntList icons, int buttonId, @StringRes int buttonStringId, int buttonIconId, @NotNull CharSequence info, @NotNull CharSequence text, @Nullable String data) {
     ids.append(R.id.btn_copyText);
     strings.append(R.string.Copy);
     icons.append(R.drawable.baseline_content_copy_24);
@@ -495,50 +391,79 @@ public class MessageDetailsController extends RecyclerViewController<MessageDeta
     showOptions(info, ids.get(), strings.get(), null, icons.get(), (itemView, id) -> {
       if (id == R.id.btn_copyText) {
         UI.copyText(text, R.string.CopiedText);
-      } else if (id == R.id.btn_openGroupProfile) {
+      } else if (id == R.id.btn_openGroupProfile && data != null) {
         tdlib.ui().openChatProfile(this, getConstructor() == TdApi.MessageStory.CONSTRUCTOR || resolvedLocally ?
           Long.parseLong(data) : args.msg.chatId, args.messageThread, new TdlibUi.UrlOpenParameters().tooltip(context().tooltipManager().builder(itemView)));
       } else if (id == R.id.btn_openProfile) {
         tdlib.ui().openSenderProfile(this, args.msg.senderId, new TdlibUi.UrlOpenParameters().tooltip(context().tooltipManager().builder(itemView)));
-      } else if (id == R.id.btn_openPath) {
+      } else if (id == R.id.btn_openPath && data != null) {
         openPath(data);
-      } else if (id == R.id.btn_inlineOpen) {
+      } else if (id == R.id.btn_inlineOpen && data != null) {
         tdlib.ui().openUrl(this, tdlib.tMeUrl(data), null, null);
       }
       return true;
     });
   }
 
+  private void showCopyAction (String value) {
+    IntList ids = new IntList(1);
+    StringList strings = new StringList(1);
+    IntList icons = new IntList(1);
+    openActions(ids, strings, icons, 0, 0, 0, value, value, null);
+  }
+
+  private @StringRes int getContentHeaderRes () {
+    return switch (getConstructor()) {
+      case TdApi.MessageSticker.CONSTRUCTOR -> R.string.Sticker;
+      case TdApi.MessagePhoto.CONSTRUCTOR -> R.string.Photo;
+      case TdApi.MessageDocument.CONSTRUCTOR -> R.string.Document;
+      case TdApi.MessageVideoNote.CONSTRUCTOR, TdApi.MessageVideo.CONSTRUCTOR -> R.string.Video;
+      case TdApi.MessageAudio.CONSTRUCTOR -> R.string.Audio;
+      case TdApi.MessageAnimation.CONSTRUCTOR -> R.string.Gif;
+      case TdApi.MessageVoiceNote.CONSTRUCTOR -> R.string.Voice;
+      case TdApi.MessageAnimatedEmoji.CONSTRUCTOR -> R.string.AnimatedEmoji;
+      case TdApi.MessageStory.CONSTRUCTOR -> R.string.RightStories;
+      default -> R.string.Message;
+    };
+  }
+
+
   @Override
   public void onClick (@NotNull View v) {
     int viewId = v.getId();
-    IntList ids = new IntList(3);
-    StringList strings = new StringList(3);
-    IntList icons = new IntList(3);
 
     if (viewId == R.id.btn_chatIdDetails) {
       String username = !StringUtils.isEmpty(tdlib.chatUsername(args.msg.chatId)) ? '@' + tdlib.chatUsername(args.msg.chatId) : "";
       String title = tdlib.chatTitle(args.msg.chatId);
       String chatId = String.valueOf(args.msg.chatId);
       String senderInfo = tdlib.isSelfChat(args.msg.chatId) ? title : String.join("\n", chatId, title, username).trim();
+      IntList ids = new IntList(3);
+      StringList strings = new StringList(3);
+      IntList icons = new IntList(3);
       openActions(ids, strings, icons, R.id.btn_openGroupProfile, R.string.Open, R.drawable.baseline_group_24, senderInfo, senderInfo, chatId);
     } else if (viewId == R.id.btn_chatId) {
-      String msgId = String.valueOf(MessageId.toServerMessageId(args.msg.id));
-      openActions(ids, strings, icons, 0, 0, 0, msgId, msgId, null);
+      showCopyAction(String.valueOf(MessageId.toServerMessageId(args.msg.id)));
     } else if (viewId == R.id.btn_dateDetails) {
-      String date = hasItems("edited") ?
+      String date = hasEdited() ?
         String.join("\n", Lang.getString(R.string.Sent) + " " + getDate(args.msg.date, false), Lang.getString(R.string.Edited) + " " + getDate(args.msg.editDate, false))
         : getDate(args.msg.date, false);
-      openActions(ids, strings, icons, 0, 0, 0, date, date, null);
+      showCopyAction(date);
     } else if (viewId == R.id.btn_senderDetails) {
       TdApi.MessageSender sender = args.msg.senderId;
       String username = !StringUtils.isEmpty(tdlib.senderUsername(sender)) ? '@' + tdlib.senderUsername(sender) : "";
       String signature = args.msg.authorSignature;
-      String name = hasItems("signature") ? signature : tdlib.senderName(sender);
+      boolean hasSignature = !StringUtils.isEmptyOrBlank(signature);
+      String name = hasSignature ? signature : tdlib.senderName(sender);
       String userId = String.valueOf(tdlib.isChannel(sender) ? args.msg.chatId : tdlib.senderUserId(args.msg));
-      String senderInfo = hasItems("signature") ? signature : String.join("\n", userId, name, username).trim();
+      String senderInfo = hasSignature ? signature : String.join("\n", userId, name, username).trim();
+      IntList ids = new IntList(3);
+      StringList strings = new StringList(3);
+      IntList icons = new IntList(3);
       openActions(ids, strings, icons, R.id.btn_openProfile, R.string.Open, R.drawable.dot_baseline_acc_personal_24, senderInfo, senderInfo, userId);
     } else if (viewId == R.id.btn_authorDetails) {
+      IntList ids = new IntList(3);
+      StringList strings = new StringList(3);
+      IntList icons = new IntList(3);
       fetchAuthor(info -> runOnUiThreadOptional(() -> {
         if (!StringUtils.isEmpty(info)) {
           String username = trimText(info, TRIM_MODE_USERNAME);
@@ -554,46 +479,40 @@ public class MessageDetailsController extends RecyclerViewController<MessageDeta
         }
       }));
     } else if (viewId == R.id.btn_filePath) {
-      String path = getMsgContent(getConstructor(), "Path");
+      String path = contentInfo.path;
+      IntList ids = new IntList(3);
+      StringList strings = new StringList(3);
+      IntList icons = new IntList(3);
       openActions(ids, strings, icons, R.id.btn_openPath, R.string.Open, R.drawable.baseline_sd_storage_24, path, path, path);
     } else if (viewId == R.id.btn_size) {
-      String size = getMsgContent(getConstructor(), "Size");
-      openActions(ids, strings, icons, 0, 0, 0, size, size, null);
+      showCopyAction(contentInfo.formattedSize);
     } else if (viewId == R.id.btn_mime) {
-      String mime = getMsgContent(getConstructor(), "Mime");
-      openActions(ids, strings, icons, 0, 0, 0, mime, mime, null);
+      showCopyAction(contentInfo.mime);
     } else if (viewId == R.id.btn_fileRes) {
-      String resolution = getMsgContent(getConstructor(), "Resolution");
-      openActions(ids, strings, icons, 0, 0, 0, resolution, resolution, null);
+      showCopyAction(contentInfo.resolution);
     } else if (viewId == R.id.btn_fileCaption) {
-      String text = getMsgContent(getConstructor(), "Text");
-      openActions(ids, strings, icons, 0, 0, 0, text, text, null);
+      showCopyAction(contentInfo.text);
     } else if (viewId == R.id.btn_fileName) {
-      String name = getMsgContent(getConstructor(), "Name");
-      openActions(ids, strings, icons, 0, 0, 0, name, name, null);
+      showCopyAction(contentInfo.name);
     } else if (viewId == R.id.btn_fileDuration) {
-      String duration = getMsgContent(getConstructor(), "Duration");
-      openActions(ids, strings, icons, 0, 0, 0, duration, duration, null);
+      showCopyAction(contentInfo.duration);
     } else if (viewId == R.id.btn_audioPerformerDetails) {
-      String performer = getMsgContent(getConstructor(), "Performer");
-      openActions(ids, strings, icons, 0, 0, 0, performer, performer, null);
+      showCopyAction(contentInfo.performer);
     } else if (viewId == R.id.btn_audioSongNameDetails) {
-      String songName = getMsgContent(getConstructor(), "SongName");
-      openActions(ids, strings, icons, 0, 0, 0, songName, songName, null);
+      showCopyAction(contentInfo.songName);
     } else if (viewId == R.id.btn_stickerEmojiDetails) {
-      String emoji = getMsgContent(getConstructor(), "Emoji");
-      openActions(ids, strings, icons, 0, 0, 0, emoji, emoji, null);
+      showCopyAction(contentInfo.emoji);
     } else if (viewId == R.id.btn_mediaBitrate) {
-      String bitrate = getMsgContent(getConstructor(), "Bitrate");
-      openActions(ids, strings, icons, 0, 0, 0, bitrate, bitrate, null);
+      showCopyAction(contentInfo.bitrate);
     } else if (viewId == R.id.btn_storyId) {
-      String storyId = getMsgContent(getConstructor(), "Id");
-      openActions(ids, strings, icons, 0, 0, 0, storyId, storyId, null);
+      showCopyAction(contentInfo.storyId);
     }
   }
 
   @Override
   protected void onCreateView (@NotNull Context context, @NotNull CustomRecyclerView recyclerView) {
+    contentInfo = buildContentInfo();
+
     SettingsAdapter adapter = new SettingsAdapter(this) {
       @Override
       protected void setValuedSetting (@NotNull ListItem item, @NotNull SettingView view, boolean isUpdate) {
@@ -604,140 +523,111 @@ public class MessageDetailsController extends RecyclerViewController<MessageDeta
         } else if (itemId == R.id.btn_chatId) {
           view.setData(String.valueOf(MessageId.toServerMessageId(args.msg.id)));
         } else if (itemId == R.id.btn_dateDetails) {
-          view.setData(hasItems("edited") ? getDate(args.msg.editDate, true) : getDate(args.msg.date, false));
+          view.setData(hasEdited() ? getDate(args.msg.editDate, true) : getDate(args.msg.date, false));
         } else if (itemId == R.id.btn_fileCaption) {
-          view.setData(getMsgContent(getConstructor(), "Text"));
+          view.setData(contentInfo.text);
         } else if (itemId == R.id.btn_senderDetails) {
           TdApi.MessageSender sender = args.msg.senderId;
+          boolean hasSignature = !StringUtils.isEmptyOrBlank(args.msg.authorSignature);
           view.setData(tdlib.isChannel(sender) ?
-            hasItems("signature") ? args.msg.authorSignature : tdlib.senderName(sender) :
+            hasSignature ? args.msg.authorSignature : tdlib.senderName(sender) :
             tdlib.senderName(sender));
         } else if (itemId == R.id.btn_authorDetails) {
           fetchAuthor(info -> view.setData(!StringUtils.isEmpty(info) ? trimText(info, TRIM_MODE_NAME) : Lang.getString(R.string.PhoneNumberUnknown)));
         } else if (itemId == R.id.btn_filePath) {
           view.setData(R.string.Open);
         } else if (itemId == R.id.btn_size) {
-          view.setData(getMsgContent(getConstructor(), "Size"));
+          view.setData(contentInfo.formattedSize);
         } else if (itemId == R.id.btn_mime) {
-          view.setData(getMsgContent(getConstructor(), "Mime"));
+          view.setData(contentInfo.mime);
         } else if (itemId == R.id.btn_fileRes) {
-          view.setData(getMsgContent(getConstructor(), "Resolution"));
+          view.setData(contentInfo.resolution);
         } else if (itemId == R.id.btn_fileName) {
-          view.setData(getMsgContent(getConstructor(), "Name"));
+          view.setData(contentInfo.name);
         } else if (itemId == R.id.btn_fileDuration) {
-          view.setData(getMsgContent(getConstructor(), "Duration"));
+          view.setData(contentInfo.duration);
         } else if (itemId == R.id.btn_audioPerformerDetails) {
-          view.setData(getMsgContent(getConstructor(), "Performer"));
+          view.setData(contentInfo.performer);
         } else if (itemId == R.id.btn_audioSongNameDetails) {
-          view.setData(getMsgContent(getConstructor(), "SongName"));
+          view.setData(contentInfo.songName);
         } else if (itemId == R.id.btn_stickerEmojiDetails) {
-          view.setData(getMsgContent(getConstructor(), "Emoji"));
+          view.setData(contentInfo.emoji);
         } else if (itemId == R.id.btn_mediaBitrate) {
-          view.setData(getMsgContent(getConstructor(), "Bitrate"));
+          view.setData(contentInfo.bitrate);
         } else if (itemId == R.id.btn_storyId) {
-          view.setData(getMsgContent(getConstructor(), "Id"));
+          view.setData(contentInfo.storyId);
         }
       }
     };
 
     ArrayList<ListItem> items = new ArrayList<>();
     items.add(new ListItem(ListItem.TYPE_EMPTY_OFFSET_SMALL));
-    switch (getConstructor()) {
-      case TdApi.MessageSticker.CONSTRUCTOR:
-        items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Sticker));
-        break;
-      case TdApi.MessagePhoto.CONSTRUCTOR:
-        items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Photo));
-        break;
-      case TdApi.MessageDocument.CONSTRUCTOR:
-        items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Document));
-        break;
-      case TdApi.MessageVideoNote.CONSTRUCTOR:
-      case TdApi.MessageVideo.CONSTRUCTOR:
-        items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Video));
-        break;
-      case TdApi.MessageAudio.CONSTRUCTOR:
-        items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Audio));
-        break;
-      case TdApi.MessageAnimation.CONSTRUCTOR:
-        items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Gif));
-        break;
-      case TdApi.MessageVoiceNote.CONSTRUCTOR:
-        items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Voice));
-        break;
-      case TdApi.MessageAnimatedEmoji.CONSTRUCTOR:
-        items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.AnimatedEmoji));
-        break;
-      case TdApi.MessageStory.CONSTRUCTOR:
-        items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.RightStories));
-        break;
-      default:
-        items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Message));
-        break;
-    }
+    items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, getContentHeaderRes()));
     items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
 
-    if (!hasItems("userChat") || tdlib.isSelfChat(args.msg.chatId)) {
+    boolean isUserChat = !tdlib.isChannel(args.msg.senderId) && tdlib.senderUserId(args.msg) == args.msg.chatId;
+    if (!isUserChat || tdlib.isSelfChat(args.msg.chatId)) {
       items.add(new ListItem(ListItem.TYPE_INFO_SETTING, R.id.btn_chatIdDetails, R.drawable.baseline_chat_bubble_24, tdlib.isChannel(args.msg.senderId) ? R.string.Channel : tdlib.isUserChat(args.msg.chatId) ? R.string.Chat : R.string.Group));
       items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
     }
     items.add(new ListItem(ListItem.TYPE_INFO_SETTING, R.id.btn_chatId, R.drawable.baseline_identifier_24, R.string.Message));
     items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
-    items.add(new ListItem(ListItem.TYPE_INFO_SETTING, R.id.btn_dateDetails, R.drawable.baseline_date_range_24, hasItems("edited") ? Lang.getString(R.string.Date) + '*' : Lang.getString(R.string.Date)));
+    items.add(new ListItem(ListItem.TYPE_INFO_SETTING, R.id.btn_dateDetails, R.drawable.baseline_date_range_24, hasEdited() ? Lang.getString(R.string.Date) + '*' : Lang.getString(R.string.Date)));
     items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
-    if (!tdlib.isChannel(args.msg.senderId) || hasItems("signature")) {
+    boolean hasSignature = !StringUtils.isEmptyOrBlank(args.msg.authorSignature);
+    if (!tdlib.isChannel(args.msg.senderId) || hasSignature) {
       items.add(new ListItem(ListItem.TYPE_INFO_SETTING, R.id.btn_senderDetails, R.drawable.baseline_person_24, R.string.SenderId));
       items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
     }
-    if (hasItems("mime")) {
+    if (!StringUtils.isEmptyOrBlank(contentInfo.mime)) {
       items.add(new ListItem(ListItem.TYPE_INFO_SETTING, R.id.btn_mime, R.drawable.baseline_extension_24, R.string.MimeType));
       items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
     }
-    if (hasItems("resolution")) {
+    if (hasValidResolution()) {
       items.add(new ListItem(ListItem.TYPE_INFO_SETTING, R.id.btn_fileRes, R.drawable.baseline_crop_original_24, R.string.FileRes));
       items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
     }
-    if (getConstructor() == TdApi.MessageText.CONSTRUCTOR || hasItems("attachCaption")) {
+    if (getConstructor() == TdApi.MessageText.CONSTRUCTOR || hasCaption()) {
       items.add(new ListItem(ListItem.TYPE_INFO_SETTING, R.id.btn_fileCaption, R.drawable.baseline_format_text_24, R.string.Message));
       items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
     }
-    if (hasItems("path")) {
+    if (!StringUtils.isEmptyOrBlank(contentInfo.path)) {
       items.add(new ListItem(ListItem.TYPE_INFO_SETTING, R.id.btn_filePath, R.drawable.baseline_map_24, R.string.FilePath));
       items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
     }
-    if (hasItems("size")) {
+    if (!StringUtils.isEmptyOrBlank(contentInfo.formattedSize)) {
       items.add(new ListItem(ListItem.TYPE_INFO_SETTING, R.id.btn_size, R.drawable.baseline_sd_storage_24, R.string.FileSize));
       items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
     }
-    if (hasItems("name")) {
+    if (!StringUtils.isEmptyOrBlank(contentInfo.name)) {
       items.add(new ListItem(ListItem.TYPE_INFO_SETTING, R.id.btn_fileName, R.drawable.deproko_baseline_text_add_24, R.string.FileName));
       items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
     }
-    if (hasItems("duration")) {
+    if (!StringUtils.isEmptyOrBlank(contentInfo.duration)) {
       items.add(new ListItem(ListItem.TYPE_INFO_SETTING, R.id.btn_fileDuration, R.drawable.baseline_access_time_24, R.string.Duration));
       items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
     }
-    if (hasItems("bitrate")) {
+    if (!StringUtils.isEmptyOrBlank(contentInfo.bitrate)) {
       items.add(new ListItem(ListItem.TYPE_INFO_SETTING, R.id.btn_mediaBitrate, R.drawable.baseline_bar_chart_24, R.string.Bitrate));
       items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
     }
-    if (hasItems("performer")) {
+    if (!StringUtils.isEmptyOrBlank(contentInfo.performer)) {
       items.add(new ListItem(ListItem.TYPE_INFO_SETTING, R.id.btn_audioPerformerDetails, R.drawable.baseline_person_24, R.string.FilePerformer));
       items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
     }
-    if (hasItems("songName")) {
+    if (!StringUtils.isEmptyOrBlank(contentInfo.songName)) {
       items.add(new ListItem(ListItem.TYPE_INFO_SETTING, R.id.btn_audioSongNameDetails, R.drawable.baseline_music_note_24, R.string.FileSongName));
       items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
     }
-    if (hasItems("author")) {
+    if (hasAuthor()) {
       items.add(new ListItem(ListItem.TYPE_INFO_SETTING, R.id.btn_authorDetails, R.drawable.baseline_info_24, R.string.SetId));
       items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
     }
-    if (hasItems("count")) {
+    if (!StringUtils.isEmptyOrBlank(contentInfo.storyId)) {
       items.add(new ListItem(ListItem.TYPE_INFO_SETTING, R.id.btn_storyId, R.drawable.baseline_book_24, R.string.StoryId));
       items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
     }
-    if (hasItems("emoji")) {
+    if (!StringUtils.isEmptyOrBlank(contentInfo.emoji)) {
       items.add(new ListItem(ListItem.TYPE_INFO_SETTING, R.id.btn_stickerEmojiDetails, R.drawable.baseline_emoticon_24, R.string.EmojiHeader));
     }
     items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
