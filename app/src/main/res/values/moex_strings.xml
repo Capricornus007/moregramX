@@ -90,4 +90,5 @@
   <string name="frontCamera">Frontal</string>
   <string name="RearCamera">Rear</string>
   <string name="Ask">Ask</string>
+  <string name="Platform">Platform</string>
 </resources>

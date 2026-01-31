@@ -7,7 +7,9 @@ import android.net.Uri;
 import android.os.Build;
 import android.widget.Toast;
 
+import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
+import androidx.core.util.Pair;
 
 import org.drinkless.tdlib.TdApi;
 import org.thunderdog.challegram.BaseActivity;
@@ -19,13 +21,28 @@ import org.thunderdog.challegram.config.Config;
 import org.thunderdog.challegram.core.Background;
 import org.thunderdog.challegram.core.Lang;
 import org.thunderdog.challegram.data.TD;
+import org.thunderdog.challegram.telegram.Tdlib;
 import org.thunderdog.challegram.tool.UI;
 import org.thunderdog.challegram.util.Permissions;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 public class SystemUtils {
+  static ArrayList<Pair<String, String>> headers = new ArrayList<>() {{
+    add(new Pair<>("FFD8FFE000104A46494600010101006000600000FFDB0043000403030403030404030405040405060A07060606060D090A080A0F0D10100F0D0F0E1113181411", "Desktop"));
+    add(new Pair<>("FFD8FFE000104A46494600010101004800480000FFE202184943435F50524F46494C4500010100000208", "Web, K"));
+    add(new Pair<>("FFD8FFE000104A46494600010100000100010000FFE202184943435F50524F46494C450001010000020800000000043000006D6E74725247422058595A2007E0", "Android"));
+    add(new Pair<>("FFD8FFE000104A46494600010101004800480000FFE201D84943435F50524F46494C45000101000001C800000000043000006D6E74725247422058595A2007E0", "Android"));
+    add(new Pair<>("FFD8FFE000104A46494600010100000100010000FFE201D84943435F50524F46494C45000101000001C800000000043000006D6E74725247422058595A2007E0", "Android"));
+    add(new Pair<>("FFD8FFE000104A46494600010100000100010000FFDB004300090607080706090807080A0A090B0D160F0D0C0C0D1B14151016201D2222201D1F1F2428342C24", "iOS"));
+    add(new Pair<>("FFD8FFE000104A46494600010100000100010000FFDB004300080606070605080707070909080A0C140D0C0B0B0C1912130F141D1A1F1E1D1A1C1C20242E2720", "macOS"));
+    add(new Pair<>("FFD8FFE000104A46494600010101004800480000FFE201DB4943435F50524F46494C45000101000001CB00000000024000006D6E74725247422058595A200000", "macOS"));
+  }};
+
   public static boolean shouldShowClipboardToast () {
     return ((Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) || OEMUtils.isMIUI()) && ((Build.VERSION.SDK_INT < Build.VERSION_CODES.S) || !OEMUtils.hasBuiltInClipboardToasts());
   }
@@ -116,4 +133,28 @@ public class SystemUtils {
   public static Uri getUri (String path) {
     return FileProvider.getUriForFile(UI.getAppContext(), Config.FILE_PROVIDER_AUTHORITY, new File(path));
   }
-}
+
+  @Nullable
+  public static String identifyFileHeader (String filePath, int headerSize) {
+    byte[] byteArray;
+    try {
+      byteArray = extractFileHeader(filePath, headerSize);
+      String hex = U.bytesToHex(byteArray);
+      for (Pair<String, String> pair : headers) {
+        if (hex.startsWith(pair.first))
+          return pair.second;
+      }
+    } catch (IOException ignore) {}
+    return null;
+  }
+
+  private static byte[] extractFileHeader (String path, int endByte) throws IOException {
+    File file = new File(path);
+    byte[] buffer = new byte[endByte];
+    try (FileInputStream inputStream = new FileInputStream(file)) {
+      int bytesRead = inputStream.read(buffer);
+      if (bytesRead < 1) return null;
+    }
+    return buffer;
+  }
+ }

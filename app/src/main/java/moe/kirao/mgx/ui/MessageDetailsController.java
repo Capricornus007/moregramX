@@ -137,14 +137,14 @@ public class MessageDetailsController extends RecyclerViewController<MessageDeta
   private record ContentInfo(String text, String path, String formattedSize, String mime,
                              String name, String resolution, String duration, String bitrate,
                              String emoji, String packId, String storyId, String songName,
-                             String performer) {
+                             String performer, String platform) {
   }
 
   @SuppressLint("SwitchIntDef")
   private ContentInfo buildContentInfo () {
     TdApi.Message msg = args.msg;
     String text = "", path = "", formattedSize = "", mime = "", name = "";
-    String resolution = "", duration = "", bitrate = "", emoji = "";
+    String resolution = "", duration = "", bitrate = "", emoji = "", platform = "";
     String packId = "", storyId = "", songName = "", performer = "";
 
     switch (msg.content.getConstructor()) {
@@ -162,6 +162,7 @@ public class MessageDetailsController extends RecyclerViewController<MessageDeta
         formattedSize = formatSize(file.expectedSize);
         mime = U.resolveMimeType(file.local.path);
         resolution = photoSize.width + "x" + photoSize.height;
+        platform = SystemUtils.identifyFileHeader(path, 64);
         break;
       }
       case TdApi.MessageDocument.CONSTRUCTOR: {
@@ -269,7 +270,7 @@ public class MessageDetailsController extends RecyclerViewController<MessageDeta
       }
     }
 
-    return new ContentInfo(text, path, formattedSize, mime, name, resolution, duration, bitrate, emoji, packId, storyId, songName, performer);
+    return new ContentInfo(text, path, formattedSize, mime, name, resolution, duration, bitrate, emoji, packId, storyId, songName, performer, platform);
   }
 
   private static String formatSize (long size) {
@@ -506,6 +507,8 @@ public class MessageDetailsController extends RecyclerViewController<MessageDeta
       showCopyAction(contentInfo.bitrate);
     } else if (viewId == R.id.btn_storyId) {
       showCopyAction(contentInfo.storyId);
+    } else if (viewId == R.id.btn_sessionPlatform) {
+      showCopyAction(contentInfo.platform);
     }
   }
 
@@ -556,6 +559,8 @@ public class MessageDetailsController extends RecyclerViewController<MessageDeta
           view.setData(contentInfo.bitrate);
         } else if (itemId == R.id.btn_storyId) {
           view.setData(contentInfo.storyId);
+        } else if (itemId == R.id.btn_sessionPlatform) {
+          view.setData(contentInfo.platform);
         }
       }
     };
@@ -585,6 +590,10 @@ public class MessageDetailsController extends RecyclerViewController<MessageDeta
     }
     if (hasValidResolution()) {
       items.add(new ListItem(ListItem.TYPE_INFO_SETTING, R.id.btn_fileRes, R.drawable.baseline_crop_original_24, R.string.FileRes));
+      items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
+    }
+    if (!StringUtils.isEmptyOrBlank(contentInfo.platform)) {
+      items.add(new ListItem(ListItem.TYPE_INFO_SETTING, R.id.btn_sessionPlatform, R.drawable.baseline_device_other_24, R.string.Platform));
       items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
     }
     if (getConstructor() == TdApi.MessageText.CONSTRUCTOR || hasCaption()) {
