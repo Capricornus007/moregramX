@@ -101,6 +101,8 @@ import me.vkryl.core.StringUtils;
 import me.vkryl.core.collection.IntList;
 import me.vkryl.core.lambda.CancellableRunnable;
 import me.vkryl.core.reference.ReferenceList;
+import moe.kirao.mgx.utils.ChatUtils;
+import moe.kirao.mgx.utils.SystemUtils;
 import tgx.td.ChatId;
 import tgx.td.Td;
 
@@ -584,6 +586,13 @@ public class SettingsController extends ViewController<Void> implements
           }
         } else if (itemId == R.id.btn_peer_id) {
           view.setData(Strings.buildCounter(tdlib.myUserId(true)));
+          TdApi.User myUser = tdlib.myUser();
+          if (myUser != null && myUser.profilePhoto != null) {
+            int dcId = SystemUtils.getDcIdFromRemoteId(myUser.profilePhoto.small.remote.id);
+            if (dcId != 0) {
+              view.setName("DC" + dcId + ", " + ChatUtils.getDCName(dcId));
+            }
+          }
         } else if (itemId == R.id.btn_phone) {
           view.setData(myPhone);
         } else if (itemId == R.id.btn_bio) {

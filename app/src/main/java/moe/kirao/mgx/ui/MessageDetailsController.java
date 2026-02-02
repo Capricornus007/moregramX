@@ -137,7 +137,7 @@ public class MessageDetailsController extends RecyclerViewController<MessageDeta
   private record ContentInfo(String text, String path, String formattedSize, String mime,
                              String name, String resolution, String duration, String bitrate,
                              String emoji, String packId, String storyId, String songName,
-                             String performer, String platform) {
+                             String performer, String platform, String dcName) {
   }
 
   @SuppressLint("SwitchIntDef")
@@ -145,7 +145,7 @@ public class MessageDetailsController extends RecyclerViewController<MessageDeta
     TdApi.Message msg = args.msg;
     String text = "", path = "", formattedSize = "", mime = "", name = "";
     String resolution = "", duration = "", bitrate = "", emoji = "", platform = "";
-    String packId = "", storyId = "", songName = "", performer = "";
+    String packId = "", storyId = "", songName = "", performer = "", dcName = "";
 
     switch (msg.content.getConstructor()) {
       case TdApi.MessageText.CONSTRUCTOR: {
@@ -163,6 +163,8 @@ public class MessageDetailsController extends RecyclerViewController<MessageDeta
         mime = U.resolveMimeType(file.local.path);
         resolution = photoSize.width + "x" + photoSize.height;
         platform = SystemUtils.identifyFileHeader(path, 64);
+        int dcId = SystemUtils.getDcIdFromRemoteId(sizes[0].photo.remote.id);
+        dcName = dcId != 0 ? "DC" + dcId + ", " + ChatUtils.getDCName(dcId) : "";
         break;
       }
       case TdApi.MessageDocument.CONSTRUCTOR: {
@@ -270,7 +272,7 @@ public class MessageDetailsController extends RecyclerViewController<MessageDeta
       }
     }
 
-    return new ContentInfo(text, path, formattedSize, mime, name, resolution, duration, bitrate, emoji, packId, storyId, songName, performer, platform);
+    return new ContentInfo(text, path, formattedSize, mime, name, resolution, duration, bitrate, emoji, packId, storyId, songName, performer, platform, dcName);
   }
 
   private static String formatSize (long size) {
@@ -509,6 +511,8 @@ public class MessageDetailsController extends RecyclerViewController<MessageDeta
       showCopyAction(contentInfo.storyId);
     } else if (viewId == R.id.btn_sessionPlatform) {
       showCopyAction(contentInfo.platform);
+    } else if (viewId == R.id.btn_peer_id) {
+      showCopyAction(contentInfo.dcName);
     }
   }
 
@@ -561,6 +565,8 @@ public class MessageDetailsController extends RecyclerViewController<MessageDeta
           view.setData(contentInfo.storyId);
         } else if (itemId == R.id.btn_sessionPlatform) {
           view.setData(contentInfo.platform);
+        } else if (itemId == R.id.btn_peer_id) {
+          view.setData(contentInfo.dcName);
         }
       }
     };
@@ -594,6 +600,10 @@ public class MessageDetailsController extends RecyclerViewController<MessageDeta
     }
     if (!StringUtils.isEmptyOrBlank(contentInfo.platform)) {
       items.add(new ListItem(ListItem.TYPE_INFO_SETTING, R.id.btn_sessionPlatform, R.drawable.baseline_device_other_24, R.string.Platform));
+      items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
+    }
+    if (!StringUtils.isEmptyOrBlank(contentInfo.dcName)) {
+      items.add(new ListItem(ListItem.TYPE_INFO_SETTING, R.id.btn_peer_id, R.drawable.baseline_language_24, R.string.DcID));
       items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
     }
     if (getConstructor() == TdApi.MessageText.CONSTRUCTOR || hasCaption()) {

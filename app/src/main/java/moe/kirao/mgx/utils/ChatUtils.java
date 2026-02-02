@@ -51,4 +51,13 @@ public class ChatUtils {
     }
     return authorId;
   }
+
+  public static String getDCName (int dc) {
+    return switch (dc) {
+      case 1, 3 -> "Miami FL, USA";
+      case 2, 4 -> "Amsterdam, NL";
+      case 5 -> "Singapore, SG";
+      default -> null;
+    };
+  }
 }

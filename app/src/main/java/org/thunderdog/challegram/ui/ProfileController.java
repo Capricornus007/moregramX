@@ -157,6 +157,8 @@ import tgx.td.Td;
 import tgx.td.TdConstants;
 
 import moe.kirao.mgx.MoexConfig;
+import moe.kirao.mgx.utils.SystemUtils;
+import moe.kirao.mgx.utils.ChatUtils;
 
 public class ProfileController extends ViewController<ProfileController.Args> implements
   Menu,
@@ -1804,8 +1806,16 @@ public class ProfileController extends ViewController<ProfileController.Args> im
         } else if (itemId == R.id.btn_encryptionKey) {
           view.setData(R.string.PictureAndText);
         } else if (itemId == R.id.btn_peer_id) {
-          view.setName(getPeerTypeStringResourceId());
           view.setData(Strings.buildCounter(getPeerId()));
+          int dcId = 0;
+          if (chat != null && chat.photo != null) {
+            dcId = SystemUtils.getDcIdFromRemoteId(chat.photo.small.remote.id);
+          }
+          if (dcId != 0) {
+            view.setName("DC" + dcId + ", " + ChatUtils.getDCName(dcId));
+          } else {
+            view.setName(getPeerTypeStringResourceId());
+          }
         } else if (itemId == R.id.btn_birthdate) {
           view.setData(R.string.Birthdate);
           TdApi.Birthdate birthdate = userFull != null ? userFull.birthdate : null;

@@ -5,6 +5,7 @@ import android.content.ClipboardManager;
 import android.content.Context;
 import android.net.Uri;
 import android.os.Build;
+import android.util.Base64;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
@@ -21,15 +22,17 @@ import org.thunderdog.challegram.config.Config;
 import org.thunderdog.challegram.core.Background;
 import org.thunderdog.challegram.core.Lang;
 import org.thunderdog.challegram.data.TD;
-import org.thunderdog.challegram.telegram.Tdlib;
 import org.thunderdog.challegram.tool.UI;
 import org.thunderdog.challegram.util.Permissions;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
+import me.vkryl.core.StringUtils;
 
 public class SystemUtils {
   static ArrayList<Pair<String, String>> headers = new ArrayList<>() {{
@@ -157,4 +160,35 @@ public class SystemUtils {
     }
     return buffer;
   }
- }
+
+  public static int getDcIdFromRemoteId (@Nullable String remoteId) {
+    if (StringUtils.isEmptyOrBlank(remoteId)) {
+      return 0;
+    }
+    try {
+      byte[] data = rleDecode(Base64.decode(remoteId, Base64.URL_SAFE | Base64.NO_PADDING | Base64.NO_WRAP));
+      if (data.length < 8) {
+        return 0;
+      }
+      int dcId = (data[4] & 0xFF) | ((data[5] & 0xFF) << 8) | ((data[6] & 0xFF) << 16) | ((data[7] & 0xFF) << 24);
+      return (dcId >= 1 && dcId <= 5) ? dcId : 0;
+    } catch (Exception ignored) {
+      return 0;
+    }
+  }
+
+  private static byte[] rleDecode (byte[] input) {
+    ByteArrayOutputStream out = new ByteArrayOutputStream(input.length);
+    for (int i = 0; i < input.length; i++) {
+      if (input[i] == 0 && i + 1 < input.length) {
+        int count = input[++i] & 0xFF;
+        for (int j = 0; j < count; j++) {
+          out.write(0);
+        }
+      } else {
+        out.write(input[i]);
+      }
+    }
+    return out.toByteArray();
+  }
+}
