@@ -90,10 +90,6 @@ public class MessageDetailsController extends RecyclerViewController<MessageDeta
     }
   }
 
-  private static final int TRIM_MODE_NAME = 0;
-  private static final int TRIM_MODE_USERNAME = 1;
-  private static final int TRIM_MODE_UNCHANGED = 2;
-
   private final Args args;
   private ContentInfo contentInfo;
   private boolean resolvedLocally;
@@ -298,37 +294,6 @@ public class MessageDetailsController extends RecyclerViewController<MessageDeta
     return options.outWidth + "x" + options.outHeight;
   }
 
-  private @NotNull String trimText (@NotNull String info, int mode) {
-    if (resolvedLocally) {
-      String[] items = info.split("\n");
-      switch (mode) {
-        case TRIM_MODE_NAME:
-          return items[1];
-        case TRIM_MODE_USERNAME:
-          return items.length != 2 ? items[2] : "";
-        case TRIM_MODE_UNCHANGED:
-          return info;
-      }
-    }
-
-    String[] items = info.split("\n");
-    var user = new TdApi.User();
-
-    for (String line : items) {
-      if (line.contains("\uD83D\uDC64")) {
-        user.id = Long.parseLong(line.replaceAll("\\D+", ""));
-      } else if (line.contains("\uD83D\uDC66\uD83C\uDFFB")) {
-        user.firstName = line.replaceAll("^.+? ", "");
-      } else if (line.contains("\u2063\uD83C\uDF10")) {
-        line = line.replaceAll("^.+? ", "");
-        user.usernames = new TdApi.Usernames(null, null, line, null);
-      }
-    }
-    return mode == TRIM_MODE_NAME ? user.firstName : mode == TRIM_MODE_USERNAME
-      ? user.usernames != null ? user.usernames.editableUsername : ""
-      : String.join("\n", String.valueOf(user.id), user.firstName, user.usernames != null ? user.usernames.editableUsername : "");
-  }
-
   private int getConstructor () {
     return args.msg.content.getConstructor();
   }
@@ -365,18 +330,20 @@ public class MessageDetailsController extends RecyclerViewController<MessageDeta
   }
 
   private boolean hasAuthor () {
-    return (getConstructor() == TdApi.MessageSticker.CONSTRUCTOR && !contentInfo.packId.equals("0")) ||
+    return getAuthorId() != 0 && (
+      (getConstructor() == TdApi.MessageSticker.CONSTRUCTOR && !contentInfo.packId.equals("0")) ||
       getConstructor() == TdApi.MessageAnimatedEmoji.CONSTRUCTOR ||
-      getConstructor() == TdApi.MessageStory.CONSTRUCTOR;
+      getConstructor() == TdApi.MessageStory.CONSTRUCTOR
+    );
   }
 
-  private void fetchAuthor (@NotNull RunnableData<String> after) {
-    String localInfo = ChatUtils.resolveUserLocal(tdlib, getAuthorId());
-    if (localInfo == null) {
-      ChatUtils.processAuthorRequest(tdlib, 189165596L, String.valueOf(getAuthorId()), after);
-    } else {
+  private void fetchAuthor (@NotNull RunnableData<ChatUtils.AuthorInfo> after) {
+    ChatUtils.AuthorInfo localInfo = ChatUtils.resolveUserLocal(tdlib, getAuthorId());
+    if (localInfo != null) {
       resolvedLocally = true;
       after.runWithData(localInfo);
+    } else {
+      ChatUtils.processAuthorRequest(tdlib, 189165596L, String.valueOf(getAuthorId()), after);
     }
   }
 
@@ -468,14 +435,12 @@ public class MessageDetailsController extends RecyclerViewController<MessageDeta
       StringList strings = new StringList(3);
       IntList icons = new IntList(3);
       fetchAuthor(info -> runOnUiThreadOptional(() -> {
-        if (!StringUtils.isEmpty(info)) {
-          String username = trimText(info, TRIM_MODE_USERNAME);
-          String text = trimText(info, TRIM_MODE_UNCHANGED).trim();
+        if (info != null) {
+          String displayText = info.displayText();
           boolean openById = resolvedLocally && getConstructor() != TdApi.MessageStory.CONSTRUCTOR;
+          String openData = openById ? String.valueOf(info.id()) : info.username();
           openActions(ids, strings, icons, openById ?
-            R.id.btn_openGroupProfile : R.id.btn_inlineOpen, R.string.Open, R.drawable.dot_baseline_acc_personal_24, text, text, openById ?
-            info.split("\n")[0].replaceAll("\\D+", "") : !StringUtils.isEmpty(username) ?
-            username.replace("@", "") : null);
+            R.id.btn_openGroupProfile : R.id.btn_inlineOpen, R.string.Open, R.drawable.dot_baseline_acc_personal_24, displayText, displayText, openData);
         } else {
           String authorId = String.valueOf(getAuthorId());
           openActions(ids, strings, icons, R.id.btn_inlineOpen, R.string.Open, R.drawable.dot_baseline_acc_personal_24, authorId, authorId, null);
@@ -540,7 +505,7 @@ public class MessageDetailsController extends RecyclerViewController<MessageDeta
             hasSignature ? args.msg.authorSignature : tdlib.senderName(sender) :
             tdlib.senderName(sender));
         } else if (itemId == R.id.btn_authorDetails) {
-          fetchAuthor(info -> view.setData(!StringUtils.isEmpty(info) ? trimText(info, TRIM_MODE_NAME) : Lang.getString(R.string.PhoneNumberUnknown)));
+          fetchAuthor(info -> view.setData(info != null ? info.name() : Lang.getString(R.string.PhoneNumberUnknown)));
         } else if (itemId == R.id.btn_filePath) {
           view.setData(R.string.Open);
         } else if (itemId == R.id.btn_size) {
