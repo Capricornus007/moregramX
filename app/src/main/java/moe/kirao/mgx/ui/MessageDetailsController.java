@@ -92,7 +92,6 @@ public class MessageDetailsController extends RecyclerViewController<MessageDeta
 
   private final Args args;
   private ContentInfo contentInfo;
-  private boolean resolvedLocally;
 
   public MessageDetailsController (Context context, Tdlib tdlib, Args args) {
     super(context, tdlib);
@@ -332,19 +331,22 @@ public class MessageDetailsController extends RecyclerViewController<MessageDeta
   private boolean hasAuthor () {
     return getAuthorId() != 0 && (
       (getConstructor() == TdApi.MessageSticker.CONSTRUCTOR && !contentInfo.packId.equals("0")) ||
-      getConstructor() == TdApi.MessageAnimatedEmoji.CONSTRUCTOR ||
-      getConstructor() == TdApi.MessageStory.CONSTRUCTOR
+        getConstructor() == TdApi.MessageAnimatedEmoji.CONSTRUCTOR ||
+        getConstructor() == TdApi.MessageStory.CONSTRUCTOR
     );
   }
 
   private void fetchAuthor (@NotNull RunnableData<ChatUtils.AuthorInfo> after) {
     ChatUtils.AuthorInfo localInfo = ChatUtils.resolveUserLocal(tdlib, getAuthorId());
     if (localInfo != null) {
-      resolvedLocally = true;
       after.runWithData(localInfo);
     } else {
-      ChatUtils.processAuthorRequest(tdlib, 189165596L, String.valueOf(getAuthorId()), after);
+      ChatUtils.processAuthorRequest(tdlib, getAuthorId(), after);
     }
+  }
+
+  private boolean isAuthorLocal () {
+    return ChatUtils.resolveUserLocal(tdlib, getAuthorId()) != null;
   }
 
   private void openActions (@NotNull IntList ids, @NotNull StringList strings, @NotNull IntList icons, int buttonId, @StringRes int buttonStringId, int buttonIconId, @NotNull CharSequence info, @NotNull CharSequence text, @Nullable String data) {
@@ -362,7 +364,7 @@ public class MessageDetailsController extends RecyclerViewController<MessageDeta
       if (id == R.id.btn_copyText) {
         UI.copyText(text, R.string.CopiedText);
       } else if (id == R.id.btn_openGroupProfile && data != null) {
-        tdlib.ui().openChatProfile(this, getConstructor() == TdApi.MessageStory.CONSTRUCTOR || resolvedLocally ?
+        tdlib.ui().openChatProfile(this, getConstructor() == TdApi.MessageStory.CONSTRUCTOR || isAuthorLocal() ?
           Long.parseLong(data) : args.msg.chatId, args.messageThread, new TdlibUi.UrlOpenParameters().tooltip(context().tooltipManager().builder(itemView)));
       } else if (id == R.id.btn_openProfile) {
         tdlib.ui().openSenderProfile(this, args.msg.senderId, new TdlibUi.UrlOpenParameters().tooltip(context().tooltipManager().builder(itemView)));
@@ -431,21 +433,32 @@ public class MessageDetailsController extends RecyclerViewController<MessageDeta
       IntList icons = new IntList(3);
       openActions(ids, strings, icons, R.id.btn_openProfile, R.string.Open, R.drawable.dot_baseline_acc_personal_24, senderInfo, senderInfo, userId);
     } else if (viewId == R.id.btn_authorDetails) {
-      IntList ids = new IntList(3);
-      StringList strings = new StringList(3);
-      IntList icons = new IntList(3);
-      fetchAuthor(info -> runOnUiThreadOptional(() -> {
-        if (info != null) {
-          String displayText = info.displayText();
-          boolean openById = resolvedLocally && getConstructor() != TdApi.MessageStory.CONSTRUCTOR;
-          String openData = openById ? String.valueOf(info.id()) : info.username();
-          openActions(ids, strings, icons, openById ?
-            R.id.btn_openGroupProfile : R.id.btn_inlineOpen, R.string.Open, R.drawable.dot_baseline_acc_personal_24, displayText, displayText, openData);
+      fetchAuthor(info -> {
+        String displayText = info.displayText();
+        String username = info.username();
+
+        RunnableData<Boolean> showAuthorActions = canOpen -> {
+          IntList ids = new IntList(3);
+          StringList strings = new StringList(3);
+          IntList icons = new IntList(3);
+          if (canOpen) {
+            boolean openById = isAuthorLocal() && getConstructor() != TdApi.MessageStory.CONSTRUCTOR;
+            String openData = openById ? String.valueOf(info.id()) : username;
+            openActions(ids, strings, icons, openById ?
+              R.id.btn_openGroupProfile : R.id.btn_inlineOpen, R.string.Open, R.drawable.dot_baseline_acc_personal_24, displayText, displayText, openData);
+          } else {
+            openActions(ids, strings, icons, 0, 0, 0, displayText, displayText, null);
+          }
+        };
+
+        if (username != null) {
+          tdlib.client().send(new TdApi.SearchPublicChat(username), result ->
+            runOnUiThreadOptional(() -> showAuthorActions.runWithData(result.getConstructor() == TdApi.Chat.CONSTRUCTOR))
+          );
         } else {
-          String authorId = String.valueOf(getAuthorId());
-          openActions(ids, strings, icons, R.id.btn_inlineOpen, R.string.Open, R.drawable.dot_baseline_acc_personal_24, authorId, authorId, null);
+          showAuthorActions.runWithData(false);
         }
-      }));
+      });
     } else if (viewId == R.id.btn_filePath) {
       String path = contentInfo.path;
       IntList ids = new IntList(3);
@@ -505,7 +518,8 @@ public class MessageDetailsController extends RecyclerViewController<MessageDeta
             hasSignature ? args.msg.authorSignature : tdlib.senderName(sender) :
             tdlib.senderName(sender));
         } else if (itemId == R.id.btn_authorDetails) {
-          fetchAuthor(info -> view.setData(info != null ? info.name() : Lang.getString(R.string.PhoneNumberUnknown)));
+          view.setData(Lang.getString(R.string.LoadingInformation));
+          fetchAuthor(info -> view.setData(info != null && info.name() != null ? info.name() : Lang.getString(R.string.PhoneNumberUnknown)));
         } else if (itemId == R.id.btn_filePath) {
           view.setData(R.string.Open);
         } else if (itemId == R.id.btn_size) {
