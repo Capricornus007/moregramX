@@ -2311,8 +2311,10 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
         ids.append(R.id.btn_share);
         strings.append(R.string.Share);
 
-        ids.append(R.id.btn_showInChat);
-        strings.append(R.string.ShowInChat);
+        if (message.id != 0) {
+          ids.append(R.id.btn_showInChat);
+          strings.append(R.string.ShowInChat);
+        }
       }
 
       if (tracks.size() > 5 && isScrollUnlocked) {
@@ -2332,8 +2334,14 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
   @Override
   public void onMoreItemPressed (int id) {
     if (id == R.id.btn_share) {
+      TdApi.Message message = currentItem.getMessage();
       ShareController c = new ShareController(context, tdlib);
-      c.setArguments(new ShareController.Args(currentItem.getMessage()).setAllowCopyLink(true));
+      if (message.id != 0) {
+        c.setArguments(new ShareController.Args(message).setAllowCopyLink(true));
+      } else {
+        TdApi.Audio audio = ((TdApi.MessageAudio) message.content).audio;
+        c.setArguments(new ShareController.Args(new TdApi.InputMessageAudio(new TdApi.InputFileRemote(audio.audio.remote.id), null, audio.duration, audio.title, audio.performer, null)));
+      }
       c.show();
     } else if (id == R.id.btn_showInPlaylist) {
       highlightCurrentItem();

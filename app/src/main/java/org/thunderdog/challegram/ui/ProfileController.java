@@ -88,6 +88,7 @@ import org.thunderdog.challegram.navigation.StopwatchHeaderButton;
 import org.thunderdog.challegram.navigation.ViewController;
 import org.thunderdog.challegram.navigation.ViewPagerHeaderViewCompact;
 import org.thunderdog.challegram.navigation.ViewPagerTopView;
+import org.thunderdog.challegram.player.TGPlayerController;
 import org.thunderdog.challegram.support.RippleSupport;
 import org.thunderdog.challegram.support.ViewSupport;
 import org.thunderdog.challegram.telegram.ChatListener;
@@ -1980,6 +1981,14 @@ public class ProfileController extends ViewController<ProfileController.Args> im
           itemId == R.id.btn_toggleAggressiveAntiSpam ||
           itemId == R.id.btn_toggleHideMembers) {
           view.getToggler().setRadioEnabled(item.isSelected(), isUpdate);
+        } else if (itemId == R.id.btn_music) {
+          TdApi.Audio audio = userFull != null ? userFull.firstProfileAudio : null;
+          if (audio != null) {
+            view.setData(TD.getTitle(audio));
+            view.setName(TD.getSubtitle(audio));
+          } else {
+            view.setName(Lang.getString(R.string.LoadingInformation));
+          }
         }
         if (item.getViewType() == ListItem.TYPE_RADIO_SETTING) {
           boolean isLocked = item.getId() == R.id.btn_toggleProtection && !tdlib.canToggleContentProtection(chat.id);
@@ -2522,6 +2531,10 @@ public class ProfileController extends ViewController<ProfileController.Args> im
     return new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_encryptionKey, R.drawable.baseline_vpn_key_24, R.string.EncryptionKey);
   }
 
+  private ListItem newProfileAudioItem () {
+    return new ListItem(ListItem.TYPE_INFO_SETTING, R.id.btn_music, R.drawable.baseline_music_note_24, R.string.Music);
+  }
+
   private boolean needPhoneCell () {
     return user.isContact || user.isMutualContact || TD.hasPhoneNumber(user);
   }
@@ -2573,6 +2586,13 @@ public class ProfileController extends ViewController<ProfileController.Args> im
           items.add(new ListItem(ListItem.TYPE_SEPARATOR));
         }
         items.add(newDescriptionItem());
+        addedCount++;
+      }
+      if (userFull.firstProfileAudio != null) {
+        if (addedCount > 0) {
+          items.add(new ListItem(ListItem.TYPE_SEPARATOR));
+        }
+        items.add(newProfileAudioItem());
         addedCount++;
       }
       if (!Td.isEmpty(userFull.note)) {
@@ -2664,6 +2684,7 @@ public class ProfileController extends ViewController<ProfileController.Args> im
     checkPersonalChannel();
     checkBirthdate();
     checkDescription();
+    checkProfileAudio();
     checkProfileNote();
     checkGroupsInCommon();
 
@@ -3010,6 +3031,44 @@ public class ProfileController extends ViewController<ProfileController.Args> im
       if (setProfileNote(userFull.note)) {
         updateValuedItem(R.id.btn_profileNote);
       }
+    }
+  }
+
+  private void checkProfileAudio () {
+    if (isEditing()) {
+      return;
+    }
+    int foundIndex = baseAdapter.indexOfViewById(R.id.btn_music);
+    boolean hadProfileAudio = foundIndex != -1;
+    boolean hasProfileAudio = userFull != null && userFull.firstProfileAudio != null;
+
+    if (hadProfileAudio != hasProfileAudio) {
+      if (hadProfileAudio) {
+        removeTopItem(foundIndex);
+      } else {
+        int index = 0;
+        if (baseAdapter.indexOfViewById(R.id.btn_personalChannel) != -1) {
+          index++;
+        }
+        if (Settings.instance().showPeerIds() && baseAdapter.indexOfViewById(R.id.btn_peer_id) != -1) {
+          index++;
+        }
+        if (baseAdapter.indexOfViewById(R.id.btn_username) != -1) {
+          index++;
+        }
+        if (baseAdapter.indexOfViewById(R.id.btn_birthdate) != -1) {
+          index++;
+        }
+        if (baseAdapter.indexOfViewById(R.id.btn_description) != -1) {
+          index++;
+        }
+        if (baseAdapter.indexOfViewById(R.id.btn_profileNote) != -1) {
+          index++;
+        }
+        addTopItem(newProfileAudioItem(), index); // after peer_id, username, birthdate, description, profile_note
+      }
+    } else if (hasProfileAudio) {
+      updateValuedItem(R.id.btn_music);
     }
   }
 
@@ -5138,7 +5197,65 @@ public class ProfileController extends ViewController<ProfileController.Args> im
           }
           return true;
         });
+    } else if (viewId == R.id.btn_music) {
+      playProfileAudios();
     }
+  }
+
+  private void playProfileAudios () {
+    tdlib.send(new TdApi.GetUserProfileAudios(user.id, 0, 100), (result, error) -> {
+      if (result == null || result.audios.length == 0) {
+        return;
+      }
+
+      final ArrayList<TdApi.Message> messages = new ArrayList<>(result.audios.length);
+      final long chatId = chat != null ? chat.id : 0;
+
+      for (TdApi.Audio audio : result.audios) {
+        TdApi.Message message = new TdApi.Message();
+        message.id = 0;
+        message.senderId = new TdApi.MessageSenderUser(user.id);
+        message.chatId = chatId;
+        message.content = new TdApi.MessageAudio(audio, null);
+        message.date = 0;
+        messages.add(message);
+      }
+
+      TGPlayerController.PlayListBuilder builder = new TGPlayerController.PlayListBuilder() {
+        @Override
+        public TGPlayerController.PlayList buildPlayList (TdApi.Message fromMessage) {
+          for (int i = 0; i < messages.size(); i++) {
+            if (TGPlayerController.compareTracks(messages.get(i), fromMessage)) {
+              return new TGPlayerController.PlayList(messages, i).setReachedEnds(true, true);
+            }
+          }
+          return null;
+        }
+
+        @Override
+        public boolean wouldReusePlayList (TdApi.Message fromMessage, boolean isReverse, boolean hasAltered, List<TdApi.Message> trackList, long playListChatId) {
+          return false;
+        }
+      };
+
+      runOnUiThreadOptional(() -> {
+        TGPlayerController player = tdlib.context().player();
+        TdApi.Message firstTrack = messages.get(0);
+        TdApi.Message currentTrack = player.getCurrentTrack();
+
+        // Only play if not already playing this track
+        boolean isAlreadyPlaying = currentTrack != null && TGPlayerController.compareTracks(currentTrack, firstTrack);
+        if (!isAlreadyPlaying) {
+          player.playPauseMessage(tdlib, firstTrack, builder);
+        }
+
+        // Always open the player
+        PlaybackController c = new PlaybackController(context(), tdlib);
+        if (c.prepare() != -1) {
+          navigationController.navigateTo(c);
+        }
+      });
+    });
   }
 
   private void convertToBroadcastGroup (View view) {
@@ -6479,6 +6596,7 @@ public class ProfileController extends ViewController<ProfileController.Args> im
         checkGroupsInCommon();
         checkPersonalChannel();
         checkDescription();
+        checkProfileAudio();
         checkProfileNote();
         if (mode == Mode.EDIT_BOT_USER) {
           updateValuedItem(R.id.btn_botDescription);

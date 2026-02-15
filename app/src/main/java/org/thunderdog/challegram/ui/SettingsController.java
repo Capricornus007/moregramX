@@ -58,6 +58,7 @@ import org.thunderdog.challegram.navigation.Menu;
 import org.thunderdog.challegram.navigation.MoreDelegate;
 import org.thunderdog.challegram.navigation.NavigationController;
 import org.thunderdog.challegram.navigation.ViewController;
+import org.thunderdog.challegram.player.TGPlayerController;
 import org.thunderdog.challegram.support.ViewSupport;
 import org.thunderdog.challegram.telegram.ConnectionListener;
 import org.thunderdog.challegram.telegram.GlobalTokenStateListener;
@@ -575,6 +576,14 @@ public class SettingsController extends ViewController<Void> implements
           } else {
             view.setData(Lang.getBirthdate(userFull.birthdate, true, true));
           }
+        } else if (itemId == R.id.btn_music) {
+          TdApi.Audio audio = userFull != null ? userFull.firstProfileAudio : null;
+          if (audio != null) {
+            view.setData(TD.getTitle(audio));
+            view.setName(TD.getSubtitle(audio));
+          } else {
+            view.setName(Lang.getString(R.string.LoadingInformation));
+          }
         } else if (itemId == R.id.btn_username) {
           if (myUsernames == null) {
             view.setData(R.string.LoadingUsername);
@@ -627,6 +636,10 @@ public class SettingsController extends ViewController<Void> implements
     if (userFull != null && userFull.birthdate != null) {
       items.add(new ListItem(ListItem.TYPE_SEPARATOR));
       items.add(newBirthdateItem());
+    }
+    if (userFull != null && userFull.firstProfileAudio != null) {
+      items.add(new ListItem(ListItem.TYPE_SEPARATOR));
+      items.add(newProfileAudioItem());
     }
     items.add(new ListItem(ListItem.TYPE_SEPARATOR));
     items.add(new ListItem(ListItem.TYPE_INFO_MULTILINE, R.id.btn_bio, R.drawable.baseline_info_24, R.string.UserBio).setContentStrings(R.string.LoadingInformation, R.string.BioNone));
@@ -864,6 +877,7 @@ public class SettingsController extends ViewController<Void> implements
     executeOnUiThreadOptional(() -> {
       this.userFull = userFull;
       checkBirthdate();
+      checkProfileAudio();
       checkPersonalChannel();
       setBio(userFull.bio);
     });
@@ -909,6 +923,10 @@ public class SettingsController extends ViewController<Void> implements
     return new ListItem(ListItem.TYPE_INFO_SETTING, R.id.btn_birthdate, R.drawable.baseline_cake_variant_24, R.string.Birthdate).setContentStrings(R.string.LoadingInformation, R.string.SetBirthdate);
   }
 
+  private static ListItem newProfileAudioItem () {
+    return new ListItem(ListItem.TYPE_INFO_SETTING, R.id.btn_music, R.drawable.baseline_music_note_24, R.string.Music);
+  }
+
   private static ListItem newSuggestionItem (TdApi.SuggestedAction action) {
     ListItem item;
     switch (action.getConstructor()) {
@@ -950,6 +968,28 @@ public class SettingsController extends ViewController<Void> implements
       }
     } else if (hasBirthdate) {
       adapter.updateValuedSettingByPosition(position);
+    }
+  }
+
+  private void checkProfileAudio () {
+    int position = adapter.indexOfViewById(R.id.btn_music);
+    boolean hadProfileAudio = position != -1;
+    boolean hasProfileAudio = userFull != null && userFull.firstProfileAudio != null;
+    if (hadProfileAudio != hasProfileAudio) {
+      if (hasProfileAudio) {
+        int insertAfter = adapter.indexOfViewById(R.id.btn_birthdate);
+        if (insertAfter == -1) {
+          insertAfter = adapter.indexOfViewById(R.id.btn_phone);
+        }
+        adapter.addItems(insertAfter + 1,
+          new ListItem(ListItem.TYPE_SEPARATOR),
+          newProfileAudioItem()
+        );
+      } else {
+        adapter.removeRange(position - 1, 2);
+      }
+    } else if (hasProfileAudio) {
+      adapter.updateValuedSettingById(R.id.btn_music);
     }
   }
 
@@ -1196,6 +1236,8 @@ public class SettingsController extends ViewController<Void> implements
       if (userFull != null && userFull.personalChatId != 0) {
         tdlib.ui().openChat(this, userFull.personalChatId, new TdlibUi.ChatOpenParameters().keepStack().removeDuplicates());
       }
+    } else if (viewId == R.id.btn_music) {
+      playProfileAudios();
     } else if (viewId == R.id.btn_peer_id) {
       long selfId = tdlib.myUserId(true);
       if (selfId == 0) return;
@@ -1304,6 +1346,60 @@ public class SettingsController extends ViewController<Void> implements
         ));
       }
     }
+  }
+
+  private void playProfileAudios () {
+    tdlib.send(new TdApi.GetUserProfileAudios(myUserId, 0, 100), (result, error) -> {
+      if (result == null || result.audios.length == 0) {
+        return;
+      }
+
+      final ArrayList<TdApi.Message> messages = new ArrayList<>(result.audios.length);
+      final long chatId = ChatId.fromUserId(myUserId);
+
+      for (TdApi.Audio audio : result.audios) {
+        TdApi.Message message = new TdApi.Message();
+        message.id = 0;
+        message.senderId = new TdApi.MessageSenderUser(myUserId);
+        message.chatId = chatId;
+        message.content = new TdApi.MessageAudio(audio, null);
+        message.date = 0;
+        messages.add(message);
+      }
+
+      TGPlayerController.PlayListBuilder builder = new TGPlayerController.PlayListBuilder() {
+        @Override
+        public TGPlayerController.PlayList buildPlayList (TdApi.Message fromMessage) {
+          for (int i = 0; i < messages.size(); i++) {
+            if (TGPlayerController.compareTracks(messages.get(i), fromMessage)) {
+              return new TGPlayerController.PlayList(messages, i).setReachedEnds(true, true);
+            }
+          }
+          return null;
+        }
+
+        @Override
+        public boolean wouldReusePlayList (TdApi.Message fromMessage, boolean isReverse, boolean hasAltered, List<TdApi.Message> trackList, long playListChatId) {
+          return false;
+        }
+      };
+
+      runOnUiThreadOptional(() -> {
+        TGPlayerController player = tdlib.context().player();
+        TdApi.Message firstTrack = messages.get(0);
+        TdApi.Message currentTrack = player.getCurrentTrack();
+
+        boolean isAlreadyPlaying = currentTrack != null && TGPlayerController.compareTracks(currentTrack, firstTrack);
+        if (!isAlreadyPlaying) {
+          player.playPauseMessage(tdlib, firstTrack, builder);
+        }
+
+        PlaybackController c = new PlaybackController(context, tdlib);
+        if (c.prepare() != -1) {
+          navigateTo(c);
+        }
+      });
+    });
   }
 
   public void showSuggestionPopup (View suggestionView, TdApi.SuggestedAction suggestedAction) {
