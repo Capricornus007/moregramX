@@ -34,6 +34,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -2296,8 +2297,8 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
   @Override
   public void onMenuItemPressed (int id, View view) {
     if (id == R.id.menu_btn_more) {
-      IntList ids = new IntList(3);
-      StringList strings = new StringList(3);
+      IntList ids = new IntList(4);
+      StringList strings = new StringList(4);
 
       TdApi.Message message = currentItem.getMessage();
 
@@ -2315,6 +2316,16 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
           ids.append(R.id.btn_showInChat);
           strings.append(R.string.ShowInChat);
         }
+      }
+
+      if (message.id == 0 && message.chatId == playListChatId && tdlib.isSelfChat(playListChatId)) {
+        ids.append(R.id.btn_removeProfileAudio);
+        strings.append(R.string.RemoveProfileAudio);
+      }
+
+      if (!tdlib.isSelfChat(playListChatId)) {
+        ids.append(R.id.btn_pinAudioProfile);
+        strings.append(R.string.SaveMusicToProfile);
       }
 
       if (tracks.size() > 5 && isScrollUnlocked) {
@@ -2360,6 +2371,43 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
       if (downloadedFile != null) {
         TD.saveFile(context, downloadedFile);
       }
+    } else if (id == R.id.btn_removeProfileAudio) {
+      CharSequence title = Lang.getStringBold(
+        R.string.RemoveProfileAudioConfirm,
+        currentItem.getTrackTitle() + " – " + currentItem.getTrackSubtitle()
+      );
+      showOptions(title,
+        new int[] {R.id.btn_removeProfileAudio, R.id.btn_cancel},
+        new String[] {Lang.getString(R.string.PlayListRemove), Lang.getString(R.string.Cancel)},
+        new int[] {OptionColor.RED, OptionColor.NORMAL},
+        new int[] {R.drawable.baseline_remove_circle_24, R.drawable.baseline_cancel_24},
+        (itemView, optionId) -> {
+          if (optionId == R.id.btn_removeProfileAudio) {
+            tdlib.send(new TdApi.RemoveProfileAudio(TD.getFileId(currentItem.getMessage())), ok -> runOnUiThreadOptional(() -> {
+              TGPlayerController player = tdlib.context().player();
+              if (getTrackCount() <= 1 &&
+                player.getPlayState(tdlib, currentItem.getMessage()) != TGPlayerController.STATE_NONE) {
+                player.stopPlayback(true);
+              } else {
+                player.removeTrack(currentItem.getMessage(), true);
+              }
+            }), UI::showError);
+          }
+          return true;
+        });
+    } else if (id == R.id.btn_pinAudioProfile) {
+      int fileId = TD.getFileId(currentItem.getMessage());
+      tdlib.send(new TdApi.IsProfileAudio(fileId), (ok, error) -> {
+        if (error == null) {
+          UI.showToast(R.string.AudioAlreadyPinned, Toast.LENGTH_SHORT);
+        } else {
+          tdlib.send(
+            new TdApi.AddProfileAudio(fileId),
+            okk -> UI.showToast(R.string.AudioPinned, Toast.LENGTH_SHORT),
+            UI::showError
+          );
+        }
+      });
     }
   }
 }

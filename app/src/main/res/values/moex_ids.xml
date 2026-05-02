@@ -71,4 +71,6 @@
   <item name="rearRoundVideo" type="id"/>
   <item name="frontRoundVideo" type="id"/>
   <item name="askRoundVideo" type="id"/>
+  <item name="btn_pinAudioProfile" type="id" />
+  <item name="btn_removeProfileAudio" type="id" />
 </resources>

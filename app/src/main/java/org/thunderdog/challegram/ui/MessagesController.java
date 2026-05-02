@@ -5973,6 +5973,19 @@ public class MessagesController extends ViewController<MessagesController.Argume
           tdlib.ui().showStickerSet(this, sticker.sticker.setId, null);
         }
         return true;
+      } else if (id == R.id.btn_pinAudioProfile) {
+        int fileId = TD.getFileId(selectedMessage.getMessage());
+        tdlib.send(new TdApi.IsProfileAudio(fileId), (ok, error) -> {
+          if (error == null) {
+            UI.showToast(R.string.AudioAlreadyPinned, Toast.LENGTH_SHORT);
+          } else {
+            tdlib.send(
+              new TdApi.AddProfileAudio(fileId),
+              okk -> UI.showToast(R.string.AudioPinned, Toast.LENGTH_SHORT),
+              UI::showError
+            );
+          }
+        });
       }
       return true;
     };
