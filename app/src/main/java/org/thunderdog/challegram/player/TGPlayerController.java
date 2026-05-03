@@ -160,6 +160,7 @@ public class TGPlayerController implements GlobalMessageListener, ProximityManag
   private String playlistInlineNextOffset, playlistSearchNextOffset;
   private long playlistSearchNextFromMessageId;
   private @Nullable PlayListLoader playlistLoader;
+  private @Nullable PlayListReorderHandler playlistReorderHandler;
 
   private final ProximityManager proximityManager;
   private final TdlibManager context;
@@ -372,8 +373,15 @@ public class TGPlayerController implements GlobalMessageListener, ProximityManag
     return false;
   }
 
+  private boolean isProfileAudioTrack (TdApi.Message track) {
+    return track.id == 0 && track.chatId == playlistChatId;
+  }
+
   private int canAddToPlayListImpl (Tdlib tdlib, TdApi.Message track, int currentPosition, int existingIndex) {
     if (this.tdlib == tdlib && this.message != null && playState != STATE_NONE && this.message.content.getConstructor() == track.content.getConstructor()) {
+      if (isProfileAudioTrack(this.message)) {
+        return ADD_MODE_NONE;
+      }
       if (existingIndex != -1) {
         if ((playListFlags & PLAYLIST_FLAG_REVERSE) != 0) {
           return existingIndex != currentPosition && currentPosition - 1 != existingIndex ? ADD_MODE_MOVE : ADD_MODE_NONE;
@@ -391,6 +399,8 @@ public class TGPlayerController implements GlobalMessageListener, ProximityManag
   }
 
   public void moveTrack (int fromPosition, int toPosition) {
+    if (fromPosition == toPosition) return;
+
     synchronized (this) {
       if (this.message != null && playState != STATE_NONE && Td.isAudio(this.message.content)) {
         TdApi.Message track = messageList.remove(fromPosition);
@@ -398,6 +408,31 @@ public class TGPlayerController implements GlobalMessageListener, ProximityManag
         notifyTrackListItemMoved(trackListChangeListeners, tdlib, track, fromPosition, toPosition);
         playListFlags |= PLAYLIST_FLAG_ALTERED;
       }
+    }
+  }
+
+  public void commitTrackMove (@NonNull TdApi.Message track) {
+    synchronized (this) {
+      if (playlistReorderHandler == null || !isProfileAudioTrack(track)) return;
+      int index = indexOfMessage(track);
+      if (index < 0) return;
+      int afterFileId = index > 0 ? TD.getFileId(messageList.get(index - 1)) : 0;
+      int currentFirstFileId = TD.getFileId(messageList.get(0));
+      playlistReorderHandler.onTrackMoved(track, afterFileId, currentFirstFileId);
+    }
+  }
+
+  public void setPlayListReorderHandler (long playListChatId, @Nullable PlayListReorderHandler reorderHandler) {
+    synchronized (this) {
+      if (playlistChatId == playListChatId && this.message != null && isProfileAudioTrack(this.message)) {
+        this.playlistReorderHandler = reorderHandler;
+      }
+    }
+  }
+
+  public boolean isPlaylistReorderable () {
+    synchronized (this) {
+      return playlistReorderHandler != null;
     }
   }
 
@@ -1212,6 +1247,7 @@ public class TGPlayerController implements GlobalMessageListener, ProximityManag
       this.playlistTopicId = null;
       this.playlistInlineQuery = null;
       this.playlistLoader = null;
+      this.playlistReorderHandler = null;
       this.playlistInlineNextOffset = this.playlistSearchNextOffset = null; this.playlistSearchNextFromMessageId = 0;
       this.removedMessageList.clear();
       if (playList != null) {
@@ -1236,6 +1272,7 @@ public class TGPlayerController implements GlobalMessageListener, ProximityManag
         playlistInlineNextOffset = playList.inlineNextOffset;
         playlistInlineQuery = playList.inlineQuery;
         playlistLoader = playList.loader;
+        playlistReorderHandler = playList.reorderHandler;
       }
       if (TD.isScheduled(message)) {
         messageListStateFlags |= LIST_STATE_LOADED_NEW | LIST_STATE_LOADED_OLD;
@@ -1859,6 +1896,7 @@ public class TGPlayerController implements GlobalMessageListener, ProximityManag
     private TdApi.GetInlineQueryResults inlineQuery;
     private String inlineNextOffset;
     private @Nullable PlayListLoader loader;
+    private @Nullable PlayListReorderHandler reorderHandler;
 
     /**
      * @param messages messages list in the ascending order from older to newer messages
@@ -1902,11 +1940,20 @@ public class TGPlayerController implements GlobalMessageListener, ProximityManag
     }
 
     /**
-     * Set loader to be used for playlists that can't load more items from chat history
-     * or inline results.
+     * Provide a loader for playlist sources that don't paginate through chat
+     * history or inline queries (e.g. profile audios).
      */
     public PlayList setLoader (@Nullable PlayListLoader loader) {
       this.loader = loader;
+      return this;
+    }
+
+    /**
+     * Handler invoked when the user reorders tracks within this playlist;
+     * pass null to disable reordering.
+     */
+    public PlayList setReorderHandler (@Nullable PlayListReorderHandler reorderHandler) {
+      this.reorderHandler = reorderHandler;
       return this;
     }
 
@@ -1992,6 +2039,10 @@ public class TGPlayerController implements GlobalMessageListener, ProximityManag
      * @param endReached true if no further pages will be available from the loader in this direction
      */
     void onTracksLoaded (@Nullable List<TdApi.Message> tracks, boolean endReached);
+  }
+
+  public interface PlayListReorderHandler {
+    void onTrackMoved (@NonNull TdApi.Message track, int afterFileId, int currentFirstFileId);
   }
 
   // Raise to speak

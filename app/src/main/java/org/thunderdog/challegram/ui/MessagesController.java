@@ -5975,13 +5975,13 @@ public class MessagesController extends ViewController<MessagesController.Argume
         return true;
       } else if (id == R.id.btn_pinAudioProfile) {
         int fileId = TD.getFileId(selectedMessage.getMessage());
-        tdlib.send(new TdApi.IsProfileAudio(fileId), (ok, error) -> {
-          if (error == null) {
+        tdlib.send(new TdApi.IsProfileAudio(fileId), (ok, err) -> {
+          if (err == null) {
             UI.showToast(R.string.AudioAlreadyPinned, Toast.LENGTH_SHORT);
           } else {
             tdlib.send(
               new TdApi.AddProfileAudio(fileId),
-              okk -> UI.showToast(R.string.AudioPinned, Toast.LENGTH_SHORT),
+              Ok -> UI.showToast(R.string.AudioPinned, Toast.LENGTH_SHORT),
               UI::showError
             );
           }

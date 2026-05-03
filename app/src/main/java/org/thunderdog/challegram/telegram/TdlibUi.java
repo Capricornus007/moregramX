@@ -74,6 +74,7 @@ import org.thunderdog.challegram.navigation.SettingsWrap;
 import org.thunderdog.challegram.navigation.SettingsWrapBuilder;
 import org.thunderdog.challegram.navigation.TooltipOverlayView;
 import org.thunderdog.challegram.navigation.ViewController;
+import org.thunderdog.challegram.player.TGPlayerController;
 import org.thunderdog.challegram.theme.ColorId;
 import org.thunderdog.challegram.theme.PropertyId;
 import org.thunderdog.challegram.theme.Theme;
@@ -111,6 +112,7 @@ import org.thunderdog.challegram.ui.PasscodeController;
 import org.thunderdog.challegram.ui.PasscodeSetupController;
 import org.thunderdog.challegram.ui.PasswordController;
 import org.thunderdog.challegram.ui.PhoneController;
+import org.thunderdog.challegram.ui.PlaybackController;
 import org.thunderdog.challegram.ui.ProfileController;
 import org.thunderdog.challegram.ui.RequestController;
 import org.thunderdog.challegram.ui.SettingHolder;
@@ -7768,6 +7770,120 @@ public class TdlibUi extends Handler {
       String hint = TD.getPrivacyRulesString(context.tdlib(), TdApi.UserPrivacySettingShowBirthdate.CONSTRUCTOR, privacy);
       act.runWithData(hint);
     }));
+  }
+
+  private static final int PROFILE_AUDIO_LOAD_LIMIT = 100;
+
+  public void playProfileAudios (ViewController<?> origin, long userId) {
+    TdApi.UserFullInfo userFull = tdlib.cache().userFull(userId);
+    if (userFull == null || userFull.firstProfileAudio == null) {
+      return;
+    }
+    final ArrayList<TdApi.Message> messages = newProfileAudioMessages(
+      userId, new TdApi.Audio[] {userFull.firstProfileAudio}
+    );
+
+    final int[] loaderOffset = {messages.size()};
+    final TGPlayerController.PlayListLoader loader = (areNew, loadedCount, callback) -> {
+      if (!areNew) {
+        callback.onTracksLoaded(null, true);
+        return;
+      }
+
+      final int offset = loaderOffset[0];
+      tdlib.send(
+        new TdApi.GetUserProfileAudios(userId, offset, PROFILE_AUDIO_LOAD_LIMIT),
+        (audios, loadError) -> {
+          if (audios == null) {
+            callback.onTracksLoaded(null, true);
+            return;
+          }
+
+          ArrayList<TdApi.Message> moreMessages =
+            newProfileAudioMessages(userId, audios.audios);
+          moreMessages.removeIf(msg -> TD.getFileId(msg) == userFull.firstProfileAudio.audio.id);
+          loaderOffset[0] = offset + audios.audios.length;
+          callback.onTracksLoaded(
+            moreMessages,
+            areProfileAudiosEndReached(audios, loaderOffset[0])
+          );
+        }
+      );
+    };
+
+    final TGPlayerController.PlayListReorderHandler reorderHandler;
+    if (tdlib.isSelfUserId(userId)) {
+      final int[] lastKnownFirstFileId = {userFull.firstProfileAudio.audio.id};
+      reorderHandler = (track, afterFileId, currentFirstFileId) -> {
+        int trackFileId = TD.getFileId(track);
+        if (currentFirstFileId != lastKnownFirstFileId[0] && currentFirstFileId != trackFileId) {
+          tdlib.send(new TdApi.SetProfileAudioPosition(currentFirstFileId, 0), tdlib.typedOkHandler());
+          lastKnownFirstFileId[0] = currentFirstFileId;
+        }
+        tdlib.send(new TdApi.SetProfileAudioPosition(trackFileId, afterFileId), tdlib.typedOkHandler());
+        if (afterFileId == 0) {
+          lastKnownFirstFileId[0] = trackFileId;
+        }
+      };
+    } else {
+      reorderHandler = null;
+    }
+
+    TGPlayerController.PlayListBuilder builder = new TGPlayerController.PlayListBuilder() {
+      @Override
+      public TGPlayerController.PlayList buildPlayList (TdApi.Message fromMessage) {
+        for (int i = 0; i < messages.size(); i++) {
+          if (TGPlayerController.compareTracks(messages.get(i), fromMessage)) {
+            TGPlayerController.PlayList playList = new TGPlayerController.PlayList(new ArrayList<>(messages), i)
+              .setReachedEnds(false, true)
+              .setLoader(loader);
+            if (reorderHandler != null) {
+              playList.setReorderHandler(reorderHandler);
+            }
+            return playList;
+          }
+        }
+        return null;
+      }
+
+      @Override
+      public boolean wouldReusePlayList (TdApi.Message fromMessage, boolean isReverse,
+                                         boolean hasAltered, List<TdApi.Message> trackList,
+                                         long playListChatId) {
+        return false;
+      }
+    };
+
+    TGPlayerController player = tdlib.context().player();
+    TdApi.Message firstTrack = messages.get(0);
+
+    if (!TGPlayerController.compareTracks(player.getCurrentTrack(), firstTrack)) {
+      player.playPauseMessage(tdlib, firstTrack, builder);
+    } else if (reorderHandler != null) {
+      player.setPlayListReorderHandler(userId, reorderHandler);
+    }
+
+    PlaybackController c = new PlaybackController(origin.context(), tdlib);
+    if (c.prepare() != -1) {
+      origin.navigateTo(c);
+    }
+  }
+
+  private static ArrayList<TdApi.Message> newProfileAudioMessages (long userId, TdApi.Audio[] audios) {
+    ArrayList<TdApi.Message> messages = new ArrayList<>(audios.length);
+    for (TdApi.Audio audio : audios) {
+      messages.add(TD.newFakeMessage(
+        userId,
+        new TdApi.MessageSenderUser(userId),
+        new TdApi.MessageAudio(audio, new TdApi.FormattedText("", null))
+      ));
+    }
+    return messages;
+  }
+
+  private static boolean areProfileAudiosEndReached (TdApi.Audios audios, int loadedCount) {
+    return audios.audios.length < PROFILE_AUDIO_LOAD_LIMIT ||
+      (audios.totalCount > 0 && loadedCount >= audios.totalCount);
   }
 
   public void showBirthdatePicker (ViewController<?> controller, @Nullable TdApi.Birthdate currentBirthdate) {

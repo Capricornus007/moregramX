@@ -88,7 +88,6 @@ import org.thunderdog.challegram.navigation.StopwatchHeaderButton;
 import org.thunderdog.challegram.navigation.ViewController;
 import org.thunderdog.challegram.navigation.ViewPagerHeaderViewCompact;
 import org.thunderdog.challegram.navigation.ViewPagerTopView;
-import org.thunderdog.challegram.player.TGPlayerController;
 import org.thunderdog.challegram.support.RippleSupport;
 import org.thunderdog.challegram.support.ViewSupport;
 import org.thunderdog.challegram.telegram.ChatListener;
@@ -184,8 +183,6 @@ public class ProfileController extends ViewController<ProfileController.Args> im
   FactorAnimator.Target, ActivityResultHandler,
   DoneListener {
   // Constants
-
-  private static final int PROFILE_AUDIO_LOAD_LIMIT = 100;
 
   @Retention(RetentionPolicy.SOURCE)
   @IntDef({
@@ -5198,101 +5195,8 @@ public class ProfileController extends ViewController<ProfileController.Args> im
           return true;
         });
     } else if (viewId == R.id.btn_music) {
-      playProfileAudios();
+      tdlib.ui().playProfileAudios(this, user.id);
     }
-  }
-
-  private void playProfileAudios () {
-    if (userFull == null || userFull.firstProfileAudio == null) {
-      return;
-    }
-
-    final long userId = user.id;
-    final long chatId = chat != null ? chat.id : ChatId.fromUserId(userId);
-    final Tdlib currentTdlib = tdlib;
-
-    final ArrayList<TdApi.Message> messages = newProfileAudioMessages(
-      userId, chatId, new TdApi.Audio[] {userFull.firstProfileAudio}
-    );
-
-    final int[] loaderOffset = {messages.size()};
-    final TGPlayerController.PlayListLoader loader = (areNew, loadedCount, callback) -> {
-      if (!areNew) {
-        callback.onTracksLoaded(null, true);
-        return;
-      }
-
-      final int offset = loaderOffset[0];
-      currentTdlib.send(
-        new TdApi.GetUserProfileAudios(userId, offset, PROFILE_AUDIO_LOAD_LIMIT),
-        (audios, loadError) -> {
-          if (audios == null) {
-            callback.onTracksLoaded(null, true);
-            return;
-          }
-
-          ArrayList<TdApi.Message> moreMessages =
-            newProfileAudioMessages(userId, chatId, audios.audios);
-          loaderOffset[0] = offset + audios.audios.length;
-          callback.onTracksLoaded(
-            moreMessages,
-            areProfileAudiosEndReached(audios, loaderOffset[0])
-          );
-        }
-      );
-    };
-
-    TGPlayerController.PlayListBuilder builder = new TGPlayerController.PlayListBuilder() {
-      @Override
-      public TGPlayerController.PlayList buildPlayList (TdApi.Message fromMessage) {
-        for (int i = 0; i < messages.size(); i++) {
-          if (TGPlayerController.compareTracks(messages.get(i), fromMessage)) {
-            return new TGPlayerController.PlayList(messages, i)
-              .setReachedEnds(false, true)
-              .setLoader(loader);
-          }
-        }
-        return null;
-      }
-
-      @Override
-      public boolean wouldReusePlayList (TdApi.Message fromMessage, boolean isReverse,
-                                         boolean hasAltered, List<TdApi.Message> trackList,
-                                         long playListChatId) {
-        return false;
-      }
-    };
-
-    TGPlayerController player = currentTdlib.context().player();
-    TdApi.Message firstTrack = messages.get(0);
-
-    if (!TGPlayerController.compareTracks(player.getCurrentTrack(), firstTrack)) {
-      player.playPauseMessage(currentTdlib, firstTrack, builder);
-    }
-
-    PlaybackController c = new PlaybackController(context(), currentTdlib);
-    if (c.prepare() != -1) {
-      navigateTo(c);
-    }
-  }
-
-  private static ArrayList<TdApi.Message> newProfileAudioMessages (
-    long userId, long chatId, TdApi.Audio[] audios
-  ) {
-    ArrayList<TdApi.Message> messages = new ArrayList<>(audios.length);
-    for (TdApi.Audio audio : audios) {
-      messages.add(TD.newFakeMessage(
-        chatId,
-        new TdApi.MessageSenderUser(userId),
-        new TdApi.MessageAudio(audio, new TdApi.FormattedText("", null))
-      ));
-    }
-    return messages;
-  }
-
-  private static boolean areProfileAudiosEndReached (TdApi.Audios audios, int loadedCount) {
-    return audios.audios.length < PROFILE_AUDIO_LOAD_LIMIT ||
-      (audios.totalCount > 0 && loadedCount >= audios.totalCount);
   }
 
   private void convertToBroadcastGroup (View view) {

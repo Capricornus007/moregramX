@@ -92,4 +92,10 @@
   <string name="Ask">Ask</string>
   <string name="Platform">Platform</string>
   <string name="DcID">DC</string>
+  <string name="SaveMusicToProfile">Add to Profile</string>
+  <string name="AudioPinned">Audio added to Profile</string>
+  <string name="AudioAlreadyPinned">Audio is already pinned to Profile</string>
+  <string name="RemoveProfileAudio">Remove from Profile</string>
+  <string name="RemoveProfileAudioConfirm">Remove %1$s from your profile audio?</string>
+  <string name="AudioUnpinned">Audio removed from Profile</string>
 </resources>
