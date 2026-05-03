@@ -52,6 +52,7 @@ import org.thunderdog.challegram.theme.ThemeId;
 import org.thunderdog.challegram.theme.ThemeInfo;
 import org.thunderdog.challegram.theme.ThemeManager;
 import org.thunderdog.challegram.tool.Fonts;
+import org.thunderdog.challegram.tool.Screen;
 import org.thunderdog.challegram.tool.Strings;
 import org.thunderdog.challegram.tool.UI;
 import org.thunderdog.challegram.unsorted.Settings;
@@ -95,18 +96,26 @@ public class SettingsThemeController extends RecyclerViewController<SettingsThem
 
   public static class Args {
     private final int mode;
+    private int highlightItemId;
 
     public Args (int mode) {
       this.mode = mode;
     }
+
+    public Args setHighlightItemId (int highlightItemId) {
+      this.highlightItemId = highlightItemId;
+      return this;
+    }
   }
 
   private int mode = MODE_THEMES;
+  private int highlightItemId;
 
   @Override
   public void setArguments (Args args) {
     super.setArguments(args);
     this.mode = args.mode;
+    this.highlightItemId = args.highlightItemId;
   }
 
   @Override
@@ -1513,6 +1522,20 @@ public class SettingsThemeController extends RecyclerViewController<SettingsThem
   public void onFocus () {
     super.onFocus();
     context().checkNightMode();
+    if (highlightItemId != 0) {
+      int position = adapter.indexOfViewById(highlightItemId);
+      if (position != -1) {
+        ((LinearLayoutManager) getRecyclerView().getLayoutManager()).scrollToPositionWithOffset(position, Screen.dp(8f));
+        highlightItemId = 0;
+        getRecyclerView().postDelayed(() -> {
+          RecyclerView.ViewHolder holder = getRecyclerView().findViewHolderForAdapterPosition(position);
+          if (holder != null) {
+            holder.itemView.setPressed(true);
+            holder.itemView.postDelayed(() -> holder.itemView.setPressed(false), 440);
+          }
+        }, 300);
+      }
+    }
   }
 
   private void editTheme (ThemeInfo theme, boolean add) {
