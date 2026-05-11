@@ -73,4 +73,5 @@
   <item name="askRoundVideo" type="id"/>
   <item name="btn_pinAudioProfile" type="id" />
   <item name="btn_removeProfileAudio" type="id" />
+  <item name="btn_proxyDisableOnVpn" type="id" />
 </resources>

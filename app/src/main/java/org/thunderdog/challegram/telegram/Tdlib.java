@@ -334,6 +334,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
         startup = new TdApi.SetAlarm(0);
       }
       client.send(startup, (result) -> {
+        boolean bypassForVpn = MoexConfig.shouldBypassProxyForVpn();
         if (result.getConstructor() == TdApi.Proxies.CONSTRUCTOR) {
           TdApi.Proxy[] proxies = ((TdApi.Proxies) result).proxies;
           boolean foundEnabledProxy = false;
@@ -346,17 +347,21 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
             int proxyId = Settings.instance().addOrUpdateProxy(proxyDetails, null, proxy.isEnabled);
             if (proxy.isEnabled) {
               tdlib.setEffectiveProxyId(proxyId);
-              tdlib.setProxy(proxyId, proxyDetails);
+              if (!bypassForVpn) {
+                tdlib.setProxy(proxyId, proxyDetails);
+              }
               foundEnabledProxy = true;
             }
           }
           if (!foundEnabledProxy) {
             tdlib.setEffectiveProxyId(Settings.PROXY_ID_NONE);
+          } else if (bypassForVpn) {
+            tdlib.disableProxy();
           }
         } else {
           int proxyId = Settings.instance().getEffectiveProxyId();
           Settings.Proxy proxy = Settings.instance().getProxyConfig(proxyId);
-          if (proxy != null) {
+          if (proxy != null && !bypassForVpn) {
             tdlib.setProxy(proxyId, proxy.proxy);
           } else {
             tdlib.disableProxy();

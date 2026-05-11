@@ -1,8 +1,14 @@
 package moe.kirao.mgx.utils;
 
+import android.annotation.TargetApi;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
+import android.net.NetworkInfo;
+import android.net.NetworkRequest;
 import android.net.Uri;
 import android.os.Build;
 import android.util.Base64;
@@ -190,5 +196,58 @@ public class SystemUtils {
       }
     }
     return out.toByteArray();
+  }
+
+  public static boolean isVpnActive () {
+    try {
+      ConnectivityManager cm = (ConnectivityManager) UI.getAppContext().getSystemService(Context.CONNECTIVITY_SERVICE);
+      if (cm == null) {
+        return false;
+      }
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        Network network = cm.getActiveNetwork();
+        if (network == null) {
+          return false;
+        }
+        NetworkCapabilities caps = cm.getNetworkCapabilities(network);
+        return caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN);
+      } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+        NetworkInfo info = cm.getActiveNetworkInfo();
+        return info != null && info.getType() == ConnectivityManager.TYPE_VPN;
+      }
+    } catch (Throwable t) {
+      Log.e("Unable to detect VPN", t);
+    }
+    return false;
+  }
+
+  @TargetApi(Build.VERSION_CODES.LOLLIPOP)
+  public static void registerVpnStateListener (Runnable onChanged) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
+      return;
+    }
+    try {
+      ConnectivityManager cm = (ConnectivityManager) UI.getAppContext().getSystemService(Context.CONNECTIVITY_SERVICE);
+      if (cm == null) {
+        return;
+      }
+      NetworkRequest request = new NetworkRequest.Builder()
+        .addTransportType(NetworkCapabilities.TRANSPORT_VPN)
+        .removeCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
+        .build();
+      cm.registerNetworkCallback(request, new ConnectivityManager.NetworkCallback() {
+        @Override
+        public void onAvailable (Network network) {
+          UI.post(onChanged);
+        }
+
+        @Override
+        public void onLost (Network network) {
+          UI.post(onChanged);
+        }
+      });
+    } catch (Throwable t) {
+      Log.e("Unable to register VPN state listener", t);
+    }
   }
 }

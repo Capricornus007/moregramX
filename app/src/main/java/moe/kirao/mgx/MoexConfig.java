@@ -17,6 +17,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import me.vkryl.core.reference.ReferenceList;
 import me.vkryl.leveldb.LevelDB;
+import moe.kirao.mgx.utils.SystemUtils;
 
 public class MoexConfig {
 
@@ -54,6 +55,8 @@ public class MoexConfig {
   public static final String KEY_CHAT_QUICK_FEATURED = "quick_featured";
 
   public static final String KEY_ROUND_VIDEOS = "round_videos";
+  public static final String KEY_DISABLE_PROXY_ON_VPN = "disable_proxy_on_vpn";
+
   public static final int START_WITH_FRONT = 0;
   public static final int START_WITH_REAR = 1;
   public static final int START_WITH_ASK = 2;
@@ -87,6 +90,7 @@ public class MoexConfig {
   public static boolean silentMessage = instance().getBoolean(KEY_SILENT_MESSAGE, false);
   public static boolean quickEdit = instance().getBoolean(KEY_CHAT_QUICK_EDIT, false);
   public static boolean quickFeatured = instance().getBoolean(KEY_CHAT_QUICK_FEATURED, false);
+  public static boolean disableProxyOnVpn = instance().getBoolean(KEY_DISABLE_PROXY_ON_VPN, false);
 
   private MoexConfig () {
     File configDir = new File(UI.getAppContext().getFilesDir(), "moexconf");
@@ -373,4 +377,12 @@ public class MoexConfig {
     putInt(KEY_ROUND_VIDEOS, value);
   }
 
+  public void toggleDisableProxyOnVpn () {
+    putBoolean(KEY_DISABLE_PROXY_ON_VPN, disableProxyOnVpn ^= true);
+    notifyClientListeners(KEY_DISABLE_PROXY_ON_VPN, disableProxyOnVpn, !disableProxyOnVpn);
+  }
+
+  public static boolean shouldBypassProxyForVpn () {
+    return disableProxyOnVpn && SystemUtils.isVpnActive();
+  }
 }

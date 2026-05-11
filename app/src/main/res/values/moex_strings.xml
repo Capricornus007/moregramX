@@ -98,4 +98,6 @@
   <string name="RemoveProfileAudio">Remove from Profile</string>
   <string name="RemoveProfileAudioConfirm">Remove %1$s from your profile audio?</string>
   <string name="AudioUnpinned">Audio removed from Profile</string>
+  <string name="ProxyDisableOnVpn">Disable while system VPN is active</string>
+  <string name="ProxyDisableOnVpnHint">When a system VPN is connected, route Telegram traffic through it instead of the proxy. The proxy is restored automatically once the VPN is disconnected.</string>
 </resources>
