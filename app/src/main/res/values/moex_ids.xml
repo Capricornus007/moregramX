@@ -74,4 +74,9 @@
   <item name="btn_pinAudioProfile" type="id" />
   <item name="btn_removeProfileAudio" type="id" />
   <item name="btn_proxyDisableOnVpn" type="id" />
+  <item name="btn_autoPauseMedia" type="id" />
+  <item name="autoPauseTypeVoice" type="id" />
+  <item name="autoPauseTypeRound" type="id" />
+  <item name="autoPauseTypeVideo" type="id" />
+  <item name="btn_autoPauseResume" type="id" />
 </resources>

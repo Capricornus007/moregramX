@@ -61,10 +61,16 @@ import me.vkryl.android.AnimatorUtils;
 import me.vkryl.android.animator.FactorAnimator;
 import me.vkryl.core.ArrayUtils;
 import me.vkryl.core.MathUtils;
+import moe.kirao.mgx.MoexConfig;
+import moe.kirao.mgx.utils.AudioFocusHelper;
 import tgx.td.Td;
 
 public class AudioController extends BasePlaybackController implements TGAudio.PlayListener, TGPlayerController.TrackListChangeListener, FactorAnimator.Target {
   private final TdlibManager context;
+
+  private final AudioFocusHelper voiceFocus = new AudioFocusHelper(
+    MoexConfig.AUTO_PAUSE_MEDIA_VOICE,
+    () -> TdlibManager.instance().player().playPauseCurrent(false));
 
   public AudioController (TdlibManager context, TGPlayerController controller) {
     this.context = context;
@@ -192,6 +198,7 @@ public class AudioController extends BasePlaybackController implements TGAudio.P
 
   @Override
   protected void finishPlayback (Tdlib tdlib, TdApi.Message message, boolean byUserRequest) {
+    voiceFocus.abandon();
     switch (playbackMode) {
       case PLAYBACK_MODE_LEGACY: {
         Media.instance().stopAudio();
@@ -256,6 +263,13 @@ public class AudioController extends BasePlaybackController implements TGAudio.P
 
   @Override
   protected void playPause (boolean isPlaying) {
+    if (isPlaying) {
+      if (isPlayingVoice()) {
+        voiceFocus.request();
+      }
+    } else {
+      voiceFocus.abandon();
+    }
     switch (playbackMode) {
       case PLAYBACK_MODE_LEGACY: {
         if (isPlaying) {
@@ -278,6 +292,11 @@ public class AudioController extends BasePlaybackController implements TGAudio.P
   protected void startPlayback (Tdlib tdlib, TdApi.Message message, boolean byUserRequest, boolean hadObject, Tdlib previousTdlib, int previousFileId) {
     if (playbackMode == PLAYBACK_MODE_UNSET) {
       setPlaybackMode(determineBestPlaybackMode(Td.isVoiceNote(message.content)), Td.isAudio(message.content));
+    }
+    if (Td.isVoiceNote(message.content)) {
+      voiceFocus.request();
+    } else {
+      voiceFocus.abandon();
     }
     Log.i(Log.TAG_PLAYER, "startPlayback mode:%d byUserRequest:%b, hadObject:%b, previousFileId:%d", playbackMode, byUserRequest, hadObject, previousFileId);
     switch (playbackMode) {

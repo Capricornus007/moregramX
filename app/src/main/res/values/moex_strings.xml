@@ -100,4 +100,7 @@
   <string name="AudioUnpinned">Audio removed from Profile</string>
   <string name="ProxyDisableOnVpn">Disable while system VPN is active</string>
   <string name="ProxyDisableOnVpnHint">When a system VPN is connected, route Telegram traffic through it instead of the proxy. The proxy is restored automatically once the VPN is disconnected.</string>
+  <string name="AutoPauseMedia">Pause system media</string>
+  <string name="AutoPauseMediaHint">Briefly pause music or other audio from other apps while a voice message, round video, or video plays in moeGramX.</string>
+  <string name="AutoPauseMediaResume">Resume after playback</string>
 </resources>

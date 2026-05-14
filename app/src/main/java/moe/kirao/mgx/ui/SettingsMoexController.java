@@ -107,6 +107,8 @@ public class SettingsMoexController extends RecyclerViewController<SettingsMoexC
     } else if (viewId == R.id.btn_blurDrawer) {
       MoexConfig.instance().toggleBlurDrawer();
       adapter.updateValuedSettingById(viewId);
+    } else if (viewId == R.id.btn_autoPauseMedia) {
+      showAutoPauseTypeOptions();
     } else if (viewId == R.id.btn_headerText) {
       showHeaderTextOptions();
     } else if (viewId == R.id.btn_disableReactions) {
@@ -224,6 +226,28 @@ public class SettingsMoexController extends RecyclerViewController<SettingsMoexC
     }));
   }
 
+  private void showAutoPauseTypeOptions () {
+    int flags = MoexConfig.instance().getAutoPauseMediaTypes();
+    showSettings(new SettingsWrapBuilder(R.id.btn_autoPauseMedia).setNeedSeparators(false).setRawItems(new ListItem[] {
+      new ListItem(ListItem.TYPE_CHECKBOX_OPTION, R.id.btn_autoPauseResume, 0, R.string.AutoPauseMediaResume, R.id.btn_autoPauseResume, MoexConfig.autoPauseResumeSystemPlayback),
+      new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
+      new ListItem(ListItem.TYPE_SHADOW_TOP),
+      new ListItem(ListItem.TYPE_CHECKBOX_OPTION, R.id.autoPauseTypeVoice, 0, R.string.VoiceMessages, R.id.autoPauseTypeVoice, (flags & MoexConfig.AUTO_PAUSE_MEDIA_VOICE) != 0),
+      new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+      new ListItem(ListItem.TYPE_CHECKBOX_OPTION, R.id.autoPauseTypeRound, 0, R.string.VideoMessages, R.id.autoPauseTypeRound, (flags & MoexConfig.AUTO_PAUSE_MEDIA_ROUND) != 0),
+      new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+      new ListItem(ListItem.TYPE_CHECKBOX_OPTION, R.id.autoPauseTypeVideo, 0, R.string.Videos, R.id.autoPauseTypeVideo, (flags & MoexConfig.AUTO_PAUSE_MEDIA_VIDEO) != 0),
+    }).setIntDelegate((id, result) -> {
+      int newFlags = 0;
+      if (result.get(R.id.autoPauseTypeVoice) == R.id.autoPauseTypeVoice) newFlags |= MoexConfig.AUTO_PAUSE_MEDIA_VOICE;
+      if (result.get(R.id.autoPauseTypeRound) == R.id.autoPauseTypeRound) newFlags |= MoexConfig.AUTO_PAUSE_MEDIA_ROUND;
+      if (result.get(R.id.autoPauseTypeVideo) == R.id.autoPauseTypeVideo) newFlags |= MoexConfig.AUTO_PAUSE_MEDIA_VIDEO;
+      MoexConfig.instance().setAutoPauseMediaTypes(newFlags);
+      MoexConfig.instance().setAutoPauseResumeSystemPlayback(result.get(R.id.btn_autoPauseResume) == R.id.btn_autoPauseResume);
+      adapter.updateValuedSettingById(R.id.btn_autoPauseMedia);
+    }));
+  }
+
   private void showRoundVideoCameraOptions () {
     int selected = MoexConfig.instance().getRoundVideos();
     showSettings(new SettingsWrapBuilder(R.id.btn_rearRounds).setRawItems(new ListItem[] {
@@ -294,6 +318,23 @@ public class SettingsMoexController extends RecyclerViewController<SettingsMoexC
           view.getToggler().setRadioEnabled(MoexConfig.squareAvatar, isUpdate);
         } else if (itemId == R.id.btn_blurDrawer) {
           view.getToggler().setRadioEnabled(MoexConfig.blurDrawer, isUpdate);
+        } else if (itemId == R.id.btn_autoPauseMedia) {
+          int flags = MoexConfig.instance().getAutoPauseMediaTypes();
+          view.getToggler().setRadioEnabled(flags != 0, isUpdate);
+          if (flags == MoexConfig.AUTO_PAUSE_MEDIA_ALL) {
+            view.setData(R.string.AllMedia);
+          } else if (flags == 0) {
+            view.setData(R.string.Off);
+          } else {
+            StringBuilder sb = new StringBuilder();
+            if ((flags & MoexConfig.AUTO_PAUSE_MEDIA_VOICE) != 0)
+              sb.append(Lang.getString(R.string.VoiceMessages));
+            if ((flags & MoexConfig.AUTO_PAUSE_MEDIA_ROUND) != 0)
+              sb.append(sb.length() > 0 ? ", " : "").append(Lang.getString(R.string.VideoMessages));
+            if ((flags & MoexConfig.AUTO_PAUSE_MEDIA_VIDEO) != 0)
+              sb.append(sb.length() > 0 ? ", " : "").append(Lang.getString(R.string.Videos));
+            view.setData(sb.toString());
+          }
         } else if (itemId == R.id.btn_headerText) {
           int mode = MoexConfig.instance().getHeaderText();
           switch (mode) {
@@ -429,6 +470,12 @@ public class SettingsMoexController extends RecyclerViewController<SettingsMoexC
         items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_typingInstead, 0, R.string.TypingInstead));
         items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
         items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, Lang.getMarkdownString(this, R.string.TypingInsteadInfo), false));
+
+        items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.AutoPauseMedia));
+        items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
+        items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT_WITH_TOGGLER, R.id.btn_autoPauseMedia, 0, R.string.AutoPauseMedia));
+        items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
+        items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.AutoPauseMediaHint));
         break;
       case CATEGORY_MISC:
         items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.ExperimentalOptions));

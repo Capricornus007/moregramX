@@ -56,10 +56,18 @@ public class MoexConfig {
 
   public static final String KEY_ROUND_VIDEOS = "round_videos";
   public static final String KEY_DISABLE_PROXY_ON_VPN = "disable_proxy_on_vpn";
+  public static final String KEY_AUTO_PAUSE_MEDIA_TYPES = "auto_pause_media_types";
+  public static final String KEY_AUTO_PAUSE_RESUME = "auto_pause_resume_system_playback";
 
   public static final int START_WITH_FRONT = 0;
   public static final int START_WITH_REAR = 1;
   public static final int START_WITH_ASK = 2;
+
+  public static final int AUTO_PAUSE_MEDIA_VOICE = 1;
+  public static final int AUTO_PAUSE_MEDIA_ROUND = 1 << 1;
+  public static final int AUTO_PAUSE_MEDIA_VIDEO = 1 << 2;
+  public static final int AUTO_PAUSE_MEDIA_ALL =
+    AUTO_PAUSE_MEDIA_VOICE | AUTO_PAUSE_MEDIA_ROUND | AUTO_PAUSE_MEDIA_VIDEO;
 
   public static final int SIZE_LIMIT_800 = 0;
   public static final int SIZE_LIMIT_1280 = 1;
@@ -91,6 +99,7 @@ public class MoexConfig {
   public static boolean quickEdit = instance().getBoolean(KEY_CHAT_QUICK_EDIT, false);
   public static boolean quickFeatured = instance().getBoolean(KEY_CHAT_QUICK_FEATURED, false);
   public static boolean disableProxyOnVpn = instance().getBoolean(KEY_DISABLE_PROXY_ON_VPN, false);
+  public static boolean autoPauseResumeSystemPlayback = instance().getBoolean(KEY_AUTO_PAUSE_RESUME, false);
 
   private MoexConfig () {
     File configDir = new File(UI.getAppContext().getFilesDir(), "moexconf");
@@ -384,5 +393,22 @@ public class MoexConfig {
 
   public static boolean shouldBypassProxyForVpn () {
     return disableProxyOnVpn && SystemUtils.isVpnActive();
+  }
+
+  public int getAutoPauseMediaTypes () {
+    return getInt(KEY_AUTO_PAUSE_MEDIA_TYPES, 0);
+  }
+
+  public void setAutoPauseMediaTypes (int flags) {
+    putInt(KEY_AUTO_PAUSE_MEDIA_TYPES, flags);
+  }
+
+  public static boolean shouldAutoPauseFor (int mediaType) {
+    return (instance().getAutoPauseMediaTypes() & mediaType) != 0;
+  }
+
+  public void setAutoPauseResumeSystemPlayback (boolean value) {
+    autoPauseResumeSystemPlayback = value;
+    putBoolean(KEY_AUTO_PAUSE_RESUME, value);
   }
 }

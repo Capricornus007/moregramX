@@ -204,28 +204,19 @@ public class SystemUtils {
       if (cm == null) {
         return false;
       }
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-        Network network = cm.getActiveNetwork();
-        if (network == null) {
-          return false;
-        }
-        NetworkCapabilities caps = cm.getNetworkCapabilities(network);
-        return caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN);
-      } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-        NetworkInfo info = cm.getActiveNetworkInfo();
-        return info != null && info.getType() == ConnectivityManager.TYPE_VPN;
+      Network network = cm.getActiveNetwork();
+      if (network == null) {
+        return false;
       }
+      NetworkCapabilities caps = cm.getNetworkCapabilities(network);
+      return caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN);
     } catch (Throwable t) {
       Log.e("Unable to detect VPN", t);
     }
     return false;
   }
 
-  @TargetApi(Build.VERSION_CODES.LOLLIPOP)
   public static void registerVpnStateListener (Runnable onChanged) {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
-      return;
-    }
     try {
       ConnectivityManager cm = (ConnectivityManager) UI.getAppContext().getSystemService(Context.CONNECTIVITY_SERVICE);
       if (cm == null) {
