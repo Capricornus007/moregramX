@@ -26,6 +26,7 @@ import android.os.SystemClock;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.TextUtils;
+import android.text.style.ClickableSpan;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
@@ -137,7 +138,10 @@ import org.thunderdog.challegram.util.CustomTypefaceSpan;
 import org.thunderdog.challegram.util.HapticMenuHelper;
 import org.thunderdog.challegram.util.OptionDelegate;
 import org.thunderdog.challegram.util.StringList;
+import org.thunderdog.challegram.navigation.OptionsLayout;
 import org.thunderdog.challegram.util.text.Text;
+import org.thunderdog.challegram.util.text.TextEntity;
+import org.thunderdog.challegram.util.text.TextEntityCustom;
 import org.thunderdog.challegram.voip.VoIPLogs;
 import org.thunderdog.challegram.widget.CheckBoxView;
 import org.thunderdog.challegram.widget.ForceTouchView;
@@ -182,6 +186,7 @@ import me.vkryl.core.lambda.RunnableData;
 import me.vkryl.core.lambda.RunnableLong;
 import me.vkryl.core.unit.ByteUnit;
 import me.vkryl.core.util.ConditionalExecutor;
+import moe.kirao.mgx.utils.NetworkUtils;
 import tgx.td.ChatId;
 import tgx.td.ChatPosition;
 import tgx.td.MessageId;
@@ -3557,7 +3562,7 @@ public class TdlibUi extends Handler {
       }
       case TdApi.InternalLinkTypeProxy.CONSTRUCTOR: {
         TdApi.InternalLinkTypeProxy proxy = (TdApi.InternalLinkTypeProxy) linkType;
-        openProxyAlert(context, proxy.server, proxy.port, proxy.type, newProxyDescription(proxy.server, Integer.toString(proxy.port)).toString());
+        openProxyAlert(context, proxy.server, proxy.port, proxy.type);
         break;
       }
       case TdApi.InternalLinkTypeUnsupportedProxy.CONSTRUCTOR: {
@@ -3924,25 +3929,6 @@ public class TdlibUi extends Handler {
     }
   }
 
-  public static StringBuilder newProxyDescription (String server, String port) {
-    StringBuilder desc = new StringBuilder("<b>");
-    desc.append(Lang.getString(R.string.UseProxyServer));
-    desc.append(":</b> ");
-    desc.append(server);
-    desc.append("<br/><b>");
-    desc.append(Lang.getString(R.string.UseProxyPort));
-    desc.append(":</b> ");
-    desc.append(port);
-    return desc;
-  }
-
-  private static void addProxyField (StringBuilder desc, String name, String value) {
-    desc.append("<br/><b>");
-    desc.append(name);
-    desc.append(":</b> ");
-    desc.append(value);
-  }
-
   public void showUrlOptions (TdlibDelegate context, String url, Future<UrlOpenParameters> openParametersFuture) {
     ViewController<?> c = context.context().navigation().getCurrentStackItem();
     if (c == null)
@@ -3972,51 +3958,142 @@ public class TdlibUi extends Handler {
     });
   }
 
-  public void openProxyAlert (TdlibDelegate context, String server, int port, TdApi.ProxyType type, String proxyDescription) {
+  public void openProxyAlert (TdlibDelegate context, String server, int port, TdApi.ProxyType type) {
     ViewController<?> c = context.context().navigation().getCurrentStackItem();
-    if (c == null)
-      return;
+    if (c == null) return;
 
-    final SpannableStringBuilder msg = Strings.buildHtml(proxyDescription);
-    msg.insert(0, "\n\n");
-    String title = Lang.getString(R.string.EnableProxyAlertTitle);
-    msg.insert(0, title);
-    msg.setSpan(TD.newBoldSpan(title), 0, title.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-    msg.append("\n\n");
-    msg.append(Lang.getString(R.string.EnableProxyAlertHint));
-    if (type.getConstructor() == TdApi.ProxyTypeMtproto.CONSTRUCTOR) {
-      msg.append("\n\n");
-      msg.append(Lang.getString(R.string.EnableProxyAlertHintMtproto));
+    final String[] country = {Lang.getString(R.string.LoadingMessageSeen)};
+    final int[] status = {0};
+    final long[] pingMs = {0};
+    final OptionsLayout[] layout = {null};
+    final Runnable[] refresh = {null};
+
+    refresh[0] = () -> {
+      if (layout[0] == null) return;
+      String text = buildProxyAlertText(server, port, type, country[0], status[0], pingMs[0]);
+      layout[0].setInfo(text, buildProxyAlertEntities(c, text, status[0], () -> {
+        if (status[0] == 1) return;
+        status[0] = 1;
+        refresh[0].run();
+        pingProxyProbe(c.tdlib(), server, port, type, ms -> UI.post(() -> {
+          pingMs[0] = ms;
+          status[0] = ms >= 0 ? 2 : 3;
+          refresh[0].run();
+        }));
+      }), false, Text.LINE_COUNT_UNLIMITED);
+    };
+
+    String initialText = buildProxyAlertText(server, port, type, country[0], status[0], pingMs[0]);
+    SpannableStringBuilder initialInfo = new SpannableStringBuilder(initialText);
+    String alertTitle = Lang.getString(R.string.EnableProxyAlertTitle);
+    initialInfo.setSpan(TD.newBoldSpan(alertTitle), 0, alertTitle.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+    for (int labelId : PROXY_ALERT_LABEL_IDS) {
+      String label = Lang.getString(labelId) + ":";
+      int idx = initialText.indexOf(label);
+      if (idx >= 0) initialInfo.setSpan(TD.newBoldSpan(label), idx, idx + label.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
     }
-    IntList ids = new IntList(3);
-    StringList strings = new StringList(3);
-    IntList icons = new IntList(3);
-    IntList colors = new IntList(3);
+    initialInfo.append('\u200B');
+    PopupLayout popup = c.showOptions(initialInfo,
+      new int[] {R.id.btn_addProxy, R.id.btn_save, R.id.btn_cancel},
+      new String[] {Lang.getString(R.string.ProxyEnable), Lang.getString(R.string.ProxySaveForLater), Lang.getString(R.string.Cancel)},
+      new int[] {ViewController.OptionColor.BLUE, ViewController.OptionColor.NORMAL, ViewController.OptionColor.NORMAL},
+      new int[] {R.drawable.baseline_security_24, R.drawable.baseline_playlist_add_24, R.drawable.baseline_cancel_24},
+      (itemView, id) -> {
+        if (id == R.id.btn_addProxy) {
+          Settings.instance().addOrUpdateProxy(new TdApi.InternalLinkTypeProxy(server, port, type), null, true);
+        } else if (id == R.id.btn_save) {
+          Settings.instance().addOrUpdateProxy(new TdApi.InternalLinkTypeProxy(server, port, type), null, false);
+        }
+        return true;
+      });
+    if (popup == null || !(popup.getContentChild() instanceof OptionsLayout)) return;
+    layout[0] = (OptionsLayout) popup.getContentChild();
+    refresh[0].run();
+    popup.setDismissListener(p -> layout[0] = null);
 
-    ids.append(R.id.btn_addProxy);
-    strings.append(R.string.ProxyEnable);
-    icons.append(R.drawable.baseline_security_24);
-    colors.append(ViewController.OptionColor.BLUE);
-
-    ids.append(R.id.btn_save);
-    strings.append(R.string.ProxySaveForLater);
-    icons.append(R.drawable.baseline_playlist_add_24);
-    colors.append(ViewController.OptionColor.NORMAL);
-
-    ids.append(R.id.btn_cancel);
-    strings.append(R.string.Cancel);
-    icons.append(R.drawable.baseline_cancel_24);
-    colors.append(ViewController.OptionColor.NORMAL);
-
-    c.showOptions(msg, ids.get(), strings.get(), colors.get(), icons.get(), (itemView, id) -> {
-      if (id == R.id.btn_addProxy) {
-        Settings.instance().addOrUpdateProxy(new TdApi.InternalLinkTypeProxy(server, port, type), null, true);
-      } else if (id == R.id.btn_save) {
-        Settings.instance().addOrUpdateProxy(new TdApi.InternalLinkTypeProxy(server, port, type), null, false);
-      }
-      return true;
+    Background.instance().post(() -> {
+      String resolved = NetworkUtils.resolveCountryForHost(server);
+      UI.post(() -> {
+        country[0] = !StringUtils.isEmpty(resolved) ? resolved : Lang.getString(R.string.SessionLocationUnknown);
+        refresh[0].run();
+      });
     });
   }
+
+  private static void pingProxyProbe (Tdlib tdlib, String server, int port, TdApi.ProxyType type, RunnableLong onResult) {
+    tdlib.client().send(new TdApi.AddProxy(server, port, false, type), addResult -> {
+      if (addResult.getConstructor() != TdApi.Proxy.CONSTRUCTOR) {
+        onResult.runWithLong(-1);
+        return;
+      }
+      int tdlibProxyId = ((TdApi.Proxy) addResult).id;
+      tdlib.client().send(new TdApi.PingProxy(tdlibProxyId), pingResult -> {
+        long ms = pingResult.getConstructor() == TdApi.Seconds.CONSTRUCTOR
+          ? Math.round(((TdApi.Seconds) pingResult).seconds * 1000.0)
+          : -1;
+        tdlib.client().send(new TdApi.RemoveProxy(tdlibProxyId), tdlib.okHandler());
+        onResult.runWithLong(ms);
+      });
+    });
+  }
+
+  private static final int[] PROXY_ALERT_LABEL_IDS = {R.string.ProxyAlertType, R.string.Country, R.string.UseProxyServer, R.string.UseProxyPort, R.string.ProxyAlertStatus};
+
+  private static String mtprotoSecretLabel (String secret) {
+    boolean hex = !StringUtils.isEmpty(secret) && secret.length() % 2 == 0 && secret.matches("[0-9a-fA-F]+");
+    if (!hex) return Lang.getString(R.string.ProxyMtprotoFakeTls);
+    return secret.length() == 34 && secret.regionMatches(true, 0, "dd", 0, 2)
+      ? Lang.getString(R.string.ProxyMtprotoSecure)
+      : Lang.getString(R.string.ProxyMtprotoPlain);
+  }
+
+  private static String buildProxyAlertText (String server, int port, TdApi.ProxyType type, String country, int status, long pingMs) {
+    String typeName = type == null ? "" :
+      type.getConstructor() == TdApi.ProxyTypeMtproto.CONSTRUCTOR ? Lang.getString(R.string.ProxyMtproto, mtprotoSecretLabel(((TdApi.ProxyTypeMtproto) type).secret)) :
+      type.getConstructor() == TdApi.ProxyTypeSocks5.CONSTRUCTOR ? Lang.getString(R.string.Socks5Proxy) :
+      type.getConstructor() == TdApi.ProxyTypeHttp.CONSTRUCTOR ? Lang.getString(R.string.HttpProxy) : "";
+    String statusValue;
+    switch (status) {
+      case 1: statusValue = Lang.getString(R.string.ProxyChecking); break;
+      case 2: statusValue = Lang.getString(R.string.ProxyAvailable, Lang.getString(R.string.format_ping, Strings.buildCounter(pingMs))); break;
+      case 3: statusValue = Lang.getString(R.string.ProxyError); break;
+      default: statusValue = Lang.getString(R.string.ProxyAlertCheck);
+    }
+    StringBuilder sb = new StringBuilder(Lang.getString(R.string.EnableProxyAlertTitle)).append("\n\n");
+    sb.append(Lang.getString(R.string.ProxyAlertType)).append(": ").append(typeName).append('\n');
+    sb.append(Lang.getString(R.string.Country)).append(": ").append(country).append('\n');
+    sb.append(Lang.getString(R.string.UseProxyServer)).append(": ").append(server).append('\n');
+    sb.append(Lang.getString(R.string.UseProxyPort)).append(": ").append(port).append('\n');
+    sb.append(Lang.getString(R.string.ProxyAlertStatus)).append(": ").append(statusValue);
+    sb.append("\n\n").append(Lang.getString(R.string.EnableProxyAlertHint));
+    if (type != null && type.getConstructor() == TdApi.ProxyTypeMtproto.CONSTRUCTOR) {
+      sb.append("\n\n").append(Lang.getString(R.string.EnableProxyAlertHintMtproto));
+    }
+    return sb.toString();
+  }
+
+  private static TextEntity[] buildProxyAlertEntities (ViewController<?> c, String text, int status, Runnable onCheck) {
+    java.util.List<TextEntity> entities = new java.util.ArrayList<>();
+    String title = Lang.getString(R.string.EnableProxyAlertTitle);
+    entities.add(new TextEntityCustom(c, c.tdlib(), text, 0, title.length(), TextEntityCustom.FLAG_BOLD, null));
+    for (int labelId : PROXY_ALERT_LABEL_IDS) {
+      String label = Lang.getString(labelId) + ":";
+      int idx = text.indexOf(label);
+      if (idx >= 0) entities.add(new TextEntityCustom(c, c.tdlib(), text, idx, idx + label.length(), TextEntityCustom.FLAG_BOLD, null));
+    }
+    if (status == 0 && onCheck != null) {
+      String check = Lang.getString(R.string.ProxyAlertCheck);
+      String statusLabel = Lang.getString(R.string.ProxyAlertStatus) + ":";
+      int statusIdx = text.indexOf(statusLabel);
+      int idx = text.indexOf(check, statusIdx >= 0 ? statusIdx + statusLabel.length() : 0);
+      if (idx >= 0) {
+        entities.add(new TextEntityCustom(c, c.tdlib(), text, idx, idx + check.length(), TextEntityCustom.FLAG_CLICKABLE, null)
+          .setOnClickListener(new ClickableSpan() { @Override public void onClick (@NonNull View widget) { onCheck.run(); } }));
+      }
+    }
+    return entities.toArray(new TextEntity[0]);
+  }
+
 
   // Delete account on server
 
@@ -4215,7 +4292,7 @@ public class TdlibUi extends Handler {
             if (result.getConstructor() == TdApi.InternalLinkTypeProxy.CONSTRUCTOR) {
               post(() -> {
                 TdApi.InternalLinkTypeProxy proxy = (TdApi.InternalLinkTypeProxy) result;
-                openProxyAlert(context, proxy.server, proxy.port, proxy.type, TdlibUi.newProxyDescription(proxy.server, Integer.toString(proxy.port)).toString());
+                openProxyAlert(context, proxy.server, proxy.port, proxy.type);
               });
             }
           });

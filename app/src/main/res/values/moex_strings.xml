@@ -103,4 +103,10 @@
   <string name="AutoPauseMedia">Pause system media</string>
   <string name="AutoPauseMediaHint">Briefly pause music or other audio from other apps while a voice message, round video, or video plays in moeGramX.</string>
   <string name="AutoPauseMediaResume">Resume after playback</string>
+  <string name="ProxyAlertType">Proxy type</string>
+  <string name="ProxyAlertStatus">Status</string>
+  <string name="ProxyAlertCheck">check</string>
+  <string name="ProxyMtprotoFakeTls" translatable="false">(FakeTLS)</string>
+  <string name="ProxyMtprotoSecure" translatable="false">(secure)</string>
+  <string name="ProxyMtprotoPlain" translatable="false">(plain)</string>
 </resources>
