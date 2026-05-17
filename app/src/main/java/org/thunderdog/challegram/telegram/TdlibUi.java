@@ -187,6 +187,7 @@ import me.vkryl.core.lambda.RunnableLong;
 import me.vkryl.core.unit.ByteUnit;
 import me.vkryl.core.util.ConditionalExecutor;
 import moe.kirao.mgx.utils.NetworkUtils;
+import moe.kirao.mgx.utils.RecentChannelsTracker;
 import tgx.td.ChatId;
 import tgx.td.ChatPosition;
 import tgx.td.MessageId;
@@ -2272,6 +2273,8 @@ public class TdlibUi extends Handler {
     if (view.getParent() != null) {
       ((ViewGroup) view.getParent()).removeView(controller.getValue());
     }
+
+    RecentChannelsTracker.onChatOpened(tdlib, chat.id);
 
     if (navigation.isEmpty()) {
       navigation.initController(controller);

@@ -79,4 +79,5 @@
   <item name="autoPauseTypeRound" type="id" />
   <item name="autoPauseTypeVideo" type="id" />
   <item name="btn_autoPauseResume" type="id" />
+  <item name="btn_recentChannel" type="id" />
 </resources>
