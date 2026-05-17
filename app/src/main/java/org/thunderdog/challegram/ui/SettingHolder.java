@@ -2468,7 +2468,7 @@ public class SettingHolder extends RecyclerView.ViewHolder {
         }
         FrameLayout.LayoutParams timeParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         timeParams.gravity = Gravity.TOP | Gravity.END;
-        timeParams.topMargin = Screen.dp(14f);
+        timeParams.topMargin = Screen.dp(60f);
         timeParams.rightMargin = textRightMargin;
         timeView.setLayoutParams(timeParams);
         wrapView.addView(timeView);

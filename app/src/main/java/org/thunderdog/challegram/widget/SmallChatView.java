@@ -58,7 +58,8 @@ public class SmallChatView extends BaseView implements AttachDelegate, TooltipOv
   }
 
   private void layoutReceiver () {
-    int viewHeight = Screen.dp(62f);
+    int measuredHeight = getMeasuredHeight();
+    int viewHeight = measuredHeight > 0 ? measuredHeight : Screen.dp(62f);
     int radius = Screen.dp(50f) / 2;
     int left = Screen.dp(11f);
     int right = Screen.dp(11f) + radius * 2;
