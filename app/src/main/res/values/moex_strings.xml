@@ -109,4 +109,6 @@
   <string name="ProxyMtprotoFakeTls" translatable="false">(FakeTLS)</string>
   <string name="ProxyMtprotoSecure" translatable="false">(secure)</string>
   <string name="ProxyMtprotoPlain" translatable="false">(plain)</string>
+  <string name="moex_birthdayBarSubtitle">Birthday today</string>
+  <string name="moex_birthdaysTodayTitle">%1$d birthdays today</string>
 </resources>
