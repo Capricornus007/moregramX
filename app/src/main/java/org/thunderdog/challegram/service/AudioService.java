@@ -37,7 +37,6 @@ import android.view.MotionEvent;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.media3.common.C;
-import androidx.media3.extractor.metadata.id3.ApicFrame;
 
 import org.drinkless.tdlib.TdApi;
 import org.drinkmore.Tracer;
@@ -399,10 +398,10 @@ public class AudioService extends Service implements TGPlayerController.TrackLis
 
     /*cancelApicClearer();
     scheduleApicClearer(tdlib, track);*/
-    ApicFrame apicFrame = TdlibManager.instance().audio().requestApic(tdlib, track, this);
-    if (apicFrame != null) {
+    byte[] pictureData = TdlibManager.instance().audio().requestApic(tdlib, track, this);
+    if (pictureData != null) {
       // cancelApicClearer();
-      processApicAsync(tdlib, track, apicFrame);
+      processApicAsync(tdlib, track, pictureData);
     }
 
     if (!hadTrack) {
@@ -716,16 +715,16 @@ public class AudioService extends Service implements TGPlayerController.TrackLis
   }
 
   @Override
-  public void onApicLoaded (Tdlib tdlib, TdApi.Message message, ApicFrame apicFrame) {
-    processApicAsync(tdlib, message, apicFrame);
+  public void onApicLoaded (Tdlib tdlib, TdApi.Message message, byte[] pictureData) {
+    processApicAsync(tdlib, message, pictureData);
   }
 
-  private void processApicAsync (final Tdlib tdlib, final TdApi.Message message, final ApicFrame apicFrame) {
+  private void processApicAsync (final Tdlib tdlib, final TdApi.Message message, final byte[] pictureData) {
     /*if (currentTrack != null && TGPlayerController.compareTracks(currentTdlib, tdlib, message, currentTrack)) {
       cancelApicClearer();
     }*/
     Background.instance().post(() -> {
-      final Bitmap bitmap = ImageReader.readBytes(apicFrame.pictureData, getCoverSize(false), false, false);
+      final Bitmap bitmap = ImageReader.readBytes(pictureData, getCoverSize(false), false, false);
       if (bitmap != null) {
         tdlib.ui().post(() -> setApic(tdlib, message, bitmap));
       }
