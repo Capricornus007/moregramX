@@ -17,13 +17,13 @@ package org.thunderdog.challegram.ui;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
 import android.graphics.RectF;
+import android.graphics.drawable.Drawable;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.opengl.GLUtils;
@@ -68,6 +68,7 @@ import org.thunderdog.challegram.theme.ColorId;
 import org.thunderdog.challegram.theme.ColorState;
 import org.thunderdog.challegram.theme.Theme;
 import org.thunderdog.challegram.theme.ThemeListenerEntry;
+import org.thunderdog.challegram.tool.Drawables;
 import org.thunderdog.challegram.tool.Fonts;
 import org.thunderdog.challegram.tool.Intents;
 import org.thunderdog.challegram.tool.Paints;
@@ -1746,7 +1747,7 @@ public class IntroController extends ViewController<Void> implements GLSurfaceVi
     synchronized (icons) {
       bitmap = icons.get(iconRes);
       if (bitmap == null || bitmap.isRecycled()) {
-        bitmap = BitmapFactory.decodeResource(UI.getResources(), iconRes);
+        bitmap = Drawables.getBitmap(iconRes);
         icons.put(iconRes, bitmap);
       }
     }
@@ -1850,10 +1851,32 @@ public class IntroController extends ViewController<Void> implements GLSurfaceVi
     int size = Screen.dp(220f);
     bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
     Canvas c = new Canvas(bitmap);
-    c.drawCircle(bitmap.getWidth() / 2, bitmap.getHeight() / 2, bitmap.getWidth() / 2, Paints.fillingPaint(0xffe87777));
+    c.drawCircle(bitmap.getWidth() / 2, bitmap.getHeight() / 2, bitmap.getWidth() / 2, Paints.fillingPaint(0xffd18b5f));
     U.recycle(c);
     synchronized (icons) {
       iconsSpecial.put(0, bitmap);
+    }
+    return bitmap;
+  }
+
+  private Bitmap getPlaneBitmap () {
+    Bitmap bitmap;
+    synchronized (icons) {
+      bitmap = iconsSpecial.get(2);
+    }
+    if (bitmap != null) {
+      return bitmap;
+    }
+    int w = Screen.dp(82f);
+    int h = Screen.dp(74f);
+    bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+    Canvas c = new Canvas(bitmap);
+    Drawable d = Drawables.get(R.drawable.app_launcher_foreground);
+    d.setBounds(-w * 6 / 10, -h * 6 / 10, w + w * 6 / 10, h + h * 6 / 10);
+    d.draw(c);
+    U.recycle(c);
+    synchronized (icons) {
+      iconsSpecial.put(2, bitmap);
     }
     return bitmap;
   }
@@ -1900,7 +1923,7 @@ public class IntroController extends ViewController<Void> implements GLSurfaceVi
 
     N.setTelegramTextures(
       loadTexture(gl, getSphereBitmap()),
-      loadTexture(gl, R.drawable.intro_tg_plane)
+      loadTexture(gl, getPlaneBitmap())
     );
 
     N.setPowerfulTextures(
