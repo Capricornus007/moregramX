@@ -1812,7 +1812,7 @@ public class ProfileController extends ViewController<ProfileController.Args> im
             dcId = SystemUtils.getDcIdFromRemoteId(chat.photo.small.remote.id);
           }
           if (dcId != 0) {
-            view.setName("DC" + dcId + ", " + ChatUtils.getDCName(dcId));
+            view.setName(Lang.getString(R.string.DcInfo, dcId, ChatUtils.getDCName(dcId)));
           } else {
             view.setName(getPeerTypeStringResourceId());
           }

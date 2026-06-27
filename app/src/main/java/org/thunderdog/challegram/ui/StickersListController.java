@@ -149,7 +149,7 @@ public class StickersListController extends ViewController<StickersListControlle
         icons.append(R.drawable.baseline_forward_24);
 
         ids.append(R.id.btn_authorDetails);
-        strings.append(R.string.OpenProfile);
+        strings.append(R.string.SetId);
         icons.append(R.drawable.baseline_person_24);
       }
 

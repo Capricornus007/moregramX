@@ -5901,7 +5901,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
         });
       } else if (id == R.id.btn_msgRepeat) {
         TdApi.Message msg = selectedMessage.getMessage();
-        tdlib.client().send(new TdApi.ForwardMessages(msg.chatId, msg.topicId instanceof TdApi.MessageTopic
+        tdlib.client().send(new TdApi.ForwardMessages(msg.chatId, msg.topicId instanceof TdApi.MessageTopicForum
           || msg.topicId instanceof TdApi.MessageTopicDirectMessages ? msg.topicId : null, msg.chatId, new long[] {msg.id}, null, true, false), tdlib.messageHandler());
       } else if (id == R.id.btn_msgDetails) {
         MessageDetailsController.Args args = new MessageDetailsController.Args(selectedMessage, messageThread);

@@ -13,7 +13,7 @@
   <string name="MoexChannelLink" translatable="false">https://t.me/moeGramX</string>
   <string name="MoexCrowdinLink" translatable="false">https://kiri.su/crowdin</string>
   <string name="MoexChatLink" translatable="false">https://t.me/moe_chat</string>
-  <string name="MoexSourceLink" translatable="false">https://kiri.su/moexgit</string>
+  <string name="MoexSourceLink" translatable="false">https://github.com/moeCrafters/moeGramX</string>
   <string name="MoexHideButtons">Message panel</string>
   <string name="DisableCommandsButton">Commands</string>
   <string name="DisableCameraButton">Camera</string>
@@ -91,7 +91,8 @@
   <string name="RearCamera">Rear</string>
   <string name="Ask">Ask</string>
   <string name="Platform">Platform</string>
-  <string name="DcID">DC</string>
+  <string name="DcID" translatable="false">DC</string>
+  <string name="DcInfo" translatable="false">DC%1$d, %2$s</string>
   <string name="SaveMusicToProfile">Add to Profile</string>
   <string name="AudioPinned">Audio added to Profile</string>
   <string name="AudioAlreadyPinned">Audio is already pinned to Profile</string>

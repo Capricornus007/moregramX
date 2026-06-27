@@ -11,6 +11,7 @@ import org.thunderdog.challegram.core.Lang;
 import org.thunderdog.challegram.navigation.SettingsWrapBuilder;
 import org.thunderdog.challegram.telegram.Tdlib;
 import org.thunderdog.challegram.telegram.TdlibUi;
+import org.thunderdog.challegram.theme.ColorId;
 import org.thunderdog.challegram.tool.UI;
 import org.thunderdog.challegram.ui.ListItem;
 import org.thunderdog.challegram.ui.RecyclerViewController;
@@ -159,7 +160,7 @@ public class SettingsMoexController extends RecyclerViewController<SettingsMoexC
       new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_sizeLimit800, 0, R.string.px800, R.id.btn_changeSizeLimit, sizeLimitOption == MoexConfig.SIZE_LIMIT_800),
       new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_sizeLimit1280, 0, R.string.px1280, R.id.btn_changeSizeLimit, sizeLimitOption == MoexConfig.SIZE_LIMIT_1280),
       new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_sizeLimit2560, 0, R.string.px2560, R.id.btn_changeSizeLimit, sizeLimitOption == MoexConfig.SIZE_LIMIT_2560),
-    }).addHeaderItem(Lang.getMarkdownString(this, R.string.SizeLimitDesc)).setIntDelegate((id, result) -> {
+    }).setAllowResize(false).addHeaderItem(Lang.getMarkdownString(this, R.string.SizeLimitDesc)).setIntDelegate((id, result) -> {
       int sizeLimit = result.get(R.id.btn_changeSizeLimit);
       int sizeOption;
       if (sizeLimit == R.id.btn_sizeLimit800) {
@@ -228,16 +229,16 @@ public class SettingsMoexController extends RecyclerViewController<SettingsMoexC
 
   private void showAutoPauseTypeOptions () {
     int flags = MoexConfig.instance().getAutoPauseMediaTypes();
-    showSettings(new SettingsWrapBuilder(R.id.btn_autoPauseMedia).setNeedSeparators(false).setRawItems(new ListItem[] {
+    showSettings(new SettingsWrapBuilder(R.id.btn_autoPauseMedia).setRawItems(new ListItem[] {
       new ListItem(ListItem.TYPE_CHECKBOX_OPTION, R.id.btn_autoPauseResume, 0, R.string.AutoPauseMediaResume, R.id.btn_autoPauseResume, MoexConfig.autoPauseResumeSystemPlayback),
-      new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
-      new ListItem(ListItem.TYPE_SHADOW_TOP),
+      new ListItem(ListItem.TYPE_SHADOW_BOTTOM).setTextColorId(ColorId.background),
+      new ListItem(ListItem.TYPE_SHADOW_TOP).setTextColorId(ColorId.background),
       new ListItem(ListItem.TYPE_CHECKBOX_OPTION, R.id.autoPauseTypeVoice, 0, R.string.VoiceMessages, R.id.autoPauseTypeVoice, (flags & MoexConfig.AUTO_PAUSE_MEDIA_VOICE) != 0),
       new ListItem(ListItem.TYPE_SEPARATOR_FULL),
       new ListItem(ListItem.TYPE_CHECKBOX_OPTION, R.id.autoPauseTypeRound, 0, R.string.VideoMessages, R.id.autoPauseTypeRound, (flags & MoexConfig.AUTO_PAUSE_MEDIA_ROUND) != 0),
       new ListItem(ListItem.TYPE_SEPARATOR_FULL),
       new ListItem(ListItem.TYPE_CHECKBOX_OPTION, R.id.autoPauseTypeVideo, 0, R.string.Videos, R.id.autoPauseTypeVideo, (flags & MoexConfig.AUTO_PAUSE_MEDIA_VIDEO) != 0),
-    }).setIntDelegate((id, result) -> {
+    }).setNeedSeparators(false).setIntDelegate((id, result) -> {
       int newFlags = 0;
       if (result.get(R.id.autoPauseTypeVoice) == R.id.autoPauseTypeVoice) newFlags |= MoexConfig.AUTO_PAUSE_MEDIA_VOICE;
       if (result.get(R.id.autoPauseTypeRound) == R.id.autoPauseTypeRound) newFlags |= MoexConfig.AUTO_PAUSE_MEDIA_ROUND;
