@@ -9277,7 +9277,10 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
           nextSetReactionAnimation.fullscreenEmojiFinished = true;
         }
 
-        context().openReactionPreview(tdlib, null, reaction, effectAnimation, startX, startY, Screen.dp(30), -1, true);
+        context().openReactionPreview(tdlib, null, reaction, effectAnimation, startX, startY, Screen.dp(30), -1, true, () -> {
+          finishAnimation.cancel();
+          finishRunnable.run();
+        });
         tdlib().ui().postDelayed(finishAnimation, 7500l);
       });
     }
