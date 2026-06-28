@@ -18,6 +18,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.text.SpannableStringBuilder;
+import android.util.Pair;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
@@ -40,6 +41,8 @@ import org.thunderdog.challegram.component.attach.MediaLayout;
 import org.thunderdog.challegram.component.base.SettingView;
 import org.thunderdog.challegram.config.Config;
 import org.thunderdog.challegram.core.Lang;
+import org.thunderdog.challegram.data.ContentPreview;
+import org.thunderdog.challegram.data.DoubleTextWrapper;
 import org.thunderdog.challegram.data.TD;
 import org.thunderdog.challegram.data.TGMessage;
 import org.thunderdog.challegram.data.TGStickerSetInfo;
@@ -55,6 +58,7 @@ import org.thunderdog.challegram.navigation.Menu;
 import org.thunderdog.challegram.navigation.MoreDelegate;
 import org.thunderdog.challegram.navigation.NavigationController;
 import org.thunderdog.challegram.navigation.ViewController;
+import org.thunderdog.challegram.player.TGPlayerController;
 import org.thunderdog.challegram.support.ViewSupport;
 import org.thunderdog.challegram.telegram.ConnectionListener;
 import org.thunderdog.challegram.telegram.GlobalTokenStateListener;
@@ -98,8 +102,13 @@ import me.vkryl.core.StringUtils;
 import me.vkryl.core.collection.IntList;
 import me.vkryl.core.lambda.CancellableRunnable;
 import me.vkryl.core.reference.ReferenceList;
+import moe.kirao.mgx.utils.ChatUtils;
+import moe.kirao.mgx.utils.SystemUtils;
 import tgx.td.ChatId;
 import tgx.td.Td;
+
+import moe.kirao.mgx.MoexConfig;
+import moe.kirao.mgx.ui.SettingsMoexController;
 
 public class SettingsController extends ViewController<Void> implements
   View.OnClickListener, ComplexHeaderView.Callback,
@@ -503,6 +512,10 @@ public class SettingsController extends ViewController<Void> implements
           view.setData(Lang.getString(R.string.ViewSourceCodeChangesSince, Lang.codeCreator(), previousVersionName, previousBuildInfo.getCommit()));
         } else if (itemId == R.id.btn_copyDebug) {
           view.setData(R.string.CopyReportDataInfo);
+        } else if (itemId == R.id.btn_moexSettings) {
+          view.setData(R.string.MoexSettings);
+        } else if (itemId == R.id.btn_checkUpdates) {
+          view.setData(R.string.MoexVer);
         } else if (itemId == R.id.btn_devices) {
           if (sessions == null) {
             view.setData(R.string.LoadingInformation);
@@ -563,6 +576,14 @@ public class SettingsController extends ViewController<Void> implements
           } else {
             view.setData(Lang.getBirthdate(userFull.birthdate, true, true));
           }
+        } else if (itemId == R.id.btn_music) {
+          TdApi.Audio audio = userFull != null ? userFull.firstProfileAudio : null;
+          if (audio != null) {
+            view.setData(TD.getTitle(audio));
+            view.setName(TD.getSubtitle(audio));
+          } else {
+            view.setName(Lang.getString(R.string.LoadingInformation));
+          }
         } else if (itemId == R.id.btn_username) {
           if (myUsernames == null) {
             view.setData(R.string.LoadingUsername);
@@ -574,6 +595,13 @@ public class SettingsController extends ViewController<Void> implements
           }
         } else if (itemId == R.id.btn_peer_id) {
           view.setData(Strings.buildCounter(tdlib.myUserId(true)));
+          TdApi.User myUser = tdlib.myUser();
+          if (myUser != null && myUser.profilePhoto != null) {
+            int dcId = SystemUtils.getDcIdFromRemoteId(myUser.profilePhoto.small.remote.id);
+            if (dcId != 0) {
+              view.setName("DC" + dcId + ", " + ChatUtils.getDCName(dcId));
+            }
+          }
         } else if (itemId == R.id.btn_phone) {
           view.setData(myPhone);
         } else if (itemId == R.id.btn_bio) {
@@ -609,6 +637,10 @@ public class SettingsController extends ViewController<Void> implements
       items.add(new ListItem(ListItem.TYPE_SEPARATOR));
       items.add(newBirthdateItem());
     }
+    if (userFull != null && userFull.firstProfileAudio != null) {
+      items.add(new ListItem(ListItem.TYPE_SEPARATOR));
+      items.add(newProfileAudioItem());
+    }
     items.add(new ListItem(ListItem.TYPE_SEPARATOR));
     items.add(new ListItem(ListItem.TYPE_INFO_MULTILINE, R.id.btn_bio, R.drawable.baseline_info_24, R.string.UserBio).setContentStrings(R.string.LoadingInformation, R.string.BioNone));
     items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
@@ -633,6 +665,8 @@ public class SettingsController extends ViewController<Void> implements
 
     checkErrors(false);
 
+    items.add(new ListItem(ListItem.TYPE_INFO_SETTING, R.id.btn_moexSettings, R.drawable.templarian_baseline_flask_24, R.string.MoexCuteSettings));
+    items.add(new ListItem(ListItem.TYPE_SEPARATOR));
     items.add(new ListItem(notificationErrorDescriptionRes != 0 ? ListItem.TYPE_VALUED_SETTING_COMPACT : ListItem.TYPE_SETTING, R.id.btn_notificationSettings, R.drawable.baseline_notifications_24, R.string.Notifications));
     items.add(new ListItem(ListItem.TYPE_SEPARATOR));
     items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_chatSettings, R.drawable.baseline_data_usage_24, R.string.DataSettings));
@@ -650,14 +684,6 @@ public class SettingsController extends ViewController<Void> implements
       items.add(new ListItem(ListItem.TYPE_SEPARATOR));
     }
     items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_languageSettings, R.drawable.baseline_language_24, R.string.Language));
-    items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
-
-    items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
-    items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_help, R.drawable.baseline_live_help_24, R.string.AskAQuestion));
-    items.add(new ListItem(ListItem.TYPE_SEPARATOR));
-    items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_faq, R.drawable.baseline_help_24, R.string.TelegramFAQ));
-    items.add(new ListItem(ListItem.TYPE_SEPARATOR));
-    items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_privacyPolicy, R.drawable.baseline_policy_24, R.string.PrivacyPolicy));
     items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
 
     items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
@@ -700,7 +726,7 @@ public class SettingsController extends ViewController<Void> implements
           throw new UnsupportedOperationException();
       }
     }
-    items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_checkUpdates, downloadIconRes, downloadStringRes)
+    items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_checkUpdates, downloadIconRes, downloadStringRes)
       .setData(downloadUrl));
     if (downloadUrl.installerId == AppInstallationUtil.InstallerId.GOOGLE_PLAY) {
       items.add(new ListItem(ListItem.TYPE_SEPARATOR));
@@ -851,12 +877,54 @@ public class SettingsController extends ViewController<Void> implements
     executeOnUiThreadOptional(() -> {
       this.userFull = userFull;
       checkBirthdate();
+      checkProfileAudio();
+      checkPersonalChannel();
       setBio(userFull.bio);
     });
   }
 
+  private void applyPersonalChannel (ListItem item, TdApi.Chat chat) {
+    TdApi.FormattedText preview = null;
+    String time = null;
+    if (chat.lastMessage != null) {
+      preview = ContentPreview.getChatListPreview(tdlib, chat.id, chat.lastMessage, false).buildFormattedText(false);
+      time = Lang.time(chat.lastMessage.date, TimeUnit.SECONDS);
+    }
+    item.setData(new Pair<>(new DoubleTextWrapper(tdlib, chat, false, false), preview));
+    item.setStringValue(time);
+    item.setIntValue(tdlib.chatMemberCount(chat.id));
+  }
+
+  private void checkPersonalChannel () {
+    TdApi.Chat chat = userFull != null && userFull.personalChatId != 0 ? tdlib.chat(userFull.personalChatId) : null;
+    int position = adapter.indexOfViewById(R.id.btn_personalChannel);
+    boolean had = position != -1;
+    boolean has = chat != null;
+    if (had != has) {
+      if (has) {
+        int peerIdIndex = adapter.indexOfViewById(R.id.btn_peer_id);
+        int insertAt = peerIdIndex != -1 ? peerIdIndex : adapter.indexOfViewById(R.id.btn_username);
+        ListItem item = new ListItem(ListItem.TYPE_CHAT_PROFILE, R.id.btn_personalChannel);
+        applyPersonalChannel(item, chat);
+        adapter.addItems(insertAt,
+          item,
+          new ListItem(ListItem.TYPE_SEPARATOR)
+        );
+      } else {
+        adapter.removeRange(position, 2);
+      }
+    } else if (has) {
+      applyPersonalChannel(adapter.getItems().get(position), chat);
+      adapter.notifyItemChanged(position);
+    }
+  }
+
   private static ListItem newBirthdateItem () {
     return new ListItem(ListItem.TYPE_INFO_SETTING, R.id.btn_birthdate, R.drawable.baseline_cake_variant_24, R.string.Birthdate).setContentStrings(R.string.LoadingInformation, R.string.SetBirthdate);
+  }
+
+  private static ListItem newProfileAudioItem () {
+    return new ListItem(ListItem.TYPE_INFO_SETTING, R.id.btn_music, R.drawable.baseline_music_note_24, R.string.Music);
   }
 
   private static ListItem newSuggestionItem (TdApi.SuggestedAction action) {
@@ -900,6 +968,28 @@ public class SettingsController extends ViewController<Void> implements
       }
     } else if (hasBirthdate) {
       adapter.updateValuedSettingByPosition(position);
+    }
+  }
+
+  private void checkProfileAudio () {
+    int position = adapter.indexOfViewById(R.id.btn_music);
+    boolean hadProfileAudio = position != -1;
+    boolean hasProfileAudio = userFull != null && userFull.firstProfileAudio != null;
+    if (hadProfileAudio != hasProfileAudio) {
+      if (hasProfileAudio) {
+        int insertAfter = adapter.indexOfViewById(R.id.btn_birthdate);
+        if (insertAfter == -1) {
+          insertAfter = adapter.indexOfViewById(R.id.btn_phone);
+        }
+        adapter.addItems(insertAfter + 1,
+          new ListItem(ListItem.TYPE_SEPARATOR),
+          newProfileAudioItem()
+        );
+      } else {
+        adapter.removeRange(position - 1, 2);
+      }
+    } else if (hasProfileAudio) {
+      adapter.updateValuedSettingById(R.id.btn_music);
     }
   }
 
@@ -1034,7 +1124,9 @@ public class SettingsController extends ViewController<Void> implements
     String displayPhoneNumber;
     if (user != null) {
       displayPhoneNumber = originalPhoneNumber = Strings.formatPhone(user.phoneNumber);
-      if (Settings.instance().needHidePhoneNumber()) {
+      if (MoexConfig.hidePhoneNumber) {
+        displayPhoneNumber = Lang.getString(R.string.PhoneHidden);
+      } else if (Settings.instance().needHidePhoneNumber()) {
         displayPhoneNumber = Strings.replaceNumbers(displayPhoneNumber);
       }
     } else {
@@ -1140,6 +1232,12 @@ public class SettingsController extends ViewController<Void> implements
       navigateTo(c);
     } else if (viewId == R.id.btn_birthdate) {
       tdlib.ui().openBirthdateEditor(this, v, TdlibUi.BirthdateOpenOrigin.PROFILE);
+    } else if (viewId == R.id.btn_personalChannel) {
+      if (userFull != null && userFull.personalChatId != 0) {
+        tdlib.ui().openChat(this, userFull.personalChatId, new TdlibUi.ChatOpenParameters().keepStack().removeDuplicates());
+      }
+    } else if (viewId == R.id.btn_music) {
+      playProfileAudios();
     } else if (viewId == R.id.btn_peer_id) {
       long selfId = tdlib.myUserId(true);
       if (selfId == 0) return;
@@ -1156,6 +1254,8 @@ public class SettingsController extends ViewController<Void> implements
       navigateTo(new SettingsNotificationController(context, tdlib));
     } else if (viewId == R.id.btn_devices) {
       navigateTo(new SettingsSessionsController(context, tdlib));
+    } else if (viewId == R.id.btn_moexSettings) {
+      navigateTo(new SettingsMoexController(context, tdlib));
     } else if (viewId == R.id.btn_checkUpdates) {
       openInstallerPage(((AppInstallationUtil.DownloadUrl) ((ListItem) v.getTag()).getData()));
     } else if (viewId == R.id.btn_subscribeToBeta) {
@@ -1224,8 +1324,6 @@ public class SettingsController extends ViewController<Void> implements
       navigateTo(new SettingsDataController(context, tdlib));
     } else if (viewId == R.id.btn_privacySettings) {
       navigateTo(new SettingsPrivacyController(context, tdlib));
-    } else if (viewId == R.id.btn_help) {
-      supportOpen = tdlib.ui().openSupport(this);
     } else if (viewId == R.id.btn_stickerSettingsAndEmoji) {
       SettingsStickersAndEmojiController c = new SettingsStickersAndEmojiController(context, tdlib);
       c.setArguments(this);
@@ -1248,6 +1346,60 @@ public class SettingsController extends ViewController<Void> implements
         ));
       }
     }
+  }
+
+  private void playProfileAudios () {
+    tdlib.send(new TdApi.GetUserProfileAudios(myUserId, 0, 100), (result, error) -> {
+      if (result == null || result.audios.length == 0) {
+        return;
+      }
+
+      final ArrayList<TdApi.Message> messages = new ArrayList<>(result.audios.length);
+      final long chatId = ChatId.fromUserId(myUserId);
+
+      for (TdApi.Audio audio : result.audios) {
+        TdApi.Message message = new TdApi.Message();
+        message.id = 0;
+        message.senderId = new TdApi.MessageSenderUser(myUserId);
+        message.chatId = chatId;
+        message.content = new TdApi.MessageAudio(audio, null);
+        message.date = 0;
+        messages.add(message);
+      }
+
+      TGPlayerController.PlayListBuilder builder = new TGPlayerController.PlayListBuilder() {
+        @Override
+        public TGPlayerController.PlayList buildPlayList (TdApi.Message fromMessage) {
+          for (int i = 0; i < messages.size(); i++) {
+            if (TGPlayerController.compareTracks(messages.get(i), fromMessage)) {
+              return new TGPlayerController.PlayList(messages, i).setReachedEnds(true, true);
+            }
+          }
+          return null;
+        }
+
+        @Override
+        public boolean wouldReusePlayList (TdApi.Message fromMessage, boolean isReverse, boolean hasAltered, List<TdApi.Message> trackList, long playListChatId) {
+          return false;
+        }
+      };
+
+      runOnUiThreadOptional(() -> {
+        TGPlayerController player = tdlib.context().player();
+        TdApi.Message firstTrack = messages.get(0);
+        TdApi.Message currentTrack = player.getCurrentTrack();
+
+        boolean isAlreadyPlaying = currentTrack != null && TGPlayerController.compareTracks(currentTrack, firstTrack);
+        if (!isAlreadyPlaying) {
+          player.playPauseMessage(tdlib, firstTrack, builder);
+        }
+
+        PlaybackController c = new PlaybackController(context, tdlib);
+        if (c.prepare() != -1) {
+          navigateTo(c);
+        }
+      });
+    });
   }
 
   public void showSuggestionPopup (View suggestionView, TdApi.SuggestedAction suggestedAction) {
@@ -1429,7 +1581,6 @@ public class SettingsController extends ViewController<Void> implements
       strings.append(R.string.AppLogs);
       icons.append(R.drawable.baseline_build_24);
       colors.append(OptionColor.NORMAL);
-      
       ids.append(R.id.btn_experiment);
       strings.append(R.string.ExperimentalSettings);
       icons.append(R.drawable.templarian_baseline_flask_24);
@@ -1437,7 +1588,7 @@ public class SettingsController extends ViewController<Void> implements
     }
 
     SpannableStringBuilder b = new SpannableStringBuilder();
-    b.append(Lang.getMarkdownStringSecure(this, R.string.AppSignature, BuildConfig.VERSION_NAME));
+    b.append(Lang.getMarkdownStringSecure(this, R.string.AppSignatureOverride, BuildConfig.VERSION_NAME));
 
     showOptions(b, ids.get(), strings.get(), colors.get(), icons.get(), (itemView, id) -> {
       if (id == R.id.btn_copyText) {

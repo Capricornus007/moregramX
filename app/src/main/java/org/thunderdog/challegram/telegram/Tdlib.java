@@ -143,6 +143,8 @@ import tgx.td.client.RtcServer;
 import tgx.td.client.TdlibOptions;
 import tgx.td.data.MessageWithProperties;
 
+import moe.kirao.mgx.MoexConfig;
+
 public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, DateChangeListener {
   @Override
   public final int accountId () {
@@ -1938,7 +1940,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
       }
     });
   }
-  
+
   public interface MessagePropertyChecker {
     boolean checkProperty (TdApi.MessageProperties properties);
   }
@@ -5027,6 +5029,10 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
     }
     if (myUserId == TDLIB_CREATOR_USER_ID) {
       callback.runWithInt(TesterLevel.DEVELOPER);
+      return;
+    }
+    if (MoexConfig.enableTestFeatures) {
+      callback.runWithInt(TesterLevel.MIN_LEVEL_FOR_DEBUG_DC);
       return;
     }
 
@@ -10803,7 +10809,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
         int buildNo = 0;
         String version = null;
         String commit = null;
-        final String prefix = "Telegram-X-";
+        final String prefix = "moeGramX-";
         if (!StringUtils.isEmpty(document.fileName) && document.fileName.startsWith(prefix)) {
           int i = document.fileName.indexOf('-', prefix.length());
           version = document.fileName.substring(prefix.length(), i == -1 ? document.fileName.length() : i);

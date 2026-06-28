@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="MoexSettings">moeGramX 选项</string>
+  <string name="GeneralMoexSettings">通用</string>
+  <string name="InterfaceMoexSettings">界面</string>
+  <string name="ChatsMoexSettings">聊天</string>
+  <string name="MoexLinks">链接</string>
+  <string name="MoexChatText">聊天</string>
+  <string name="MoexChannelText">最新动态</string>
+  <string name="MoexSourceText">源代码</string>
+  <string name="MoexCategories">类别</string>
+  <string name="MoexHideButtons">消息界面</string>
+  <string name="DisableCommandsButton">命令</string>
+  <string name="DisableCameraButton">相机</string>
+  <string name="DisableRecordButton">媒体</string>
+  <string name="MoexChatsSettings">聊天选项</string>
+  <string name="MoexStickersCount">贴纸</string>
+  <string name="DisableStickerTimestamp">隐藏贴纸发送时间</string>
+  <string name="RoundedStickers">圆形贴纸</string>
+  <string name="DrawerOptions">界面选项</string>
+  <string name="hidePhoneNumber">隐藏我的电话号码</string>
+  <string name="EnableFeatures">启用测试特性开关</string>
+  <string name="FeaturesButtonInfo">在侧栏中显示实验性选项按钮，例如切换到测试用DC服务器或其他功能切换开关。</string>
+  <string name="ExperimentalOptions">实验性选项</string>
+  <string name="PhoneHidden">号码已隐藏</string>
+  <string name="showIdProfile">在个人资料页显示 ID</string>
+  <string name="DisableSendAsButton">频道</string>
+  <string name="MoexAbout">关于</string>
+  <string name="MoexAboutText" formatted="true">**moeGramX** — 是一款基于官方源代码和 TDlib 的可爱且功能丰富的实验性客户端。欢迎您提出功能建议，报告问题，或在我们的讨论组聊天！</string>
+  <string name="HideCameraButtonInfo">隐藏相机按钮选项也将相机按钮添加到附件菜单底部.</string>
+  <string name="IncreaseRecents">增加更多的最近贴纸</string>
+  <string name="hideMessagesBadge">隐藏未读消息数</string>
+  <string name="MoexCuteSettings">一点点可爱可以产生很大的影响 ~</string>
+  <string name="changeSizeLimit">图片分辨率</string>
+  <string name="changeSizeLimitInfo">更改发送图片的最大分辨率</string>
+  <string name="SizeLimitDesc">此功能不稳定，可能会导致一些错误。如果您看到任何有关已发送图片的显示bug，请修改为 **1280px** 并通过存储设置清除缓存。</string>
+  <string name="CopiedPhoto">图片已复制至剪切板</string>
+  <string name="CopyPhoto">复制图片</string>
+  <string name="Repeat">复读</string>
+  <string name="changeHeaderText">自定义标题</string>
+  <string name="RememberOptions">记住发送时选项</string>
+  <string name="RememberOptionsInfo">记住先前选择的发送时选项，将其作为默认选项</string>
+  <string name="SquareAvatar">方形头像</string>
+  <string name="MoexBlurDrawer">模糊头像</string>
+  <string name="MoexChatsHeader">聊天列表</string>
+  <string name="TypingInstead">选择贴纸时的输入状态</string>
+  <string name="TypingInsteadInfo" formatted="true">这将会发送状态为 **输入中** 而不是 **选择贴纸中**</string>
+  <string name="DisableReactions">隐藏回应</string>
+  <string name="HideMessagePanelButtons">隐藏信息面板按钮</string>
+  <string name="ProfileOptions">个人资料</string>
+  <string name="ActivityOptions">活动</string>
+  <string name="HideBottomBar">隐藏底边栏</string>
+</resources>

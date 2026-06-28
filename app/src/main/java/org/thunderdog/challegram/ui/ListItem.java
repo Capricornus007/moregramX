@@ -164,6 +164,7 @@ public class ListItem {
 
   public static final int TYPE_HEADER_WITH_TEXT_BUTTON = 143;
   public static final int TYPE_HEADER_WITH_CHECKBOX = 144;
+  public static final int TYPE_CHAT_PROFILE = 145;
 
   private static final int FLAG_SELECTED = 1;
   private static final int FLAG_BOOL_VALUE = 1 << 1;

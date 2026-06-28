@@ -124,6 +124,8 @@ import tgx.td.MessageId;
 import tgx.td.Td;
 import tgx.td.TdConstants;
 
+import moe.kirao.mgx.MoexConfig;
+
 /**
  * All app-related settings.
  * <p>
@@ -7261,7 +7263,7 @@ public class Settings {
   }
 
   public boolean showPeerIds () {
-    return isExperimentEnabled(EXPERIMENT_FLAG_SHOW_PEER_IDS);
+    return isExperimentEnabled(EXPERIMENT_FLAG_SHOW_PEER_IDS) || MoexConfig.showId;
   }
 
   @Nullable

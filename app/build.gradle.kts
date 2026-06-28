@@ -696,12 +696,8 @@ dependencies {
   // mp4parser: https://github.com/sannies/mp4parser/releases
   implementation(libs.mp4parser.isoparser)
 
-  // Compiler warnings
-  compileOnly(libs.annotations.errorprone)
-  compileOnly(libs.annotations.j2objc)
-  compileOnly(libs.androidx.room.latest)
-  compileOnly(libs.annotations.jsr305)
-  compileOnly(libs.annotations.kotlin)
+  // Gson: https://github.com/google/gson/blob/main/CHANGELOG.md
+  implementation("com.google.code.gson:gson:2.10.1")
 }
 
 if (!config.isExperimentalBuild) {

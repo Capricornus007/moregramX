@@ -1043,7 +1043,7 @@ public class Lang {
   // Build no
 
   public static String getAppBuildAndVersion (@Nullable Tdlib tdlib) {
-    String msg = Lang.getString(R.string.AppNameAndVersion, BuildConfig.VERSION_NAME);
+    String msg = Lang.getString(R.string.AppNameAndVersionOverride, BuildConfig.VERSION_NAME);
     if (tdlib != null && tdlib.isEmulator()) {
       msg += " (emulator)";
     }

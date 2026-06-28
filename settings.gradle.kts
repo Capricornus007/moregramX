@@ -22,7 +22,7 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "tgx"
+rootProject.name = "moeGramX"
 include(
   ":tdlib",
   ":tgcalls",

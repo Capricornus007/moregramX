@@ -6,7 +6,7 @@ values-ca
 values-cs
 values-de
 values-eo
-values-es
+values-es/strings.xml
 values-fa
 values-fi
 values-fr
@@ -20,10 +20,10 @@ values-ko
 values-ml
 values-ms
 values-nb
-values-pl
-values-pt-rBR
+values-pl/strings.xml
+values-pt-rBR/strings.xml
 values-ro
-values-ru
+values-ru/strings.xml
 values-sk
 values-sr
 values-sv
@@ -35,3 +35,5 @@ values-zh
 values-zh-rHK
 values-zh-rMO
 values-zh-rTW
+values-tr/strings.xml
+values-uk/strings.xml

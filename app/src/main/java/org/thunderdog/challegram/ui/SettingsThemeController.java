@@ -77,6 +77,7 @@ import me.vkryl.core.DateUtils;
 import me.vkryl.core.MathUtils;
 import me.vkryl.core.StringUtils;
 import me.vkryl.core.collection.IntList;
+import moe.kirao.mgx.MoexConfig;
 
 public class SettingsThemeController extends RecyclerViewController<SettingsThemeController.Args> implements View.OnClickListener, ViewController.SettingsIntDelegate, SliderWrapView.RealTimeChangeListener, View.OnLongClickListener, AppUpdater.Listener {
   public SettingsThemeController (Context context, Tdlib tdlib) {
@@ -276,8 +277,6 @@ public class SettingsThemeController extends RecyclerViewController<SettingsThem
           }
         } else if (itemId == R.id.btn_hqRounds) {
           v.getToggler().setRadioEnabled(Settings.instance().needHqRoundVideos(), isUpdate);
-        } else if (itemId == R.id.btn_rearRounds) {
-          v.getToggler().setRadioEnabled(Settings.instance().startRoundWithRear(), isUpdate);
         } else if (itemId == R.id.btn_autoNightModeScheduled_timeOff || itemId == R.id.btn_autoNightModeScheduled_timeOn) {
           int time = v.getId() == R.id.btn_autoNightModeScheduled_timeOn ? Settings.instance().getNightModeScheduleOn() : Settings.instance().getNightModeScheduleOff();
           v.setData(U.timeToString(time));
@@ -285,6 +284,18 @@ public class SettingsThemeController extends RecyclerViewController<SettingsThem
           StringBuilder b = new StringBuilder();
           if (Settings.instance().needChatQuickShare()) {
             b.append(Lang.getString(R.string.QuickActionSettingShare));
+          }
+          if (MoexConfig.quickEdit) {
+            if (b.length() > 0) {
+              b.append(Lang.getConcatSeparator());
+            }
+            b.append(Lang.getString(R.string.edit));
+          }
+          if (MoexConfig.quickFeatured) {
+            if (b.length() > 0) {
+              b.append(Lang.getConcatSeparator());
+            }
+            b.append(Lang.getString(R.string.SavedMessages));
           }
           if (Settings.instance().needChatQuickReply()) {
             if (b.length() > 0) {
@@ -597,8 +608,6 @@ public class SettingsThemeController extends RecyclerViewController<SettingsThem
       items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.VideoMessages));
       items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
       items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_earpieceModeVideo, 0, R.string.EarpieceMode));
-      items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
-      items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_rearRounds, 0, R.string.UseRearRoundVideos));
       if (!Device.NEED_HQ_ROUND_VIDEOS && Config.ROUND_VIDEOS_RECORD_SUPPORTED) {
         items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
         items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_hqRounds, 0, R.string.UseHqRoundVideos));
@@ -1088,8 +1097,6 @@ public class SettingsThemeController extends RecyclerViewController<SettingsThem
       }
     } else if (viewId == R.id.btn_hqRounds) {
       Settings.instance().setNeedHqRoundVideos(adapter.toggleView(v));
-    } else if (viewId == R.id.btn_rearRounds) {
-      Settings.instance().setStartRoundWithRear(adapter.toggleView(v));
     } else if (viewId == R.id.btn_autoNightModeScheduled_location) {
       if (locationHelper == null) {
         locationHelper = LocationHelper.requestLocation(context, 10000, true, true, (errorCode, location) -> {
@@ -1193,8 +1200,12 @@ public class SettingsThemeController extends RecyclerViewController<SettingsThem
     } else if (viewId == R.id.btn_chatSwipes) {
       showSettings(R.id.btn_chatSwipes, new ListItem[] {
         new ListItem(ListItem.TYPE_CHECKBOX_OPTION, R.id.btn_messageShare, 0, R.string.Share, R.id.btn_messageShare, Settings.instance().needChatQuickShare()),
+        new ListItem(ListItem.TYPE_CHECKBOX_OPTION, R.id.btn_messageEdit, 0, R.string.edit, R.id.btn_messageEdit, MoexConfig.quickEdit),
+        new ListItem(ListItem.TYPE_CHECKBOX_OPTION, R.id.btn_savedMessages, 0, R.string.SavedMessages, R.id.btn_savedMessages, MoexConfig.quickFeatured),
         new ListItem(ListItem.TYPE_CHECKBOX_OPTION, R.id.btn_messageReply, 0, R.string.Reply, R.id.btn_messageReply, Settings.instance().needChatQuickReply())
       }, (id, result) -> {
+        if (((result.get(R.id.btn_messageEdit) == 0) == MoexConfig.quickEdit)) MoexConfig.instance().toggleQuickEdit();
+        if (((result.get(R.id.btn_savedMessages) == 0) == MoexConfig.quickFeatured)) MoexConfig.instance().toggleQuickFeatured();
         Settings.instance().setDisableChatQuickActions(result.get(R.id.btn_messageShare) != R.id.btn_messageShare, result.get(R.id.btn_messageReply) != R.id.btn_messageReply);
         adapter.updateValuedSettingById(R.id.btn_chatSwipes);
       });

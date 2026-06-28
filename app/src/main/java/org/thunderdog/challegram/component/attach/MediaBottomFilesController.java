@@ -64,6 +64,7 @@ import org.thunderdog.challegram.ui.ListItem;
 import org.thunderdog.challegram.ui.SettingsAdapter;
 import org.thunderdog.challegram.util.HapticMenuHelper;
 import org.thunderdog.challegram.util.Permissions;
+import org.thunderdog.challegram.BuildConfig;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -265,7 +266,7 @@ public class MediaBottomFilesController extends MediaBottomBaseController<Void> 
     boolean downloadsEmpty = false;
     if (context.permissions().canManageStorage()) {
       try {
-        File file = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+        File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), BuildConfig.PROJECT_NAME);
         if (file.exists() && file.isDirectory()) {
           File[] files = file.listFiles();
           if (files != null && !(downloadsEmpty = files.length == 0)) {
