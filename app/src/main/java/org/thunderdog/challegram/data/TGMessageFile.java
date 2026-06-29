@@ -894,6 +894,7 @@ public class TGMessageFile extends TGMessage {
     return res;
   }
 
+  //TODO: Rework to handle link long-click
   @Override
   public boolean performLongPress (View view, float x, float y) {
     if (processTextSelection(view, x, y)) {

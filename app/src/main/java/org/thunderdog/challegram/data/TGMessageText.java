@@ -731,7 +731,7 @@ public class TGMessageText extends TGMessage {
     if (linkPreview != null && linkPreview.performLongPress(view, this)) {
       return true;
     }
-    return super.performLongPress(view, x, y);
+    return performLongPress(view, x, y);
   }
 
 

@@ -16,6 +16,7 @@ package org.thunderdog.challegram.data;
 
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.drawable.Drawable;
 import android.os.SystemClock;
 import android.view.MotionEvent;
 import android.view.View;
@@ -61,6 +62,9 @@ import org.thunderdog.challegram.util.text.Text;
 import org.thunderdog.challegram.widget.FileProgressComponent;
 
 import java.io.File;
+
+import ni.shikatu.rex.ReXConfig;
+import ni.shikatu.rex.TranscriptionBottomSheet;
 
 import me.vkryl.android.AnimatorUtils;
 import me.vkryl.android.animator.FactorAnimator;
@@ -521,6 +525,10 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
     int contentWidth = getPreviewSize() + getPreviewOffset();
     if (waveform != null) {
       contentWidth += waveform.getWidth() + sizeWidth + Screen.dp(12f);
+      // Add transcribe button width if model is available (button is now after time)
+      if (ReXConfig.isWhisperModelDownloaded() && voice != null && !TD.isSelfDestructTypeImmediately(message)) {
+        contentWidth += Screen.dp(TRANSCRIBE_BUTTON_SIZE + TRANSCRIBE_BUTTON_PADDING + 8); // +8 for bg padding
+      }
     } else {
       contentWidth += Math.max(getTitleWidth(), sizeWidth) + Screen.dp(6f);
     }
@@ -537,6 +545,10 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
   private long seekDesireTime;
   private boolean isSeeking;
   private boolean disallowBoundTouch;
+  private boolean transcribeButtonCaught;
+  private int transcribeButtonX, transcribeButtonY;
+  private static final int TRANSCRIBE_BUTTON_SIZE = 24;
+  private static final int TRANSCRIBE_BUTTON_PADDING = 8;
 
   public void setDisallowBoundTouch () {
     disallowBoundTouch = true;
@@ -568,6 +580,16 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
     switch (event.getAction()) {
       case MotionEvent.ACTION_DOWN: {
         clearTouch();
+        // Check transcribe button click
+        if (waveform != null && voice != null && ReXConfig.isWhisperModelDownloaded() && !TD.isSelfDestructTypeImmediately(message)) {
+          int buttonSize = Screen.dp(TRANSCRIBE_BUTTON_SIZE);
+          int touchPadding = Screen.dp(8f);
+          if (x >= transcribeButtonX - touchPadding && x <= transcribeButtonX + buttonSize + touchPadding &&
+              y >= transcribeButtonY - touchPadding && y <= transcribeButtonY + buttonSize + touchPadding) {
+            transcribeButtonCaught = true;
+            return true;
+          }
+        }
         if (waveform != null && isPlaying && playDuration > 0 && playPosition >= 0) {
           int radius = Screen.dp(FileProgressComponent.DEFAULT_FILE_RADIUS);
           int waveformLeft = startX + radius * 2 + getPreviewOffset();
@@ -617,6 +639,18 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
         break;
       }
       case MotionEvent.ACTION_UP: {
+        if (transcribeButtonCaught) {
+          transcribeButtonCaught = false;
+          // Check if still in button bounds
+          int buttonSize = Screen.dp(TRANSCRIBE_BUTTON_SIZE);
+          int touchPadding = Screen.dp(8f);
+          if (x >= transcribeButtonX - touchPadding && x <= transcribeButtonX + buttonSize + touchPadding &&
+              y >= transcribeButtonY - touchPadding && y <= transcribeButtonY + buttonSize + touchPadding) {
+            openTranscription(view);
+            context.performClickSoundFeedback();
+          }
+          return true;
+        }
         if (!(loadCaught || seekCaught != null))
           return false;
         if (isSeeking && desiredSeek != -1 && isPlaying && playDuration > 0) {
@@ -632,6 +666,10 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
         break;
       }
       case MotionEvent.ACTION_CANCEL: {
+        if (transcribeButtonCaught) {
+          transcribeButtonCaught = false;
+          return true;
+        }
         if (!(loadCaught || seekCaught != null))
           return false;
         dropSeek();
@@ -640,11 +678,20 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
       }
     }
 
-    return loadCaught || seekCaught != null;
+    return loadCaught || seekCaught != null || transcribeButtonCaught;
   }
 
   public void clearTouch () {
     loadCaught = false;
+    transcribeButtonCaught = false;
+  }
+
+  private void openTranscription(View view) {
+    if (voice == null) {
+      return;
+    }
+
+    TranscriptionBottomSheet.show(context.controller(), voice, context);
   }
 
   // private static final boolean USE_ROUND_SMOOTHING = false;
@@ -769,6 +816,38 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
       if (trimmedSubtitle != null) {
         int textX = startX + previewSize + getPreviewOffset() + waveform.getWidth() + Screen.dp(12f);
         trimmedSubtitle.draw(c, textX, textX + trimmedSubtitle.getWidth(), 0, startY + Screen.dp(18f), null, alpha);
+
+        // Draw transcribe button to the right of time
+        if (ReXConfig.isWhisperModelDownloaded() && voice != null && !TD.isSelfDestructTypeImmediately(message)) {
+          int buttonSize = Screen.dp(TRANSCRIBE_BUTTON_SIZE);
+          int buttonX = textX + trimmedSubtitle.getWidth() + Screen.dp(TRANSCRIBE_BUTTON_PADDING);
+          int buttonY = startY + Screen.dp(18f) - buttonSize / 2 + Screen.dp(6f);
+          transcribeButtonX = buttonX;
+          transcribeButtonY = buttonY;
+
+          // Draw button background (narrower)
+          int bgPaddingH = Screen.dp(2); // horizontal padding
+          int bgPaddingV = Screen.dp(1); // vertical padding (smaller to not overlap time)
+          int iconColor = Theme.getColor(ColorId.bubbleOut_time); // always use outgoing color
+          int bgColor = ColorUtils.alphaColor(alpha * 0.15f, iconColor);
+          c.drawRoundRect(
+            buttonX - bgPaddingH,
+            buttonY - bgPaddingV,
+            buttonX + buttonSize + bgPaddingH,
+            buttonY + buttonSize + bgPaddingV,
+            Screen.dp(6f),
+            Screen.dp(6f),
+            Paints.fillingPaint(bgColor)
+          );
+
+          Drawable icon = view.getContext().getDrawable(R.drawable.speech_to_text);
+          if (icon != null) {
+            icon.setBounds(buttonX, buttonY, buttonX + buttonSize, buttonY + buttonSize);
+            icon.setTint(iconColor);
+            icon.setAlpha((int) (alpha * 255));
+            icon.draw(c);
+          }
+        }
       }
     }
   }

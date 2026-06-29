@@ -25,6 +25,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import org.drinkless.tdlib.TdApi;
+import org.thunderdog.challegram.Log;
 import org.thunderdog.challegram.R;
 import org.thunderdog.challegram.U;
 import org.thunderdog.challegram.component.chat.MessageView;
@@ -1081,24 +1082,37 @@ public class TGMessageMedia extends TGMessage {
   @Override
   public boolean performLongPress (View view, float x, float y) {
     boolean res = super.performLongPress(view, x, y);
-    return mosaicWrapper.performLongPress(view) || (wrapper != null && wrapper.performLongPress(view)) || res;
+    return mosaicWrapper.performLongPress(view) || res;
   }
 
+  //TODO: Rework to handle link long-click
+  @Override
   public boolean processTextSelection (View view, float x, float y) {
-    if (wrapper != null && y > getContentY() + mosaicWrapper.getHeight()) {
-      if (isCurrentMessageSelected() && canTextSelection()) {
-          manager.controller().unselectMessage(this.getMessage().id, this);
-          manager.controller().finishSelectMode(-1);
-          showQuoteActionMode(view, x, y);
-          return true;
-      }
+    if (isCheckingWrapper) {
+      return false;
+    }
+    Log.d("TGMessageText", "performLongPress called at x=" + x + ", y=" + y);
 
-      if (!inSelectionMode()) {
-          showQuoteActionMode(view, x, y);
+    if (isCurrentMessageSelected() && canTextSelection()) {
+      manager.controller().unselectMessage(this.getMessage().id, this);
+      manager.controller().finishSelectMode(-1);
+      showQuoteActionMode(view, x, y);
+      return true;
+    }
+
+    boolean inSelect = inSelectionMode();
+    boolean shouldCheckWrapper = !inSelect;
+    if (shouldCheckWrapper && wrapper != null) {
+      isCheckingWrapper = true;
+      try {
+        if (wrapper.performLongPress(view)) {
           return true;
+        }
+      } finally {
+        isCheckingWrapper = false;
       }
     }
-    return false;
+    return performLongPress(view, x, y);
   }
 
   public boolean isVideoFirstInMosaic (int mediaId) {

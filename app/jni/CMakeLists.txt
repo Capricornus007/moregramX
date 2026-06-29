@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10.2 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.13 FATAL_ERROR)
 project(tgx VERSION 1.0.0 LANGUAGES C CXX)
 message(STATUS "Building ${PROJECT_NAME} platform: ${ANDROID_PLATFORM} abi: ${ANDROID_ABI} type: ${CMAKE_BUILD_TYPE} flavor: ${TGX_FLAVOR} (${PROJECT_SOURCE_DIR})")
 
@@ -44,12 +44,12 @@ endif()
 set(FFMPEG_SRC_DIR "${THIRDPARTY_DIR}/ffmpeg")
 set(FFMPEG_DIR "${FFMPEG_SRC_DIR}/build/${TGX_FLAVOR}/${FFMPEG_ABI}")
 set(FFMPEG_LIBS
-  swresample
-  avformat
-  swscale
-  avcodec
-  avfilter
-  avutil
+        swresample
+        avformat
+        swscale
+        avcodec
+        avfilter
+        avutil
 )
 
 set(VPX_DIR "${THIRDPARTY_DIR}/libvpx/build/${TGX_FLAVOR}/${FFMPEG_ABI}")
@@ -77,27 +77,27 @@ endif()
 set(ORIGINAL_CMAKE_ASM_FLAGS "${CMAKE_ASM_FLAGS}")
 
 set(EXCLUDE_LIBS
-  libjni-utils.a
-  libyuv.a
-  "${VPX_LIB_PATH}"
-  libopus.a
-  libopusfile.a
-  librlottie.a
-  liblz4.a
+        libjni-utils.a
+        libyuv.a
+        "${VPX_LIB_PATH}"
+        libopus.a
+        libopusfile.a
+        librlottie.a
+        liblz4.a
 )
 if (${USE_WEBP})
   list(APPEND EXCLUDE_LIBS
-    libwebpdecoder_static.a
+          libwebpdecoder_static.a
   )
 endif()
 foreach(ffmpeg_lib ${FFMPEG_LIBS})
   list(APPEND EXCLUDE_LIBS
-    "${FFMPEG_DIR}/lib/lib${ffmpeg_lib}.a"
+          "${FFMPEG_DIR}/lib/lib${ffmpeg_lib}.a"
   )
 endforeach()
 Join(EXCLUDE_LIBS "${EXCLUDE_LIBS}" ",")
 list(APPEND ADD_LINKER_FLAGS
-  -Wl,--exclude-libs,${EXCLUDE_LIBS}
+        -Wl,--exclude-libs,${EXCLUDE_LIBS}
 )
 Join(ADD_LINKER_FLAGS "${ADD_LINKER_FLAGS}" " ")
 set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${ADD_LINKER_FLAGS}")
@@ -108,24 +108,24 @@ set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${ADD_LINKER_FLAGS}"
 
 add_library(crypto SHARED IMPORTED)
 set_target_properties(crypto PROPERTIES IMPORTED_LOCATION
-  ${TDLIB_DIR}/openssl/${ANDROID_ABI}/lib/libcryptox.so
+        ${TDLIB_DIR}/openssl/${ANDROID_ABI}/lib/libcryptox.so
 )
 add_library(ssl SHARED IMPORTED)
 set_target_properties(ssl PROPERTIES IMPORTED_LOCATION
-  ${TDLIB_DIR}/openssl/${ANDROID_ABI}/lib/libsslx.so
+        ${TDLIB_DIR}/openssl/${ANDROID_ABI}/lib/libsslx.so
 )
 if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.11.0")
   target_include_directories(crypto INTERFACE
-    ${TDLIB_DIR}/openssl/${ANDROID_ABI}/include
+          ${TDLIB_DIR}/openssl/${ANDROID_ABI}/include
   )
   target_include_directories(ssl INTERFACE
-    ${TDLIB_DIR}/openssl/${ANDROID_ABI}/include
+          ${TDLIB_DIR}/openssl/${ANDROID_ABI}/include
   )
 endif()
 
 add_library(tdjni SHARED IMPORTED)
 set_target_properties(tdjni PROPERTIES IMPORTED_LOCATION
-  ${TDLIB_DIR}/src/main/libs/${ANDROID_ABI}/libtdjni.so
+        ${TDLIB_DIR}/src/main/libs/${ANDROID_ABI}/libtdjni.so
 )
 target_link_libraries(tdjni INTERFACE ssl crypto)
 
@@ -140,7 +140,7 @@ include("${PROJECT_SOURCE_DIR}/BuildFlac.cmake")
 
 # jni-utils
 add_subdirectory(
-  "${UTILS_DIR}"
+        "${UTILS_DIR}"
 )
 
 # yuv
@@ -170,8 +170,8 @@ foreach(FFMPEG_LIB IN LISTS FFMPEG_LIBS)
   add_library(${FFMPEG_LIB} STATIC IMPORTED)
   set_target_properties(${FFMPEG_LIB} PROPERTIES IMPORTED_LOCATION "${FFMPEG_DIR}/lib/lib${FFMPEG_LIB}.a")
   target_include_directories(${FFMPEG_LIB} INTERFACE
-    "${FFMPEG_DIR}/include"
-    "${FFMPEG_SRC_DIR}"
+          "${FFMPEG_DIR}/include"
+          "${FFMPEG_SRC_DIR}"
   )
 endforeach()
 
@@ -181,61 +181,70 @@ if (${ENABLE_TGVOIP})
     "${PROJECT_SOURCE_DIR}/tgvoip"
   )
 endif()
+# whisper.cpp
+include("${CMAKE_HOME_DIRECTORY}/BuildWhisper.cmake")
 
 # == Target ==
 
 set(NATIVE_LIB "tgxjni")
 add_library(${NATIVE_LIB} SHARED
-  log.cpp
+        log.cpp
 
-  "${THIRDPARTY_DIR}/telegram_intro/IntroRenderer.c"
+        "${THIRDPARTY_DIR}/telegram_intro/IntroRenderer.c"
 
-  "${THIRDPARTY_DIR}/emoji_suggestions/emoji_suggestions_data.cpp"
-  "${THIRDPARTY_DIR}/emoji_suggestions/emoji_suggestions.cpp"
+        "${THIRDPARTY_DIR}/emoji_suggestions/emoji_suggestions_data.cpp"
+        "${THIRDPARTY_DIR}/emoji_suggestions/emoji_suggestions.cpp"
 
-  jni.c
-  voice.c
-  emoji.cpp
-  utils.cpp
-  image.c
-  gif.cpp
-  views.c
+        jni.c
+        voice.c
+        emoji.cpp
+        utils.cpp
+        image.c
+        gif.cpp
+        views.c
 
-  "${THIRDPARTY_DIR}/androidx-media/${TGX_FLAVOR}/opus_jni.cc"
-  "${THIRDPARTY_DIR}/androidx-media/${TGX_FLAVOR}/flac_jni.cc"
-  "${THIRDPARTY_DIR}/androidx-media/${TGX_FLAVOR}/flac_parser.cc"
-  "${THIRDPARTY_DIR}/androidx-media/${TGX_FLAVOR}/ffmpeg_jni.cc"
-  "${THIRDPARTY_DIR}/androidx-media/${TGX_FLAVOR}/vpx_jni.cc"
+        "${THIRDPARTY_DIR}/androidx-media/${TGX_FLAVOR}/opus_jni.cc"
+        "${THIRDPARTY_DIR}/androidx-media/${TGX_FLAVOR}/flac_jni.cc"
+        "${THIRDPARTY_DIR}/androidx-media/${TGX_FLAVOR}/flac_parser.cc"
+        "${THIRDPARTY_DIR}/androidx-media/${TGX_FLAVOR}/ffmpeg_jni.cc"
+        "${THIRDPARTY_DIR}/androidx-media/${TGX_FLAVOR}/vpx_jni.cc"
 
-  bridge.cpp
+        bridge.cpp
+        whisper_jni.cpp
 )
 target_include_directories(${NATIVE_LIB} PRIVATE
-  "${THIRDPARTY_DIR}/telegram_intro"
-  "${THIRDPARTY_DIR}/androidx-media/${TGX_FLAVOR}"
+        "${THIRDPARTY_DIR}/telegram_intro"
+        "${THIRDPARTY_DIR}/androidx-media/${TGX_FLAVOR}"
 
-  "${THIRDPARTY_DIR}"
-  .
+        "${THIRDPARTY_DIR}"
+        .
+        # whisper.cpp includes
+        "${TGX_ROOT_DIR}/thirdparty/whispercpp/include"
+        "${TGX_ROOT_DIR}/thirdparty/whispercpp/ggml/include"
+
+        # opusfile for voice message conversion
+        "${THIRDPARTY_DIR}/opusfile/include"
 )
 
 target_compile_definitions(${NATIVE_LIB} PUBLIC
-  SOCKLEN_T=socklen_t
-  LOCALE_NOT_USED
+        SOCKLEN_T=socklen_t
+        LOCALE_NOT_USED
 
-  DISABLE_IMPORTGL
-  BSD=1
-  AVOID_TABLES
-  ANDROID_TILE_BASED_DECODE
-  ANDROID_ARMV6_IDCT
-  __STDC_CONSTANT_MACROS
+        DISABLE_IMPORTGL
+        BSD=1
+        AVOID_TABLES
+        ANDROID_TILE_BASED_DECODE
+        ANDROID_ARMV6_IDCT
+        __STDC_CONSTANT_MACROS
 
-  TDLIB_TDAPI_CLASS_PATH="org/drinkless/tdlib/TdApi"
+        TDLIB_TDAPI_CLASS_PATH="org/drinkless/tdlib/TdApi"
 )
 target_compile_options(${NATIVE_LIB} PUBLIC
-  -Wall -Werror -Wno-deprecated-declarations
-  -Wno-macro-redefined -Wno-unused-variable
-  -fno-math-errno -fno-strict-aliasing -funroll-loops
-  -ffast-math
-  -fno-rtti
+        -Wall -Werror -Wno-deprecated-declarations
+        -Wno-macro-redefined -Wno-unused-variable
+        -fno-math-errno -fno-strict-aliasing -funroll-loops
+        # -ffast-math
+        -fno-rtti
 )
 # TODO: remove -Wno-macro-redefined -Wno-unused-variable
 # only "${THIRDPARTY_DIR}/androidx-media/ffmpeg_jni.cc" needs them.
@@ -243,18 +252,19 @@ target_compile_options(${NATIVE_LIB} PUBLIC
 # == Linking dependencies ==
 
 target_link_libraries(${NATIVE_LIB}
-  crypto
-  ssl
-  tdjni
-  jni-utils
-  FLAC
-  yuv
-  vpx
-  ogg
-  opusfile
-  opus
-  rlottie
-  lz4
+        crypto
+        ssl
+        tdjni
+        jni-utils
+        FLAC
+        yuv
+        vpx
+        ogg
+        opusfile
+        opus
+        rlottie
+        lz4
+        whisper
 )
 if (${USE_WEBP})
   target_link_libraries(${NATIVE_LIB} webpdecoder_static)
@@ -266,20 +276,26 @@ foreach(ffmpeg_lib ${FFMPEG_LIBS})
 endforeach()
 
 target_link_libraries(${NATIVE_LIB}
-  jnigraphics
-  log
-  GLESv2
-  EGL
-  android
-  cpufeatures
+        jnigraphics
+        log
+        GLESv2
+        EGL
+        android
+        cpufeatures
 )
 
 if (${ANDROID_ABI} STREQUAL "arm64-v8a" OR ${ANDROID_ABI} STREQUAL "x86_64")
   # Enable 16 KB ELF alignment.
   target_link_options(${NATIVE_LIB} PRIVATE
-    "-Wl,-z,max-page-size=16384"
+          "-Wl,-z,max-page-size=16384"
   )
 endif()
+
+set(WHISPER_EXCLUDE_LIBS libwhisper.a)
+Join(WHISPER_EXCLUDE_LIBS "${WHISPER_EXCLUDE_LIBS}" ",")
+target_link_options(${NATIVE_LIB} PUBLIC
+        -Wl,--exclude-libs,${WHISPER_EXCLUDE_LIBS}
+)
 
 include(AndroidNdkModules)
 android_ndk_import_module_cpufeatures()

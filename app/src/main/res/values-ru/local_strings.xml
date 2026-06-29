@@ -186,4 +186,35 @@
     <string name="EnableMessageAnimator">Анимация сообщений</string>
     <string name="ReplyInOtherChat">Ответить в другом чате</string>
     <string name="QuoteInOtherChat">Цитировать в другом чате</string>
+
+    <string name="WhisperSettings">Распознавание речи Whisper</string>
+    <string name="WhisperModel">Модель</string>
+    <string name="WhisperDownload">Скачать модель</string>
+    <string name="WhisperSelectModel">Выберите модель Whisper</string>
+    <string name="WhisperModelNotSelected">Не выбрана</string>
+    <string name="WhisperSelectModelFirst">Сначала выберите модель</string>
+    <string name="WhisperClickToDownload">Нажмите, чтобы скачать</string>
+    <string name="WhisperDownloading">Загрузка…</string>
+    <string name="WhisperModelReady">Готово (нажмите для удаления)</string>
+    <string name="WhisperDownloadComplete">Модель успешно загружена</string>
+    <string name="WhisperDownloadFailed">Ошибка загрузки</string>
+    <string name="WhisperDeleteModel">Удалить модель</string>
+    <string name="WhisperDeleteModelConfirm">Вы уверены, что хотите удалить загруженную модель?</string>
+    <string name="WhisperModelDeleted">Модель удалена</string>
+    <string name="Close">Закрыть</string>
+
+    <string name="Transcription">Расшифровка</string>
+    <string name="TranscriptionLoading">Загрузка…</string>
+    <string name="TranscriptionDownloading">Загрузка голосового сообщения…</string>
+    <string name="TranscriptionProcessing">Расшифровка аудио…</string>
+    <string name="TranscriptionComplete">Расшифровка завершена</string>
+    <string name="TranscriptionDetectedLanguage">Определен: %1$s</string>
+    <string name="TranscriptionErrorNoFile">Файл сообщения недоступен</string>
+    <string name="TranscriptionErrorDownload">Не удалось скачать голосовое сообщение</string>
+    <string name="TranscriptionErrorNoModel">Модель Whisper не загружена. Перейдите в настройки reX для скачивания.</string>
+    <string name="TranscriptionErrorModel">Не удалось загрузить модель Whisper</string>
+    <string name="TranscriptionErrorConvert">Не удалось конвертировать аудио</string>
+    <string name="TranscriptionErrorEmpty">Речь не распознана</string>
+    <string name="TranscriptionErrorFailed">Ошибка расшифровки</string>
+    <string name="TranscriptionError">Ошибка</string>
 </resources>

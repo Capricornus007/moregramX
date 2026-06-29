@@ -242,7 +242,7 @@ public abstract class BottomSheetViewController<T> extends ViewPagerController<T
     */
   }
 
-  protected int getTargetHeight () {
+  public int getTargetHeight() {
     return context().getRootView().getMeasuredHeight();
   }
 
