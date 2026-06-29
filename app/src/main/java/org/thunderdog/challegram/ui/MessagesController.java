@@ -2929,7 +2929,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       });
     }
     if(replyBarView != null && messageReplyToExternalMessage != null){
-      showReply(new MessageWithProperties(messageReplyToExternalMessage, ReXUtils.emptyReplyMessageProperties()), messageReplyToExternalMessageQuote, 0, true, true);
+      showReply(new MessageWithProperties(messageReplyToExternalMessage, ReXUtils.emptyReplyMessageProperties()), messageReplyToExternalMessageQuote, 0, "", true, true);
     }
 
     TdApi.Chat headerChat = messageThread != null ? tdlib.chatSync(messageThread.getContextChatId()) : null;

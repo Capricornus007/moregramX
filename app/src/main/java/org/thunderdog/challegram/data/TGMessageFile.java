@@ -294,7 +294,7 @@ public class TGMessageFile extends TGMessage {
                       TdApi.Message message = getMessage(messageId);
                       if (message != null) {
                         getMessageWithProperties(message, messageWithProps -> {
-                          manager.controller().showReply(messageWithProps, quote, 0, true, true);
+                          manager.controller().showReply(messageWithProps, quote, 0, "", true, true);
                         });
                       }
                     }

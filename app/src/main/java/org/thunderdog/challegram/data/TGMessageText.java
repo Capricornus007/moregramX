@@ -783,7 +783,7 @@ public class TGMessageText extends TGMessage {
                   TdApi.InputTextQuote quote = new TdApi.InputTextQuote(text, utf16Position);
                   if (manager != null && manager.controller() != null) {
                     getMessageWithProperties(messageWithProps -> {
-                      manager.controller().showReply(messageWithProps, quote, 0, true, true);
+                      manager.controller().showReply(messageWithProps, quote, 0, "", true, true);
                     });
                   }
                   finishTextSelection();

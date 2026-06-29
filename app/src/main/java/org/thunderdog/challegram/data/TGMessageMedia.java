@@ -276,7 +276,7 @@ public class TGMessageMedia extends TGMessage {
                     TdApi.Message captionMsg = getMessage(captionMessageId);
                     if (captionMsg != null) {
                       getMessageWithProperties(captionMsg, messageWithProps -> {
-                        manager.controller().showReply(messageWithProps, quote, 0, true, true);
+                        manager.controller().showReply(messageWithProps, quote, 0, "", true, true);
                       });
                     }
                   }

@@ -44,7 +44,6 @@ import java.lang.annotation.RetentionPolicy;
   RightId.EDIT_STORIES,
   RightId.DELETE_STORIES,
   RightId.MANAGE_OR_CREATE_TOPICS,
-  RightId.MANAGE_TOPICS,
   RightId.MANAGE_DIRECT_MESSAGES,
   RightId.EDIT_OR_MANAGE_TAGS,
   RightId.ADD_NEW_ADMINS,

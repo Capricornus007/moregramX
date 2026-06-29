@@ -4151,11 +4151,8 @@ public class TdlibUi extends Handler {
       case TdApi.InternalLinkTypeWebApp.CONSTRUCTOR:
       case TdApi.InternalLinkTypeMainWebApp.CONSTRUCTOR:
 
-      case TdApi.InternalLinkTypeInvoice.CONSTRUCTOR:
-
       case TdApi.InternalLinkTypeRestorePurchases.CONSTRUCTOR:
-      case TdApi.InternalLinkTypePremiumFeatures.CONSTRUCTOR:
-      case TdApi.InternalLinkTypeRestorePurchases.CONSTRUCTOR: {
+      case TdApi.InternalLinkTypePremiumFeatures.CONSTRUCTOR: {
         showLinkTooltip(tdlib, R.drawable.baseline_warning_24, Lang.getString(R.string.InternalUrlUnsupported), openParameters);
         break;
       }
