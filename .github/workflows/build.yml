@@ -40,6 +40,8 @@ jobs:
 
     # 【新增步驟】賦予專案設定腳本執行權限並執行它，以下載 libvpx 與 ffmpeg 預編譯庫
     - name: Run Project Setup Script
+      env:
+        TERM: xterm
       run: |
         chmod +x scripts/setup.sh
         ./scripts/setup.sh
