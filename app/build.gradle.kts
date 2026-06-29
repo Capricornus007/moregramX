@@ -58,6 +58,7 @@ android {
   defaultConfig {
     applicationId = config.applicationId
     targetSdk = config.targetSdkVersion
+    minSdk = 21
     multiDexEnabled = true
 
     buildConfigString("PROJECT_NAME", config.applicationName)
