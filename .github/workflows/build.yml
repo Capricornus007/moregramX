@@ -1,0 +1,32 @@
+name: Android CI
+
+on:
+  push:
+    branches: [ "my-combined-tgx" ]
+  pull_request:
+    branches: [ "my-combined-tgx" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        # Telegram X 依賴包含 tdlib 在內的子模組，必須遞迴克隆才能完整編譯
+        submodules: recursive
+
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'zulu'
+        java-version: '21'
+        cache: 'gradle'
+
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+
+    - name: Build with Gradle
+      # 執行 Debug 構建，並加上 --stacktrace 以便在出錯時查看詳細日誌
+      run: ./gradlew assembleDebug --stacktrace
