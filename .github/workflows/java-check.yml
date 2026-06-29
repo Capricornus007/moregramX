@@ -1,0 +1,70 @@
+name: Java Compile Check
+
+# Fast feedback loop: compiles only the app's Java for one variant
+# (LatestArm64Debug) and skips the whole native CMake build, so merge /
+# API-drift compile errors surface in a few minutes instead of ~30.
+# The full APK is still produced by build.yml.
+
+on:
+  push:
+    branches: [ "my-combined-tgx" ]
+  workflow_dispatch:
+
+concurrency:
+  group: java-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  java-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Free Disk Space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          docker image prune -a -f
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          lfs: true
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '21'
+          cache: 'gradle'
+
+      - name: Create local.properties
+        run: |
+          cat << 'EOF' > local.properties
+          app.id=org.thunderdog.challegram
+          app.name=Telegram X
+          app.download_url=https://telegram.org/dlx
+          telegram.api_id=21724
+          telegram.api_hash=3a17e5d593011bb391296f1f413b7e12
+          youtube.api_key=
+          tgx.extension=none
+          EOF
+          echo "sdk.dir=$ANDROID_HOME" >> local.properties
+
+      - name: Run Project Setup Script
+        env:
+          TERM: xterm
+        run: |
+          chmod +x scripts/setup.sh
+          ./scripts/setup.sh
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Compile Java only (no native)
+        run: |
+          ./gradlew :app:compileLatestArm64DebugJavaWithJavac \
+            --stacktrace --no-daemon --max-workers=2 \
+            -Dorg.gradle.jvmargs="-Xmx3g -XX:+UseG1GC"
