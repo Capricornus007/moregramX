@@ -12,72 +12,69 @@ jobs:
     permissions:
       contents: write
 
-    - name: Free Disk Space
-      run: |
-        # 刪除不必要的軟體（如 .NET, Haskell, CodeQL 等），這些佔用巨大空間且與 Android 無關
-        sudo rm -rf /usr/share/dotnet
-        sudo rm -rf /opt/ghc
-        sudo rm -rf /usr/local/share/boost
-        sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-        # 刪除 Docker 鏡像（非常佔空間）
-        docker image prune -a -f
+    steps:
+      - name: Free Disk Space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          docker image prune -a -f
 
-    - name: Checkout Repository
-      uses: actions/checkout@v4
-      with:
-        submodules: recursive
-        lfs: true
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          lfs: true
 
-    - name: Set up JDK 21
-      uses: actions/setup-java@v4
-      with:
-        distribution: 'zulu'
-        java-version: '21'
-        cache: 'gradle'
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '21'
+          cache: 'gradle'
 
-    - name: Create local.properties
-      run: |
-        cat << 'EOF' > local.properties
-        app.id=org.thunderdog.challegram
-        app.name=Telegram X
-        app.download_url=https://telegram.org/dlx
-        telegram.api_id=21724
-        telegram.api_hash=3a17e5d593011bb391296f1f413b7e12
-        youtube.api_key=
-        tgx.extension=none
-        EOF
-        echo "sdk.dir=$ANDROID_HOME" >> local.properties
+      - name: Create local.properties
+        run: |
+          cat << 'EOF' > local.properties
+          app.id=org.thunderdog.challegram
+          app.name=Telegram X
+          app.download_url=https://telegram.org/dlx
+          telegram.api_id=21724
+          telegram.api_hash=3a17e5d593011bb391296f1f413b7e12
+          youtube.api_key=
+          tgx.extension=none
+          EOF
+          echo "sdk.dir=$ANDROID_HOME" >> local.properties
 
-    - name: Run Project Setup Script
-      env:
-        TERM: xterm
-      run: |
-        chmod +x scripts/setup.sh
-        ./scripts/setup.sh
+      - name: Run Project Setup Script
+        env:
+          TERM: xterm
+        run: |
+          chmod +x scripts/setup.sh
+          ./scripts/setup.sh
 
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
 
-    - name: Build with Gradle
-      run: |
-        ./gradlew assembleDebug --stacktrace --no-daemon --max-workers=2 -Dorg.gradle.jvmargs="-Xmx3g -XX:+UseG1GC"
+      - name: Build with Gradle
+        run: |
+          ./gradlew assembleDebug --stacktrace --no-daemon --max-workers=2 -Dorg.gradle.jvmargs="-Xmx3g -XX:+UseG1GC"
 
-    # 方案 A：保留上傳為 Artifact（Actions 網頁端下載仍會是 zip）
-    - name: Upload APK as Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: telegram-x-debug-artifacts
-        path: app/build/outputs/apk/**/*.apk
+      - name: Upload APK as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: telegram-x-debug-artifacts
+          path: app/build/outputs/apk/**/*.apk
 
-    # 方案 B：自動上傳至 Release 頁面（支援點擊直接下載獨立 .apk 檔案）
-    - name: Upload APK to Latest Release
-      uses: softprops/action-gh-release@v2
-      if: github.event_name == 'push'
-      with:
-        tag_name: latest
-        name: "Latest Debug Build"
-        body: "此為自動編譯產出的最新測試版 APK，點擊下方檔案即可直接下載安裝。"
-        prerelease: true
-        files: app/build/outputs/apk/**/*.apk
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload APK to Latest Release
+        uses: softprops/action-gh-release@v2
+        if: github.event_name == 'push'
+        with:
+          tag_name: latest
+          name: "Latest Debug Build"
+          body: "此為自動編譯產出的最新測試版 APK，點擊下方檔案即可直接下載安裝。"
+          prerelease: true
+          files: app/build/outputs/apk/**/*.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
