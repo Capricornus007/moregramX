@@ -646,10 +646,7 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
 
     // Add story bar for main chat list (only if stories are not hidden)
     if (isBaseController() && filter == null && chatList().getConstructor() == TdApi.ChatListMain.CONSTRUCTOR && !Settings.instance().hideStories()) {
-      // Enable story bar in adapter - it will create the view as a list item
-      adapter.setShowStoryBar(true);
-
-      // Load active stories and check if user can post stories
+      // Load active stories and check if user can post stories - story bar will be added when content is available
       loadActiveStories();
       checkCanPostStory();
     }
@@ -3253,7 +3250,7 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
   private @Nullable SortedList.ListListener<TdApi.ChatActiveStories> storyListListener;
 
   private void loadActiveStories () {
-    if (adapter == null || !adapter.hasStoryBar()) {
+    if (adapter == null) {
       return;
     }
     // Get the main story list and subscribe to updates
@@ -3267,7 +3264,17 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
     storyList.initializeList(null, storyListListener, stories -> {
       runOnUiThreadOptional(() -> {
         if (adapter != null) {
-          adapter.setActiveStories(stories);
+          // Add story bar if we have stories and it's not shown yet
+          if (stories != null && !stories.isEmpty() && !adapter.hasStoryBar()) {
+            adapter.setShowStoryBar(true);
+            // Scroll to top to show story bar on initial load
+            if (chatsView != null) {
+              chatsView.scrollToPosition(0);
+            }
+          }
+          if (adapter.hasStoryBar()) {
+            adapter.setActiveStories(stories);
+          }
         }
       });
     }, 20, null);
@@ -3284,7 +3291,7 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
   }
 
   private void checkCanPostStory () {
-    if (adapter == null || !adapter.hasStoryBar()) {
+    if (adapter == null) {
       return;
     }
     long myUserId = tdlib.myUserId();
@@ -3300,7 +3307,17 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
       runOnUiThreadOptional(() -> {
         if (adapter != null) {
           boolean canPost = result.getConstructor() == TdApi.CanPostStoryResultOk.CONSTRUCTOR;
-          adapter.setCanPostStory(canPost);
+          // Add story bar if user can post and it's not shown yet
+          if (canPost && !adapter.hasStoryBar()) {
+            adapter.setShowStoryBar(true);
+            // Scroll to top to show story bar on initial load
+            if (chatsView != null) {
+              chatsView.scrollToPosition(0);
+            }
+          }
+          if (adapter.hasStoryBar()) {
+            adapter.setCanPostStory(canPost);
+          }
         }
       });
     });
