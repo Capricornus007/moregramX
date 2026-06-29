@@ -178,7 +178,6 @@ public class TranscriptionBottomSheet extends BottomSheetViewController.BottomSh
     wrapView.setClipToPadding(false);
 
     if (message != null) {
-      avatarReceiver = new AvatarReceiver(senderAvatarView);
       senderAvatarView = new View(context) {
         @Override
         protected void onAttachedToWindow() {
@@ -206,6 +205,7 @@ public class TranscriptionBottomSheet extends BottomSheetViewController.BottomSh
           avatarReceiver.draw(canvas);
         }
       };
+      avatarReceiver = new AvatarReceiver(senderAvatarView);
       message.requestAvatar(avatarReceiver, true);
       wrapView.addView(senderAvatarView, FrameLayoutFix.newParams(Screen.dp(20), Screen.dp(20), Gravity.LEFT | Gravity.BOTTOM, Screen.dp(18), 0, 0, Screen.dp(16)));
 
@@ -332,7 +332,7 @@ public class TranscriptionBottomSheet extends BottomSheetViewController.BottomSh
 
         // ВАЖНО: Тут можно добавить стриминг токенов, если Whisper поддерживает коллбэк,
         // тогда можно обновлять UI чаще.
-        TranscriptionResult result = whisper.transcribe(samples, 4, "ru", false);
+        TranscriptionResult result = whisper.transcribe(samples, 4, "auto", false);
         whisper.release();
 
         if (result != null && result.getFullText() != null) {

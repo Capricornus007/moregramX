@@ -5,16 +5,16 @@
         android:id="@android:id/copy"
         android:icon="@drawable/baseline_content_copy_24"
         android:title="@android:string/copy"
-        app:showAsAction="ifRoom" />
+        android:showAsAction="ifRoom" />
     <item
         android:id="@id/menu_btn_create_quote"
         android:icon="@drawable/baseline_format_quote_close_24"
         android:title="@string/TextFormatQuote"
-        app:showAsAction="always" />
+        android:showAsAction="always" />
 
    <item
         android:id="@id/menu_btn_quote_in_other_chat"
         android:icon="@drawable/baseline_chat_bubble_24"
         android:title="@string/QuoteInOtherChat"
-        app:showAsAction="always" />
+        android:showAsAction="always" />
 </menu>
