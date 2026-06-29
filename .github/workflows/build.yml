@@ -9,12 +9,14 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # 【新增權限】必須賦予寫入權限，GitHub Actions 才有資格建立或更新 Release
+    permissions:
+      contents: write
 
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v4
       with:
-        # Telegram X 依賴包含 tdlib 在內的子模組，必須遞迴克隆才能完整編譯
         submodules: recursive
 
     - name: Set up JDK 21
@@ -24,9 +26,42 @@ jobs:
         java-version: '21'
         cache: 'gradle'
 
+    - name: Create local.properties
+      run: |
+        cat << 'EOF' > local.properties
+        app.id=org.thunderdog.challegram
+        app.name=Telegram X
+        app.download_url=https://telegram.org/dlx
+        telegram.api_id=21724
+        telegram.api_hash=3a17e5d593011bb391296f1f413b7e12
+        youtube.api_key=
+        tgx.extension=none
+        EOF
+        echo "sdk.dir=$ANDROID_HOME" >> local.properties
+
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
 
     - name: Build with Gradle
-      # 執行 Debug 構建，並加上 --stacktrace 以便在出錯時查看詳細日誌
       run: ./gradlew assembleDebug --stacktrace
+
+    # 方案 A：保留上傳為 Artifact（注意：Actions 網頁端點擊下載仍會自動包成 zip）
+    - name: Upload APK as Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: telegram-x-debug-artifacts
+        path: app/build/outputs/apk/**/*.apk
+
+    # 方案 B：【實現直鏈下載】將 APK 上傳至指定的 Release 區塊
+    # 每次編譯成功都會自動覆蓋這個頁面下的 APK，點擊即可直接下載原始 .apk 檔案
+    - name: Upload APK to Latest Release
+      uses: softprops/action-gh-release@v2
+      if: github.event_name == 'push' # 僅在真正 push 時執行，Pull Request 時跳過
+      with:
+        tag_name: latest
+        name: "Latest Debug Build"
+        body: "此為自動編譯產出的最新測試版 APK，點擊下方檔案即可直接下載安裝。"
+        prerelease: true # 標記為預發佈版本
+        files: app/build/outputs/apk/**/*.apk
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
