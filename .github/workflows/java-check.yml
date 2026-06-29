@@ -63,8 +63,9 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Compile Java only (no native)
+      - name: Compile Java only (no native) — both SDK flavors
         run: |
           ./gradlew :app:compileLatestArm64DebugJavaWithJavac \
+                    :app:compileLegacyArm32DebugJavaWithJavac \
             --stacktrace --no-daemon --max-workers=2 \
             -Dorg.gradle.jvmargs="-Xmx3g -XX:+UseG1GC"
