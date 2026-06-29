@@ -12,13 +12,15 @@ jobs:
     permissions:
       contents: write
 
-    steps:
     - name: Free Disk Space
       run: |
+        # 刪除不必要的軟體（如 .NET, Haskell, CodeQL 等），這些佔用巨大空間且與 Android 無關
         sudo rm -rf /usr/share/dotnet
-        sudo rm -rf /usr/local/lib/android
         sudo rm -rf /opt/ghc
-        sudo rm -rf "/usr/local/share/boost"
+        sudo rm -rf /usr/local/share/boost
+        sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+        # 刪除 Docker 鏡像（非常佔空間）
+        docker image prune -a -f
 
     - name: Checkout Repository
       uses: actions/checkout@v4
