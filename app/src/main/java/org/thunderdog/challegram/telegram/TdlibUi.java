@@ -4151,8 +4151,7 @@ public class TdlibUi extends Handler {
       case TdApi.InternalLinkTypeWebApp.CONSTRUCTOR:
       case TdApi.InternalLinkTypeMainWebApp.CONSTRUCTOR:
 
-      case TdApi.InternalLinkTypeRestorePurchases.CONSTRUCTOR:
-      case TdApi.InternalLinkTypePremiumFeatures.CONSTRUCTOR: {
+      case TdApi.InternalLinkTypeRestorePurchases.CONSTRUCTOR: {
         showLinkTooltip(tdlib, R.drawable.baseline_warning_24, Lang.getString(R.string.InternalUrlUnsupported), openParameters);
         break;
       }
@@ -4163,27 +4162,11 @@ public class TdlibUi extends Handler {
         break;
       }
 
-      case TdApi.InternalLinkTypeBuyStars.CONSTRUCTOR: {
-        TdApi.InternalLinkTypeBuyStars buyStars = (TdApi.InternalLinkTypeBuyStars) linkType;
-        SettingsStarsController starsController = new SettingsStarsController(context.context(), tdlib);
-        starsController.setArguments(new SettingsStarsController.Args(buyStars.starCount, buyStars.purpose));
-        context.context().navigation().navigateTo(starsController);
-        break;
-      }
-
-      case TdApi.InternalLinkTypeMyStars.CONSTRUCTOR: {
-        SettingsStarsController starsController = new SettingsStarsController(context.context(), tdlib);
-        starsController.setArguments(new SettingsStarsController.Args());
-        context.context().navigation().navigateTo(starsController);
-        break;
-      }
-
       case TdApi.InternalLinkTypeChatBoost.CONSTRUCTOR:
       case TdApi.InternalLinkTypeGiftCollection.CONSTRUCTOR:
       case TdApi.InternalLinkTypeGiftAuction.CONSTRUCTOR:
       case TdApi.InternalLinkTypeChatAffiliateProgram.CONSTRUCTOR:
       case TdApi.InternalLinkTypeUpgradedGift.CONSTRUCTOR:
-      case TdApi.InternalLinkTypeMyToncoins.CONSTRUCTOR:
 
       case TdApi.InternalLinkTypePassportDataRequest.CONSTRUCTOR:
 
