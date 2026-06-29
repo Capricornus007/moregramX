@@ -13,6 +13,13 @@ jobs:
       contents: write
 
     steps:
+    - name: Free Disk Space
+      run: |
+        sudo rm -vrf /usr/share/dotnet
+        sudo rm -vrf /usr/local/lib/android
+        sudo rm -vrf /opt/ghc
+        sudo rm -vrf "/usr/local/share/boost"
+
     - name: Checkout Repository
       uses: actions/checkout@v4
       with:
@@ -39,7 +46,6 @@ jobs:
         EOF
         echo "sdk.dir=$ANDROID_HOME" >> local.properties
 
-    # 【新增步驟】賦予專案設定腳本執行權限並執行它，以下載 libvpx 與 ffmpeg 預編譯庫
     - name: Run Project Setup Script
       env:
         TERM: xterm
@@ -51,7 +57,8 @@ jobs:
       run: chmod +x gradlew
 
     - name: Build with Gradle
-      run: ./gradlew assembleDebug --stacktrace
+      run: |
+        ./gradlew assembleDebug --stacktrace --no-daemon --max-workers=2 -Dorg.gradle.jvmargs="-Xmx3g -XX:+UseG1GC"
 
     # 方案 A：保留上傳為 Artifact（Actions 網頁端下載仍會是 zip）
     - name: Upload APK as Artifact
