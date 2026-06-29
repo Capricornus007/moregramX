@@ -8009,7 +8009,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     // Store user name before sending to show in toast
     final String userName = userIds.length == 1 ? tdlib.cache().userName(userIds[0]) : null;
 
-    tdlib.send(new TdApi.ShareUsersWithBot(chat.id, pendingRequestUsersMessageId, pendingRequestUsers.id, userIds, false), (result, error) -> {
+    tdlib.send(new TdApi.ShareUsersWithBot(chat.id, pendingRequestUsersMessageId, userIds, false), (result, error) -> {
       UI.post(() -> {
         if (error != null) {
           UI.showToast(TD.toErrorString(error), Toast.LENGTH_SHORT);

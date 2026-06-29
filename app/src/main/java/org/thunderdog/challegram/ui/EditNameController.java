@@ -185,6 +185,9 @@ public class EditNameController extends EditBaseController<EditNameController.Ar
     if (user != null) {
       firstNameValue = user.firstName;
       lastNameValue = user.lastName;
+    } else {
+      firstNameValue = "";
+      lastNameValue = "";
     }
       // Load existing note for contact
 // 1. 處理舊的 Note (保留原本的邏輯)
