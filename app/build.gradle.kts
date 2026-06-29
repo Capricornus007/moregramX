@@ -263,7 +263,7 @@ android {
       !(abiVariant.flavor == "universal" && sdkVariant.flavor == "legacy") &&
       (variantBuilder.buildType != "debug" || sdkVariant.flavor == "legacy" || (abiVariant.flavor == "x86" || abiVariant.flavor == "x64" || abiVariant.flavor == "universal" || abiVariant.flavor == "arm64"))
   }
-  productFlavors {
+productFlavors {
     Sdk.VARIANTS.forEach { (sdkIndex, variant) ->
       create(variant.flavor) {
         dimension = "SDK"
@@ -275,10 +275,16 @@ android {
           variant.minSdk
         }
         val selectedMinSdk = maxOf(variant.minSdk, actualMinSdk)
-        minSdk = selectedMinSdk
+        
+        // 【修改這裡】強行讓最終的 minSdk 至少為 21
+        minSdk = maxOf(selectedMinSdk, 21)
+        
         if (selectedMinSdk < 21) {
           proguardFile("proguard-r8-bug-android-4.x-workaround.pro")
         }
+      }
+    }
+}
 
         val flags = listOf(
           "-w",
