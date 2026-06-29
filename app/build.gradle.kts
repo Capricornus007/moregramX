@@ -275,16 +275,16 @@ productFlavors {
           variant.minSdk
         }
         val selectedMinSdk = maxOf(variant.minSdk, actualMinSdk)
-        
-        // 【修改這裡】強行讓最終的 minSdk 至少為 21
+
+        // 強行讓最終的 minSdk 至少為 21
         minSdk = maxOf(selectedMinSdk, 21)
-        
+
         if (selectedMinSdk < 21) {
           proguardFile("proguard-r8-bug-android-4.x-workaround.pro")
         }
-      }
-    }
-}
+
+        // 注意：原本的大括號絕對不能在這裡提早關閉！
+        // 以下的所有設定都必須保持留在 create(variant.flavor) { ... } 的內部
 
         val flags = listOf(
           "-w",
@@ -314,6 +314,7 @@ productFlavors {
           Config.ANDROIDX_MEDIA_EXTENSIONS.forEach { extension ->
             java.directories += "../thirdparty/androidx-media/${variant.flavor}/libraries/${extension}/src/main/java"
           }
+
           val extraFolders = findExtraFolders(variant)
           extraFolders.forEach { folderName ->
             kotlin.directories += "src/$folderName/kotlin"
@@ -378,7 +379,6 @@ productFlavors {
       }
     }
   }
-
   androidComponents {
     onVariants { variant ->
       val abiFlavor = variant.productFlavors.first { it.first == "ABI" }.second
