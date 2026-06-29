@@ -679,6 +679,13 @@ dependencies {
   implementation(libs.google.play.billing)
   // The Checker Framework: https://checkerframework.org/CHANGELOG.md
   compileOnly(libs.annotations.checkerframework)
+  // Compile-only annotations used across the codebase (e.g. javax.annotation.Nullable in
+  // CountryController). Upstream declares these; keep them so every SDK flavor compiles.
+  compileOnly(libs.annotations.errorprone)
+  compileOnly(libs.annotations.j2objc)
+  compileOnly(libs.androidx.room.latest)
+  compileOnly(libs.annotations.jsr305)
+  compileOnly(libs.annotations.kotlin)
   // OkHttp: https://github.com/square/okhttp/blob/master/CHANGELOG.md
   flavorImplementation(
     libs.okhttp.legacy,
