@@ -63,7 +63,6 @@
   <item name="btn_darkenDrawer" type="id" />
   <item name="btn_saveDocument" type="id" />
   <item name="btn_MiscMoexSettings" type="id" />
-  <item name="btn_profileNote" type="id" />
   <item name="btn_profileNote_copy" type="id" />
   <item name="btn_profileNote_edit" type="id" />
   <item name="btn_profileNote_clear" type="id" />

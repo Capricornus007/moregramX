@@ -1220,13 +1220,8 @@ public class TGMessagePoll extends TGMessage implements ClickHelper.Delegate, Co
       boolean showResults = needShowResults(state.poll);
       setTotalVoterCount(state.poll, true);
       setPollStatus(state.poll.isClosed ? POLL_STATUS_CLOSED : POLL_STATUS_ANONYMOUS);
-<<<<<<< HEAD
       setPercentages(showResults, state.poll.options, state.poll.optionOrder);
       int[] correctOptionIds = state.poll.type.getConstructor() == TdApi.PollTypeQuiz.CONSTRUCTOR ? ((TdApi.PollTypeQuiz) state.poll.type).correctOptionIds : null;
-=======
-      setPercentages(needExposeResults(state.poll), state.poll.options);
-      int correctOptionId = state.poll.type.getConstructor() == TdApi.PollTypeQuiz.CONSTRUCTOR ? ((TdApi.PollTypeQuiz) state.poll.type).correctOptionId : -1;
->>>>>>> moegramx/moe
       for (int optionId = 0; optionId < state.poll.options.length; optionId++) {
         boolean isCorrect = correctOptionIds != null && ArrayUtils.contains(correctOptionIds, optionId);
         options[optionId].selectionFactor = (showResults && isCorrect) || state.poll.options[optionId].isChosen ? 1f : 0f;

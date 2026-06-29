@@ -187,53 +187,7 @@ public class EditNameController extends EditBaseController<EditNameController.Ar
       lastNameValue = user.lastName;
 
       // Load existing note for contact
-      if (mode == Mode.RENAME_CONTACT || mode == Mode.ADD_CONTACT) {
-        TdApi.UserFullInfo userFull = tdlib.cache().userFull(user.id);
-        if (userFull != null && userFull.note != null) {
-          noteValue = userFull.note.text;
-        }
-      }
-
-      setDoneVisible(isGoodInput(firstNameValue, lastNameValue));
-    } else {
-      firstNameValue = lastNameValue = "";
-      if (mode == Mode.SIGNUP && UI.inTestMode()) {
-        firstNameValue = "Robot #" + tdlib.robotId();
-      }
-    }
-
-    List<ListItem> items = new ArrayList<>();
-    if ((mode == Mode.RENAME_CONTACT || mode == Mode.ADD_CONTACT || mode == Mode.RENAME_BOT) && user != null) {
-      TGFoundChat chat = new TGFoundChat(tdlib, user.id);
-      if (mode == Mode.RENAME_BOT) {
-        chat.setForceUsername();
-      } else {
-        chat.setForcedSubtitle(
-          !StringUtils.isEmpty(knownPhoneNumber) ?
-            Strings.formatPhone(knownPhoneNumber) :
-            TD.hasPhoneNumber(user) ?
-              Strings.formatPhone(user.phoneNumber) :
-              Lang.getString(R.string.NumberHidden)
-        );
-      }
-      items.add(new ListItem(ListItem.TYPE_CHAT_BETTER).setData(chat));
-    }
-    items.add((firstName = new ListItem(items.isEmpty() ? ListItem.TYPE_EDITTEXT : ListItem.TYPE_EDITTEXT_NO_PADDING, R.id.edit_first_name, 0, mode == Mode.RENAME_BOT ? R.string.BotName : R.string.login_FirstName)
-      .setStringValue(firstNameValue)
-      .setInputFilters(new InputFilter[] {
-        new CodePointCountFilter(TdConstants.MAX_NAME_LENGTH),
-        new EmojiFilter(),
-        new CharacterStyleFilter()
-      })));
-    if (mode != Mode.RENAME_BOT) {
-      items.add((lastName = new ListItem(ListItem.TYPE_EDITTEXT_NO_PADDING, R.id.edit_last_name, 0, mode == Mode.RENAME_CONTACT || mode == Mode.ADD_CONTACT ? R.string.LastName : R.string.login_LastName)
-        .setStringValue(lastNameValue)
-        .setInputFilters(new InputFilter[] {
-          new CodePointCountFilter(TdConstants.MAX_NAME_LENGTH),
-          new EmojiFilter(),
-          new CharacterStyleFilter()
-        }).setOnEditorActionListener(mode == Mode.RENAME_CONTACT || mode == Mode.ADD_CONTACT ? null : new SimpleEditorActionListener(EditorInfo.IME_ACTION_DONE, this))));
-    }
+// 1. 處理舊的 Note (保留原本的邏輯)
     if (mode == Mode.RENAME_CONTACT || mode == Mode.ADD_CONTACT) {
       items.add((noteItem = new ListItem(ListItem.TYPE_EDITTEXT_NO_PADDING, R.id.edit_note, 0, R.string.ProfileNote)
         .setStringValue(noteValue)
@@ -242,11 +196,14 @@ public class EditNameController extends EditBaseController<EditNameController.Ar
           new EmojiFilter(),
           new CharacterStyleFilter()
         }).setOnEditorActionListener(new SimpleEditorActionListener(EditorInfo.IME_ACTION_DONE, this))));
-    }
+    } // <--- 這裡一定要有一個右大括號來結束這個 if
+
+    // 2. 處理 Profile Note (額外功能) 與 電話隱私
     if ((mode == Mode.RENAME_CONTACT || mode == Mode.ADD_CONTACT) && user != null) {
-      String noteValue = currentNote != null ? currentNote : "";
+      // 處理 Profile Note
+      String noteValueNew = currentNote != null ? currentNote : "";
       items.add(profileNoteItem = new ListItem(ListItem.TYPE_EDITTEXT_NO_PADDING, R.id.btn_profileNote_edit, 0, R.string.ProfileNote)
-        .setStringValue(noteValue)
+        .setStringValue(noteValueNew)
         .setInputFilters(new InputFilter[] {
           new CodePointCountFilter(TdConstants.MAX_CHAT_TITLE_LENGTH),
           new EmojiFilter(),
@@ -254,12 +211,8 @@ public class EditNameController extends EditBaseController<EditNameController.Ar
         })
         .setOnEditorActionListener(new SimpleEditorActionListener(EditorInfo.IME_ACTION_DONE, this)));
       items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, Lang.getStringBold(R.string.ProfileNoteHint), false));
-    }
-    TdApi.TermsOfService termsOfService = mode == Mode.SIGNUP ? getArgumentsStrict().authState.termsOfService : null;
-    if (termsOfService != null && termsOfService.minUserAge != 0) {
-      items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, Lang.plural(R.string.AgeVerification, termsOfService.minUserAge), false));
-    }
-    if ((mode == Mode.RENAME_CONTACT || mode == Mode.ADD_CONTACT) && user != null) {
+
+      // 處理電話隱私
       if (StringUtils.isEmpty(knownPhoneNumber) && !TD.hasPhoneNumber(user)) {
         items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, Lang.getStringBold(R.string.NumberHiddenHint, tdlib.cache().userName(user.id)), false));
       }
@@ -269,14 +222,14 @@ public class EditNameController extends EditBaseController<EditNameController.Ar
         items.add(shareMyNumber = newShareItem());
       }
     }
+
     if (mode == Mode.RENAME_BOT) {
       items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, Lang.getMarkdownStringSecure(this, R.string.RenameBotHint), false));
     }
     adapter.setItems(items, false);
     recyclerView.setOverScrollMode(View.OVER_SCROLL_NEVER);
     recyclerView.setAdapter(adapter);
-    setDoneIcon(mode == Mode.SIGNUP ? R.drawable.baseline_arrow_forward_24 : R.drawable.baseline_check_24);
-  }
+    setDoneIcon(mode == Mode.SIGNUP ? R.drawable.baseline_arrow_forward_24 : R.drawable.baseline_check_24);  }
 
   @Override
   public void onFocus () {

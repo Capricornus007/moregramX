@@ -2419,9 +2419,6 @@ public class ProfileController extends ViewController<ProfileController.Args> im
   private String personalChannelTime;
   private int personalChannelMembers;
 
-  private TextWrapper profileNoteWrapper;
-  private TdApi.FormattedText currentProfileNote;
-
   private static int getTextWidth (int width) {
     return Math.max(0, width - Screen.dp(73f) - Screen.dp(17f));
   }
