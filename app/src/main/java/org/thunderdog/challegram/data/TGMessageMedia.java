@@ -44,6 +44,7 @@ import org.thunderdog.challegram.tool.UI;
 import org.thunderdog.challegram.util.text.Highlight;
 import org.thunderdog.challegram.util.text.Text;
 import org.thunderdog.challegram.util.text.TextEntity;
+import org.thunderdog.challegram.util.text.TextSelectionHelper;
 import org.thunderdog.challegram.util.text.TextWrapper;
 
 import java.util.ArrayList;
@@ -54,14 +55,92 @@ import me.vkryl.core.lambda.CancellableRunnable;
 import tgx.td.Td;
 
 public class TGMessageMedia extends TGMessage {
-  // private MediaWrapper mediaWrapper;
   private @Nullable TextWrapper wrapper;
+  private org.thunderdog.challegram.util.text.TextSelectionHelper textSelectionHelper;
+  private boolean isCheckingWrapper;
 
   // Timer stuff
 
   private String timerText;
   private int timerWidth;
   // private int pTimerRight, pTimerTop;
+
+  private boolean hasTextHighlight;
+  private int highlightCharStart;
+  private int highlightCharEnd;
+  private float highlightAlpha;
+
+  public void setTextHighlight(int utf16Position, int utf16Length) {
+    if (caption == null || caption.text == null || wrapper == null) {
+      return;
+    }
+
+    String messageText = caption.text;
+    int charStart = convertUtf16ToCharIndex(messageText, utf16Position);
+    int charEnd = convertUtf16ToCharIndex(messageText, utf16Position + utf16Length);
+
+    this.highlightCharStart = charStart;
+    this.highlightCharEnd = charEnd;
+    this.hasTextHighlight = true;
+
+    org.thunderdog.challegram.util.text.Text textObj = wrapper.getCurrent();
+    if (textObj != null) {
+      textObj.setQuoteHighlight(charStart, charEnd, 1f);
+    }
+
+    animateHighlight();
+  }
+
+  private void animateHighlight() {
+    android.animation.ValueAnimator animator = android.animation.ValueAnimator.ofFloat(0f, 1f, 0f);
+    animator.setDuration(2000); // 2 seconds total
+    animator.addUpdateListener(animation -> {
+      highlightAlpha = (float) animation.getAnimatedValue();
+
+      if (wrapper != null) {
+        org.thunderdog.challegram.util.text.Text textObj = wrapper.getCurrent();
+        if (textObj != null) {
+          textObj.setQuoteHighlight(highlightCharStart, highlightCharEnd, highlightAlpha);
+        }
+      }
+
+      invalidate();
+    });
+    animator.addListener(new android.animation.AnimatorListenerAdapter() {
+      @Override
+      public void onAnimationEnd(android.animation.Animator animation) {
+        hasTextHighlight = false;
+
+        if (wrapper != null) {
+          org.thunderdog.challegram.util.text.Text textObj = wrapper.getCurrent();
+          if (textObj != null) {
+            textObj.clearQuoteHighlight();
+          }
+        }
+
+        invalidate();
+      }
+    });
+    animator.start();
+  }
+
+  private int convertUtf16ToCharIndex(String text, int utf16Position) {
+    if (utf16Position == 0) {
+      return 0;
+    }
+
+    int charIndex = 0;
+    int utf16Count = 0;
+
+    while (charIndex < text.length() && utf16Count < utf16Position) {
+      int codePoint = text.codePointAt(charIndex);
+      int charCount = Character.charCount(codePoint);
+      charIndex += charCount;
+      utf16Count += charCount;
+    }
+
+    return Math.min(charIndex, text.length());
+  }
 
   protected TGMessageMedia (MessagesManager context, TdApi.Message msg, @NonNull TdApi.MessagePhoto photo, TdApi.FormattedText caption) {
     super(context, msg);
@@ -155,6 +234,72 @@ public class TGMessageMedia extends TGMessage {
 
   private MosaicWrapper mosaicWrapper;
 
+  private void showQuoteActionMode(View view, float touchX, float touchY) {
+    if (wrapper == null) return;
+    org.thunderdog.challegram.util.text.Text textObj = wrapper.getCurrent();
+    if (textObj == null) return;
+
+    if (textSelectionHelper != null) textSelectionHelper.finish();
+
+    textSelectionHelper = new org.thunderdog.challegram.util.text.TextSelectionHelper(textObj, this.caption);
+
+    int contentX = getTextX(view, wrapper, false);
+    int contentY = getContentY() + mosaicWrapper.getHeight() + Screen.dp(TEXT_MARGIN);
+
+    int startXRtl = getTextX(view, wrapper, true);
+    int endXPadding = Config.MOVE_BUBBLE_TIME_RTL_TO_LEFT ? 0 : getBubbleTimePartWidth();
+
+    textSelectionHelper.setLayoutOffset(contentX, contentY, startXRtl, endXPadding);
+
+    int charIndex = textObj.getCharIndexAt(touchX - contentX, touchY - contentY);
+    String str = caption.text;
+    int start = charIndex;
+    int end = charIndex;
+
+    int maxLen = str.length();
+    if (start >= 0 && start <= maxLen) {
+      while (start > 0 && start <= maxLen && Character.isLetterOrDigit(str.charAt(start - 1))) start--;
+      while (end < maxLen && Character.isLetterOrDigit(str.charAt(end))) end++;
+    } else {
+      start = 0; end = maxLen;
+    }
+    if (start == end) { start = 0; end = maxLen; }
+    registerAsActiveSelection();
+    textSelectionHelper.setSelection(start, end);
+
+    textSelectionHelper.showActionMode(view, new TextSelectionHelper.QuoteCallback() {
+              @Override
+              public void onQuoteCreated(TdApi.FormattedText text, int utf16Position) {
+                  TdApi.InputTextQuote quote = new TdApi.InputTextQuote(text, utf16Position);
+                  if (manager != null && manager.controller() != null) {
+                    TdApi.Message captionMsg = getMessage(captionMessageId);
+                    if (captionMsg != null) {
+                      getMessageWithProperties(captionMsg, messageWithProps -> {
+                        manager.controller().showReply(messageWithProps, quote, 0, true, true);
+                      });
+                    }
+                  }
+                  finishTextSelection();
+              }
+
+              @Override
+              public void onQuoteInOtherChatCreated(TdApi.FormattedText text, int utf16Position) {
+                  TdApi.InputTextQuote quote = new TdApi.InputTextQuote(text, utf16Position);
+                  if (manager != null && manager.controller() != null) {
+                    TdApi.Message captionMsg = getMessage(captionMessageId);
+                    if (captionMsg != null) {
+                      manager.controller().replyMessageInOtherChat(msg, quote);
+                    }
+                  }
+                  finishTextSelection();
+              }
+            },
+            this::finishTextSelection
+    );
+    isTextSelectionActive = true;
+    view.invalidate();
+  }
+
   private void init (MediaWrapper wrapper, TdApi.FormattedText caption) {
     if (msg.chatId == 0) {
       wrapper.loadStubPhoto(((TdApi.MessagePhoto) msg.content).photo.sizes[0].type);
@@ -235,6 +380,22 @@ public class TGMessageMedia extends TGMessage {
     if (wrapper != null) {
       wrapper.performDestroy();
     }
+    if (textSelectionHelper != null) {
+      textSelectionHelper.finish();
+      textSelectionHelper = null;
+    }
+    isTextSelectionActive = false;
+    unregisterAsActiveSelection();
+  }
+
+  @Override
+  public void finishTextSelection() {
+    if (textSelectionHelper != null) {
+      textSelectionHelper.finish();
+      textSelectionHelper = null;
+    }
+    isTextSelectionActive = false;
+    super.finishTextSelection();
   }
 
   private void updateRounds () {
@@ -632,6 +793,22 @@ public class TGMessageMedia extends TGMessage {
       float alpha = getTranslationLoadingAlphaValue();
       wrapper.draw(c, getTextX(view, wrapper, false), getTextX(view, wrapper, true), Config.MOVE_BUBBLE_TIME_RTL_TO_LEFT ? 0 : getBubbleTimePartWidth(), startY + mosaicWrapper.getHeight() + Screen.dp(TEXT_MARGIN), null, alpha, view.getTextMediaReceiver());
     }
+
+    if (textSelectionHelper != null && isTextSelectionActive && wrapper != null) {
+        org.thunderdog.challegram.util.text.Text textObj = wrapper.getCurrent();
+        if (textObj != null) {
+            float alpha = getTranslationLoadingAlphaValue();
+            int contentX = getTextX(view, wrapper, false);
+            int contentY = startY + mosaicWrapper.getHeight() + Screen.dp(TEXT_MARGIN);
+            int startXRtl = getTextX(view, wrapper, true);
+            int endXPadding = Config.MOVE_BUBBLE_TIME_RTL_TO_LEFT ? 0 : getBubbleTimePartWidth();
+
+            textSelectionHelper.setLayoutOffset(contentX, contentY, startXRtl, endXPadding);
+
+            textSelectionHelper.drawSelection(c, textObj, contentX, contentY, alpha);
+            textSelectionHelper.drawHandles(c, textObj, contentX, contentY);
+        }
+    }
   }
 
   private static float TEXT_MARGIN = 10f;
@@ -817,6 +994,19 @@ public class TGMessageMedia extends TGMessage {
 
   @Override
   public boolean onTouchEvent (MessageView view, MotionEvent e) {
+    if (textSelectionHelper != null && isTextSelectionActive && wrapper != null) {
+      int contentX = getTextX(view, wrapper, false);
+      int contentY = getContentY() + mosaicWrapper.getHeight() + Screen.dp(TEXT_MARGIN);
+      int startXRtl = getTextX(view, wrapper, true);
+      int endXPadding = Config.MOVE_BUBBLE_TIME_RTL_TO_LEFT ? 0 : getBubbleTimePartWidth();
+
+      textSelectionHelper.setLayoutOffset(contentX, contentY, startXRtl, endXPadding);
+
+      if (textSelectionHelper.onTouchEvent(view, e)) {
+        return true;
+      }
+    }
+
     if (super.onTouchEvent(view, e)) {
       return true;
     }
@@ -892,6 +1082,23 @@ public class TGMessageMedia extends TGMessage {
   public boolean performLongPress (View view, float x, float y) {
     boolean res = super.performLongPress(view, x, y);
     return mosaicWrapper.performLongPress(view) || (wrapper != null && wrapper.performLongPress(view)) || res;
+  }
+
+  public boolean processTextSelection (View view, float x, float y) {
+    if (wrapper != null && y > getContentY() + mosaicWrapper.getHeight()) {
+      if (isCurrentMessageSelected() && canTextSelection()) {
+          manager.controller().unselectMessage(this.getMessage().id, this);
+          manager.controller().finishSelectMode(-1);
+          showQuoteActionMode(view, x, y);
+          return true;
+      }
+
+      if (!inSelectionMode()) {
+          showQuoteActionMode(view, x, y);
+          return true;
+      }
+    }
+    return false;
   }
 
   public boolean isVideoFirstInMosaic (int mediaId) {

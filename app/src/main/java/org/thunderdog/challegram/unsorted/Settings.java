@@ -221,6 +221,7 @@ public class Settings {
   private static final String KEY_INCOGNITO = "settings_incognito";
   private static final String KEY_NIGHT_MODE = "settings_night_mode";
   private static final String KEY_VIDEO_LIMIT = "settings_video_limit";
+  private static final String KEY_STORY_RING_COLORS = "settings_story_ring_colors";
   private static final String KEY_EARPIECE_MODE = "settings_earpiece_mode";
   private static final String KEY_EMOJI_PACK = "settings_emoji_pack";
   private static final String KEY_EMOJI_INSTALLED_PREFIX = "settings_emoji_installed_";
@@ -361,6 +362,10 @@ public class Settings {
   private static final String KEY_QUICK_REACTIONS = "quick_reactions";
   private static final String KEY_BIG_REACTIONS_IN_CHANNELS = "big_reactions_in_channels";
   private static final String KEY_BIG_REACTIONS_IN_CHATS = "big_reactions_in_chats";
+  private static final String KEY_BIG_REACTIONS_IN_DMS = "big_reactions_in_dms";
+  private static final String KEY_SHOW_CAMERA_WHILE_TYPING = "show_camera_while_typing";
+  private static final String KEY_SHOW_ATTACH_WHILE_TYPING = "show_attach_while_typing";
+  private static final String KEY_SHOW_VOICE_WHILE_TYPING = "show_voice_while_typing";
 
   private static final String KEY_WALLPAPER_PREFIX = "wallpaper";
   private static final String KEY_WALLPAPER_CUSTOM = "_custom";
@@ -430,6 +435,9 @@ public class Settings {
   public static final long SETTING_FLAG_DYNAMIC_ORDER_EMOJI_PACKS = 1 << 18;
   public static final long SETTING_FLAG_FORCE_DEFAULT_ANIMATION_FOR_RIGHT_SWIPE_EDGE = 1 << 19;
   public static final long SETTING_FLAG_FORCE_DISABLE_HLS_VIDEO = 1 << 20;
+  public static final long SETTING_FLAG_HIDE_STORIES = 1L << 21;
+  public static final long SETTING_FLAG_STORY_QUICK_REACTIONS = 1L << 22;
+  public static final long SETTING_FLAG_SHOW_ADD_STORY_BORDER = 1L << 23;
 
   public static final long EXPERIMENT_FLAG_ALLOW_EXPERIMENTS = 1;
   public static final long EXPERIMENT_FLAG_SHOW_PEER_IDS = 1 << 2;
@@ -1353,6 +1361,38 @@ public class Settings {
 
   public boolean getNewSetting (long key) {
     return BitwiseUtils.hasFlag(getNewSettings(), key);
+  }
+
+  public boolean hideStories () {
+    return getNewSetting(SETTING_FLAG_HIDE_STORIES);
+  }
+
+  public boolean useStoryQuickReactions () {
+    return getNewSetting(SETTING_FLAG_STORY_QUICK_REACTIONS);
+  }
+
+  public boolean showAddStoryBorder () {
+    return getNewSetting(SETTING_FLAG_SHOW_ADD_STORY_BORDER);
+  }
+
+  // Default story ring gradient colors
+  public static final int[] DEFAULT_STORY_RING_COLORS = {
+    0xFF7B68EE,  // Medium slate blue
+    0xFF00CED1,  // Dark turquoise
+    0xFF00FA9A   // Medium spring green
+  };
+
+  public int[] getStoryRingColors () {
+    int[] colors = pmc.getIntArray(KEY_STORY_RING_COLORS);
+    return colors != null && colors.length > 0 ? colors : DEFAULT_STORY_RING_COLORS;
+  }
+
+  public void setStoryRingColors (int[] colors) {
+    if (colors == null || colors.length == 0) {
+      pmc.remove(KEY_STORY_RING_COLORS);
+    } else {
+      pmc.putIntArray(KEY_STORY_RING_COLORS, colors);
+    }
   }
 
   private boolean setNewSettings (long newSettings) {
@@ -6871,6 +6911,38 @@ public class Settings {
 
   public boolean getBigReactionsInChats () {
     return getBoolean(KEY_BIG_REACTIONS_IN_CHATS, true);
+  }
+
+  public void setBigReactionsInDMs (boolean inDMs) {
+    pmc.putBoolean(KEY_BIG_REACTIONS_IN_DMS, inDMs);
+  }
+
+  public boolean getBigReactionsInDMs () {
+    return getBoolean(KEY_BIG_REACTIONS_IN_DMS, false);
+  }
+
+  public void setShowAttachWhileTyping (boolean show) {
+    pmc.putBoolean(KEY_SHOW_ATTACH_WHILE_TYPING, show);
+  }
+
+  public boolean getShowAttachWhileTyping () {
+    return getBoolean(KEY_SHOW_ATTACH_WHILE_TYPING, false);
+  }
+
+  public void setShowCameraWhileTyping (boolean show) {
+    pmc.putBoolean(KEY_SHOW_CAMERA_WHILE_TYPING, show);
+  }
+
+  public boolean getShowCameraWhileTyping () {
+    return getBoolean(KEY_SHOW_CAMERA_WHILE_TYPING, false);
+  }
+
+  public void setShowVoiceWhileTyping (boolean show) {
+    pmc.putBoolean(KEY_SHOW_VOICE_WHILE_TYPING, show);
+  }
+
+  public boolean getShowVoiceWhileTyping () {
+    return getBoolean(KEY_SHOW_VOICE_WHILE_TYPING, false);
   }
 
   public void markEmojiPackInstalled (EmojiPack emojiPack) {

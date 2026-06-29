@@ -210,6 +210,17 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   private static final int FLAG_ERROR = 1 << 30;
   private static final int FLAG_BEING_ADDED = 1 << 31;
 
+  // Quote info for highlighting quoted text fragments
+  public static class TextQuoteInfo {
+    public final int utf16Position;
+    public final int utf16Length;
+
+    public TextQuoteInfo(int position, int length) {
+      this.utf16Position = position;
+      this.utf16Length = length;
+    }
+  }
+
   protected TdApi.Message msg;
   protected final TdApi.SponsoredMessage sponsoredMessage;
   private int flags;
@@ -950,7 +961,11 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   private final BoolAnimator isHiddenByFilter;
 
   public void setIsHiddenByMessagesFilter (boolean hidden, boolean animated) {
-    isHiddenByFilter.setValue(hidden && !isSponsoredMessage(), BitwiseUtils.hasFlag(flags, FLAG_LAYOUT_BUILT) && currentViews.hasAnyTargetToInvalidate() && UI.inUiThread() && controller() != null && controller().isFocused() && animated);
+    this.isHiddenByFilter.setValue(hidden && !isSponsoredMessage(), BitwiseUtils.hasFlag(flags, FLAG_LAYOUT_BUILT) && currentViews.hasAnyTargetToInvalidate() && UI.inUiThread() && controller() != null && controller().isFocused() && animated);
+  }
+
+  public void setTextHighlight(int utf16Position, int utf16Length) {
+    // Default implementation does nothing. Subclasses like TGMessageText will override it.
   }
 
   public boolean isHiddenByMessagesFilter () {
@@ -2841,6 +2856,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
   @CallSuper
   public boolean performLongPress (View view, float x, float y) {
+    Log.d("TGMessage", "Invoked with %s", this.getClass().getSimpleName());
     boolean result = false;
     if (inlineKeyboard != null) {
       result = inlineKeyboard.performLongPress(view);
@@ -2952,16 +2968,25 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
             if (replyData != null && replyData.getError() != null) {
               buildContentHint(view, getReplyLocationProvider(), false).show(tdlib, replyData.toErrorText());
             } else {
+              // Extract quote info if present
+              TextQuoteInfo quoteInfo = null;
+              if (replyToMessage.quote != null && replyToMessage.quote.text != null) {
+                quoteInfo = new TextQuoteInfo(
+                  replyToMessage.quote.position,
+                  replyToMessage.quote.text.text.length()
+                );
+              }
+
               if (replyToMessage.chatId != msg.chatId) {
                 if (replyToMessage.chatId == 0 || replyToMessage.messageId == 0) {
                   buildContentHint(view, getReplyLocationProvider(), false).show(tdlib, Lang.getString(R.string.MessageReplyPrivate));
                 } else {
-                  tdlib.ui().openMessage(controller(), replyToMessage.chatId, new MessageId(replyToMessage), openParameters());
+                  openMessageInOtherChat(replyToMessage.chatId, replyToMessage.messageId);
                 }
               } else if (isScheduled()) {
                 tdlib.ui().openMessage(controller(), replyToMessage.chatId, new MessageId(replyToMessage), openParameters());
               } else {
-                highlightOtherMessage(new MessageId(replyToMessage));
+                highlightOtherMessage(new MessageId(replyToMessage), quoteInfo);
               }
             }
           }
@@ -2980,8 +3005,36 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     manager.controller().highlightMessage(messageId, toMessageId());
   }
 
+  protected final void highlightOtherMessage (MessageId messageId, @Nullable TextQuoteInfo quoteInfo) {
+    manager.controller().highlightMessage(messageId, toMessageId(), quoteInfo);
+  }
+
   protected final void highlightOtherMessage (long otherMessageId) {
     highlightOtherMessage(new MessageId(msg.chatId, otherMessageId));
+  }
+
+  private void openMessageInOtherChat (long chatId, long messageId) {
+    MessageId targetMessageId = new MessageId(chatId, messageId);
+    if (tdlib.isForum(chatId)) {
+      // For forum chats, we need to get the message to know its topic
+      tdlib.send(new TdApi.GetMessage(chatId, messageId), (message, error) -> {
+        if (message != null && message.topicId != null &&
+            message.topicId.getConstructor() == TdApi.MessageTopicForum.CONSTRUCTOR) {
+          // Open message in the specific forum topic
+          tdlib.ui().openChat(controller(), chatId, new TdlibUi.ChatOpenParameters()
+            .keepStack()
+            .highlightMessage(targetMessageId)
+            .ensureHighlightAvailable()
+            .messageTopic(message.topicId)
+            .urlOpenParameters(openParameters()));
+        } else {
+          // Fallback to regular message opening
+          tdlib.ui().openMessage(controller(), chatId, targetMessageId, openParameters());
+        }
+      });
+    } else {
+      tdlib.ui().openMessage(controller(), chatId, targetMessageId, openParameters());
+    }
   }
 
   private float mInitialTouchX;
@@ -6253,6 +6306,10 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   private boolean isDestroyed;
 
   public final void onDestroy () {
+    if(currentActiveSelectionMessage == this){
+      finishTextSelection();
+      resetGlobalSelection(null);
+    }
     isDestroyed = true;
     stopHotTimer();
     if (forwardInfo != null)
@@ -7748,6 +7805,13 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
         trackSponsoredMessageClicked();
         return false;
       }
+
+      @Override
+      public boolean onLongPress (View view, Text text) {
+        // Call performLongPress on the message for quote selection handling
+        android.util.Log.d("TGMessage", "onLongPress callback - delegating to performLongPress");
+        return TGMessage.this.performLongPress(view, 0, 0);
+      }
     };
   }
 
@@ -8296,6 +8360,12 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
         case TdApi.MessageContactRegistered.CONSTRUCTOR: {
           return new TGMessageService(context, msg, (TdApi.MessageContactRegistered) content);
         }
+        case TdApi.MessageUsersShared.CONSTRUCTOR: {
+          return new TGMessageService(context, msg, (TdApi.MessageUsersShared) content);
+        }
+        case TdApi.MessageChatShared.CONSTRUCTOR: {
+          return new TGMessageService(context, msg, (TdApi.MessageChatShared) content);
+        }
         case TdApi.MessageChatChangePhoto.CONSTRUCTOR: {
           return new TGMessageService(context, msg, (TdApi.MessageChatChangePhoto) content);
         }
@@ -8386,24 +8456,28 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
         case TdApi.MessagePremiumGiftCode.CONSTRUCTOR: {
           return new TGMessageGift(context, msg, (TdApi.MessagePremiumGiftCode) content);
         }
+        case TdApi.MessageGift.CONSTRUCTOR: {
+          return new TGMessageGiftRegular(context, msg, (TdApi.MessageGift) content);
+        }
         case TdApi.MessageGiveawayWinners.CONSTRUCTOR: {
           return new TGMessageGiveawayWinners(context, msg, (TdApi.MessageGiveawayWinners) content);
         }
         case TdApi.MessageGiveaway.CONSTRUCTOR: {
           return new TGMessageGiveaway(context, msg, (TdApi.MessageGiveaway) content);
         }
+        case TdApi.MessageStory.CONSTRUCTOR: {
+          return new TGMessageService(context, msg, (TdApi.MessageStory) content);
+        }
+        case TdApi.MessageInvoice.CONSTRUCTOR: {
+          return new TGMessageInvoice(context, msg, (TdApi.MessageInvoice) content);
+        }
         // unsupported
-        case TdApi.MessageInvoice.CONSTRUCTOR:
         case TdApi.MessagePassportDataSent.CONSTRUCTOR:
-        case TdApi.MessageStory.CONSTRUCTOR:
         case TdApi.MessageChatSetBackground.CONSTRUCTOR:
         case TdApi.MessageSuggestProfilePhoto.CONSTRUCTOR:
         case TdApi.MessageSuggestBirthdate.CONSTRUCTOR:
-        case TdApi.MessageUsersShared.CONSTRUCTOR:
-        case TdApi.MessageChatShared.CONSTRUCTOR:
         case TdApi.MessagePaidMedia.CONSTRUCTOR:
         case TdApi.MessageGiveawayPrizeStars.CONSTRUCTOR:
-        case TdApi.MessageGift.CONSTRUCTOR:
         case TdApi.MessageUpgradedGift.CONSTRUCTOR:
         case TdApi.MessageUpgradedGiftPurchaseOffer.CONSTRUCTOR:
         case TdApi.MessageUpgradedGiftPurchaseOfferRejected.CONSTRUCTOR:
@@ -9668,6 +9742,84 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     } else {
       after.run();
     }
+  }
+
+  public static TGMessage currentActiveSelectionMessage = null;
+
+  public static void resetGlobalSelection(TGMessage excludeMessage) {
+    if (currentActiveSelectionMessage != null && currentActiveSelectionMessage != excludeMessage) {
+      currentActiveSelectionMessage.finishTextSelection();
+    }
+  }
+
+  public static boolean hasActiveTextSelection() {
+    return currentActiveSelectionMessage != null && currentActiveSelectionMessage.isTextSelectionActive();
+  }
+
+  protected void registerAsActiveSelection() {
+    if (currentActiveSelectionMessage != null && currentActiveSelectionMessage != this) {
+      currentActiveSelectionMessage.finishTextSelection();
+    }
+    currentActiveSelectionMessage = this;
+  }
+
+  protected void unregisterAsActiveSelection() {
+    if (currentActiveSelectionMessage == this) {
+      currentActiveSelectionMessage = null;
+    }
+  }
+
+  // ========== TEXT SELECTION SYSTEM ==========
+  // This system allows users to select text in messages for quoting.
+  // To implement text selection in a message type:
+  // 1. Override canTextSelection() if you need custom logic (optional)
+  // 2. Override processTextSelection() to show the quote action mode
+  // 3. Override finishTextSelection() to clean up resources
+  // 4. Call registerAsActiveSelection() when starting selection
+  // 5. Call unregisterAsActiveSelection() when finishing selection
+  //
+  // The base getMessageText() method already extracts text from msg.content
+  // using Td.textOrCaption(), so no override is needed for most message types.
+  //
+  // Example implementation can be found in TGMessageText.java
+  // ============================================
+
+  protected boolean isTextSelectionActive = false;
+  public boolean isTextSelectionActive(){
+    return isTextSelectionActive;
+  }
+
+  public void finishTextSelection() {
+    unregisterAsActiveSelection();
+  }
+
+
+
+  public boolean isCurrentMessageSelected() {
+    if (manager == null || manager.controller() == null) {
+      Log.d("TGMessageText", "isCurrentMessageSelected: false (manager or controller null)");
+      return false;
+    }
+    boolean result = manager.controller().isMessageSelected(getChatId(), getId(), this);
+    Log.d("TGMessageText", "isCurrentMessageSelected: " + result + " (chatId=" + getChatId() + ", msgId=" + getId() + ")");
+    return result;
+  }
+
+  protected boolean inSelectionMode() {
+    boolean result = manager != null && manager.controller() != null && manager.controller().inSelectMode();
+    Log.d("TGMessageText", "inSelectionMode: " + result);
+    return result;
+  }
+
+  public boolean canTextSelection() {
+    TdApi.FormattedText text = getMessageText();
+    boolean result = text != null && text.text != null && !text.text.isEmpty();
+    Log.d("TGMessageText", "canBeQuoted: " + result);
+    return result;
+  }
+
+  public boolean processTextSelection(View view, float touchX, float touchY){
+    return false;
   }
 
   protected @Nullable TdApi.FormattedText getTextToTranslateImpl () {

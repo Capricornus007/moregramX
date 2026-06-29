@@ -165,6 +165,7 @@ public class TD {
       case RightId.PIN_MESSAGES:
       case RightId.MANAGE_VIDEO_CHATS:
       case RightId.MANAGE_OR_CREATE_TOPICS:
+      case RightId.MANAGE_TOPICS:
       case RightId.POST_STORIES:
       case RightId.EDIT_STORIES:
       case RightId.DELETE_STORIES:
@@ -2510,6 +2511,7 @@ public class TD {
       case "Not Found": res = R.string.error_NotFound; break;
       case "Can't access the chat": res = R.string.errorChatInaccessible; break;
       case "The maximum number of pinned chats exceeded": return Lang.plural(R.string.ErrorPinnedChatsLimit, TdlibManager.instance().current().pinnedChatsMaxCount());
+      case "BALANCE_TOO_LOW": case "not enough stars": res = R.string.PaidReactionInsufficientStars; break;
       default: {
         String lookup = StringUtils.toCamelCase(message);
         if (lookup.matches("^[A-Za-z0-9_]+$")) {

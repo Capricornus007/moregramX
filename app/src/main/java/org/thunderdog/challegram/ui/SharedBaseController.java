@@ -713,6 +713,19 @@ public abstract class SharedBaseController <T extends MessageSourceProvider> ext
         nextOffset = members.members.length;
         break;
       }
+      case TdApi.Audios.CONSTRUCTOR: {
+        TdApi.Audios audios = (TdApi.Audios) object;
+        items = new ArrayList<>(audios.audios.length);
+        for (TdApi.Audio audio : audios.audios) {
+          T parsedItem = parseObject(audio);
+          if (parsedItem != null) {
+            items.add(parsedItem);
+          }
+        }
+        modifyResultIfNeeded(items, true);
+        nextOffset = offset + audios.audios.length;
+        break;
+      }
       case TdApi.Error.CONSTRUCTOR: {
         UI.showError(object);
         items = new ArrayList<>(0);

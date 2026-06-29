@@ -43,6 +43,7 @@ import org.thunderdog.challegram.unsorted.Settings;
 import org.thunderdog.challegram.util.text.Highlight;
 import org.thunderdog.challegram.util.text.Text;
 import org.thunderdog.challegram.util.text.TextEntity;
+import org.thunderdog.challegram.util.text.TextSelectionHelper;
 import org.thunderdog.challegram.util.text.TextWrapper;
 
 import java.util.ArrayList;
@@ -79,6 +80,21 @@ public class TGMessageFile extends TGMessage {
     private long captionMediaKeyOffset;
     private final VariableFloat lastLineWidth = new VariableFloat(0);
     private final VariableFloat needBottomLineExpand = new VariableFloat(1f);
+
+    private org.thunderdog.challegram.util.text.TextSelectionHelper textSelectionHelper;
+    private boolean isCheckingWrapper;
+    public boolean isTextSelectionActive;
+
+    public void finishTextSelection() {
+      if (textSelectionHelper != null) {
+        textSelectionHelper.finish();
+        textSelectionHelper = null;
+      }
+      if (this.isTextSelectionActive) {
+        this.isTextSelectionActive = false;
+        TGMessageFile.this.unregisterAsActiveSelection();
+      }
+    }
 
     public float getCheckFactor () {
       return checkAnimator != null ? checkAnimator.getFactor() * MathUtils.clamp(files.getMetadata().getSize() - 1f) : 0f;
@@ -238,6 +254,102 @@ public class TGMessageFile extends TGMessage {
     public void applyChanges () {
       this.lastLineWidth.set(calculateVisualLastLineWidth());
       this.needBottomLineExpand.set(needExpandHeight() ? 1f : 0f);
+    }
+
+    public void showQuoteActionMode(View view, float touchX, float touchY, int captionX, int captionY) {
+      if (captionWrapper == null) return;
+      org.thunderdog.challegram.util.text.Text textObj = captionWrapper.getCurrent();
+      if (textObj == null) return;
+
+      if (textSelectionHelper != null) textSelectionHelper.finish();
+
+      textSelectionHelper = new org.thunderdog.challegram.util.text.TextSelectionHelper(textObj, this.effectiveCaption);
+
+      int startXRtl = captionX + Math.max(component.getWidth(), captionWrapper.getWidth());
+      int endXPadding = Config.MOVE_BUBBLE_TIME_RTL_TO_LEFT ? 0 : getBubbleTimePartWidth();
+
+      textSelectionHelper.setLayoutOffset(captionX, captionY, startXRtl, endXPadding);
+
+      int charIndex = textObj.getCharIndexAt(touchX - captionX, touchY - captionY);
+      String str = effectiveCaption.text;
+      int start = charIndex;
+      int end = charIndex;
+
+      int maxLen = str.length();
+      if (start >= 0 && start <= maxLen) {
+        while (start > 0 && start <= maxLen && Character.isLetterOrDigit(str.charAt(start - 1))) start--;
+        while (end < maxLen && Character.isLetterOrDigit(str.charAt(end))) end++;
+      } else {
+        start = 0; end = maxLen;
+      }
+      if (start == end) { start = 0; end = maxLen; }
+      TGMessageFile.this.registerAsActiveSelection();
+      textSelectionHelper.setSelection(start, end);
+
+      textSelectionHelper.showActionMode(view, new TextSelectionHelper.QuoteCallback() {
+                @Override
+                public void onQuoteCreated(TdApi.FormattedText text, int utf16Position) {
+                    TdApi.InputTextQuote quote = new TdApi.InputTextQuote(text, utf16Position);
+                    if (manager != null && manager.controller() != null) {
+                      TdApi.Message message = getMessage(messageId);
+                      if (message != null) {
+                        getMessageWithProperties(message, messageWithProps -> {
+                          manager.controller().showReply(messageWithProps, quote, 0, true, true);
+                        });
+                      }
+                    }
+                    finishTextSelection();
+
+                }
+
+                @Override
+                public void onQuoteInOtherChatCreated(TdApi.FormattedText text, int utf16Position) {
+                    TdApi.InputTextQuote quote = new TdApi.InputTextQuote(text, utf16Position);
+                    if (manager != null && manager.controller() != null) {
+                      TdApi.Message message = getMessage(messageId);
+                      if (message != null) {
+                        manager.controller().replyMessageInOtherChat(msg, quote);
+                      }
+                    }
+                    finishTextSelection();
+                  }
+              },
+              this::finishTextSelection
+      );
+      this.isTextSelectionActive = true;
+      view.invalidate();
+    }
+
+    public boolean onTouchEvent(MessageView view, MotionEvent e) {
+        if (textSelectionHelper != null && isTextSelectionActive) {
+            if (textSelectionHelper.onTouchEvent(view, e)) {
+                return true;
+            }
+        }
+        if (captionWrapper != null) {
+            for (ListAnimator.Entry<TextWrapper> caption : this.caption) {
+                if (caption.item.onTouchEvent(view, e)) {
+                    return true;
+                }
+            }
+        }
+        return component.onTouchEvent(view, e);
+    }
+
+    public boolean processTextSelection(View view, float x, float y, int captionX, int captionY) {
+        if (captionWrapper != null) {
+            if (isCurrentMessageSelected() && canTextSelection()) {
+                manager.controller().unselectMessage(this.messageId, TGMessageFile.this);
+                manager.controller().finishSelectMode(-1);
+                showQuoteActionMode(view, x, y, captionX, captionY);
+                return true;
+            }
+            if (!inSelectionMode()) {
+                showQuoteActionMode(view, x, y, captionX, captionY);
+                return true;
+            }
+        }
+        return false;
     }
   }
   private final List<CaptionedFile> filesList = new ArrayList<>();
@@ -546,6 +658,7 @@ public class TGMessageFile extends TGMessage {
     for (CaptionedFile file : filesList) {
       file.component.performDestroy();
       file.caption.clear(false);
+      file.finishTextSelection();
     }
   }
 
@@ -604,9 +717,19 @@ public class TGMessageFile extends TGMessage {
       }
       int contentStartY = Math.round(rectF.top + entry.getSpacingStart());
       entry.item.component.draw(view, c, startX, contentStartY, previewReceiver, imageReceiver, backgroundColor, useBubbles() ? ColorUtils.compositeColor(contentReplaceColor, pressColor) : contentReplaceColor, entry.getVisibility(), entry.item.getCheckFactor());
+      
+      int captionY = contentStartY + entry.item.component.getHeight() + Screen.dp(TEXT_MARGIN);
       for (ListAnimator.Entry<TextWrapper> caption : entry.item.caption) {
         int right = useBubbles() ? startX + getContentWidth() : startX + Math.max(entry.item.component.getWidth(), caption.item.getWidth());
-        caption.item.draw(c, startX, right, 0, contentStartY + entry.item.component.getHeight() + Screen.dp(TEXT_MARGIN), null, entry.getVisibility() * caption.getVisibility() * alpha, view.getTextMediaReceiver());
+        caption.item.draw(c, startX, right, 0, captionY, null, entry.getVisibility() * caption.getVisibility() * alpha, view.getTextMediaReceiver());
+      }
+
+      if (entry.item.textSelectionHelper != null && entry.item.isTextSelectionActive && entry.item.captionWrapper != null) {
+        org.thunderdog.challegram.util.text.Text textObj = entry.item.captionWrapper.getCurrent();
+        if (textObj != null) {
+            entry.item.textSelectionHelper.drawSelection(c, textObj, startX, captionY, alpha);
+            entry.item.textSelectionHelper.drawHandles(c, textObj, startX, captionY);
+        }
       }
     }
     if (clip) {
@@ -744,32 +867,79 @@ public class TGMessageFile extends TGMessage {
 
   @Override
   public boolean onTouchEvent (MessageView view, MotionEvent e) {
+    for (CaptionedFile file : filesList) {
+        if (file.isTextSelectionActive && file.textSelectionHelper != null) {
+            ListAnimator.Entry<CaptionedFile> entry = findCaptionedFileEntry(e.getX(), e.getY());
+            if (entry != null && entry.item == file) {
+                RectF rectF = entry.getRectF();
+                int contentStartY = Math.round(rectF.top + getContentY() + file.getSpacingStart(entry.getIndex() == 0));
+                int captionY = contentStartY + file.component.getHeight() + Screen.dp(TEXT_MARGIN);
+                int captionX = getContentX();
+                int startXRtl = captionX + Math.max(file.component.getWidth(), file.captionWrapper != null ? file.captionWrapper.getWidth() : 0);
+                int endXPadding = Config.MOVE_BUBBLE_TIME_RTL_TO_LEFT ? 0 : getBubbleTimePartWidth();
+                file.textSelectionHelper.setLayoutOffset(captionX, captionY, startXRtl, endXPadding);
+                if(file.onTouchEvent(view, e)) {
+                    return true;
+                }
+            }
+        }
+    }
+
     boolean res = super.onTouchEvent(view, e);
     for (CaptionedFile file : filesList) {
-      for (ListAnimator.Entry<TextWrapper> caption : file.caption) {
-        if (caption.item.onTouchEvent(view, e)) {
-          res = true;
+        if (file.onTouchEvent(view, e)) {
+            res = true;
         }
-      }
-      if (file.component.onTouchEvent(view, e)) {
-        res = true;
-      }
     }
     return res;
   }
 
   @Override
   public boolean performLongPress (View view, float x, float y) {
+    if (processTextSelection(view, x, y)) {
+      return true;
+    }
     boolean res = super.performLongPress(view, x, y);
     for (ListAnimator.Entry<CaptionedFile> entry : files) {
       entry.item.component.clearTouch();
-      for (ListAnimator.Entry<TextWrapper> caption : entry.item.caption) {
-        if (caption.item.performLongPress(view)) {
-          res = true;
+      if(entry.item.captionWrapper != null) {
+        for (ListAnimator.Entry<TextWrapper> caption : entry.item.caption) {
+          if (caption.item.performLongPress(view)) {
+            res = true;
+          }
         }
       }
     }
     return res;
+  }
+
+  @Nullable
+  private ListAnimator.Entry<CaptionedFile> findCaptionedFileEntry(float x, float y) {
+    if (x >= getContentX() && x < getContentX() + getContentWidth() && y >= getContentY() && y < getContentY() + getContentHeight()) {
+      for (ListAnimator.Entry<CaptionedFile> entry : files) {
+        RectF rectF = entry.getRectF();
+        rectF.offset(0, getContentY());
+        if (y >= rectF.top && y < rectF.bottom) {
+          return entry;
+        }
+      }
+    }
+    return null;
+  }
+
+  @Override
+  public boolean processTextSelection(View view, float x, float y) {
+    ListAnimator.Entry<CaptionedFile> entry = findCaptionedFileEntry(x, y);
+    if (entry != null) {
+      CaptionedFile file = entry.item;
+      RectF rectF = entry.getRectF();
+      int contentStartY = Math.round(rectF.top + getContentY() + file.getSpacingStart(entry.getIndex() == 0));
+      int captionY = contentStartY + file.component.getHeight() + Screen.dp(TEXT_MARGIN);
+      if (y > captionY) {
+        return file.processTextSelection(view, x, y, getContentX(), captionY);
+      }
+    }
+    return false;
   }
 
   @Override

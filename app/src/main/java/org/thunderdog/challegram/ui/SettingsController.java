@@ -14,6 +14,7 @@
  */
 package org.thunderdog.challegram.ui;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
@@ -36,6 +37,8 @@ import org.thunderdog.challegram.BuildConfig;
 import org.thunderdog.challegram.N;
 import org.thunderdog.challegram.R;
 import org.thunderdog.challegram.U;
+import org.thunderdog.challegram.billing.BillingConfig;
+import org.thunderdog.challegram.billing.BillingManager;
 import org.thunderdog.challegram.component.attach.AvatarPickerManager;
 import org.thunderdog.challegram.component.attach.MediaLayout;
 import org.thunderdog.challegram.component.base.SettingView;
@@ -104,6 +107,7 @@ import me.vkryl.core.lambda.CancellableRunnable;
 import me.vkryl.core.reference.ReferenceList;
 import moe.kirao.mgx.utils.ChatUtils;
 import moe.kirao.mgx.utils.SystemUtils;
+import ni.shikatu.rex.ReXSettingsController;
 import tgx.td.ChatId;
 import tgx.td.Td;
 
@@ -158,6 +162,11 @@ public class SettingsController extends ViewController<Void> implements
       supportOpen.cancel();
       supportOpen = null;
     }
+  }
+
+  private void launchPremiumPurchase () {
+    // Navigate to Premium settings screen
+    navigateTo(new SettingsPremiumController(context, tdlib));
   }
 
   @Override
@@ -658,9 +667,12 @@ public class SettingsController extends ViewController<Void> implements
     if (addedActionItems > 0) {
       items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
     }
-
     items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
+    items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_reXSettings, R.drawable.baseline_extension_24, R.string.reXSettings));
+    items.add(new ListItem(ListItem.TYPE_SEPARATOR));
     items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_devices, R.drawable.baseline_devices_other_24, R.string.Devices));
+    items.add(new ListItem(ListItem.TYPE_SEPARATOR));
+    items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_premium, R.drawable.baseline_premium_star_24, R.string.TelegramPremium));
     items.add(new ListItem(ListItem.TYPE_SEPARATOR));
 
     checkErrors(false);
@@ -672,6 +684,8 @@ public class SettingsController extends ViewController<Void> implements
     items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_chatSettings, R.drawable.baseline_data_usage_24, R.string.DataSettings));
     items.add(new ListItem(ListItem.TYPE_SEPARATOR));
     items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_privacySettings, R.drawable.baseline_lock_24, R.string.PrivacySettings));
+    items.add(new ListItem(ListItem.TYPE_SEPARATOR));
+    items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_storiesSettings, R.drawable.baseline_camera_alt_24, R.string.StoriesSettings));
     items.add(new ListItem(ListItem.TYPE_SEPARATOR));
     items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_stickerSettingsAndEmoji, R.drawable.deproko_baseline_stickers_filled_24, R.string.StickersAndEmoji));
     items.add(new ListItem(ListItem.TYPE_SEPARATOR));
@@ -1256,6 +1270,8 @@ public class SettingsController extends ViewController<Void> implements
       navigateTo(new SettingsSessionsController(context, tdlib));
     } else if (viewId == R.id.btn_moexSettings) {
       navigateTo(new SettingsMoexController(context, tdlib));
+    } else if (viewId == R.id.btn_premium) {
+      launchPremiumPurchase();
     } else if (viewId == R.id.btn_checkUpdates) {
       openInstallerPage(((AppInstallationUtil.DownloadUrl) ((ListItem) v.getTag()).getData()));
     } else if (viewId == R.id.btn_subscribeToBeta) {
@@ -1324,6 +1340,10 @@ public class SettingsController extends ViewController<Void> implements
       navigateTo(new SettingsDataController(context, tdlib));
     } else if (viewId == R.id.btn_privacySettings) {
       navigateTo(new SettingsPrivacyController(context, tdlib));
+    } else if (viewId == R.id.btn_storiesSettings) {
+      navigateTo(new SettingsStoriesController(context, tdlib));
+    } else if (viewId == R.id.btn_help) {
+      supportOpen = tdlib.ui().openSupport(this);
     } else if (viewId == R.id.btn_stickerSettingsAndEmoji) {
       SettingsStickersAndEmojiController c = new SettingsStickersAndEmojiController(context, tdlib);
       c.setArguments(this);
@@ -1337,6 +1357,8 @@ public class SettingsController extends ViewController<Void> implements
     } else if (viewId == R.id.btn_suggestion) {
       ListItem listItem = (ListItem) v.getTag();
       showSuggestionPopup(v, (TdApi.SuggestedAction) listItem.getData());
+    } else if (viewId == R.id.btn_reXSettings) {
+      navigateTo(new ReXSettingsController(context, tdlib));
     } else if (viewId == R.id.btn_build) {
       if (Settings.instance().hasLogsEnabled()) {
         showBuildOptions(true);

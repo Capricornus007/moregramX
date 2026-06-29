@@ -101,6 +101,8 @@ import org.thunderdog.challegram.ui.EditNameController;
 import org.thunderdog.challegram.ui.EditProxyController;
 import org.thunderdog.challegram.ui.EditRightsController;
 import org.thunderdog.challegram.ui.EditUsernameController;
+import org.thunderdog.challegram.ui.ForumTopicTabsController;
+import org.thunderdog.challegram.ui.ForumTopicsController;
 import org.thunderdog.challegram.ui.InstantViewController;
 import org.thunderdog.challegram.ui.ListItem;
 import org.thunderdog.challegram.ui.MainController;
@@ -110,6 +112,7 @@ import org.thunderdog.challegram.ui.MessagesController;
 import org.thunderdog.challegram.ui.PasscodeController;
 import org.thunderdog.challegram.ui.PasscodeSetupController;
 import org.thunderdog.challegram.ui.PasswordController;
+import org.thunderdog.challegram.ui.PaymentFormController;
 import org.thunderdog.challegram.ui.PhoneController;
 import org.thunderdog.challegram.ui.ProfileController;
 import org.thunderdog.challegram.ui.RequestController;
@@ -127,6 +130,7 @@ import org.thunderdog.challegram.ui.SettingsPrivacyKeyController;
 import org.thunderdog.challegram.ui.SettingsProxyController;
 import org.thunderdog.challegram.ui.SettingsSessionsController;
 import org.thunderdog.challegram.ui.SettingsStickersAndEmojiController;
+import org.thunderdog.challegram.ui.SettingsStarsController;
 import org.thunderdog.challegram.ui.SettingsThemeController;
 import org.thunderdog.challegram.ui.SettingsWebsitesController;
 import org.thunderdog.challegram.ui.ShareController;
@@ -1823,6 +1827,11 @@ public class TdlibUi extends Handler {
       return this;
     }
 
+    public ChatOpenParameters messageTopic (TdApi.MessageTopic topicId) {
+      this.messageTopicId = topicId;
+      return this;
+    }
+
     public ChatOpenParameters passcodeUnlocked () {
       this.options |= CHAT_OPTION_PASSCODE_UNLOCKED;
       return this;
@@ -1893,6 +1902,10 @@ public class TdlibUi extends Handler {
     public ChatOpenParameters foundMessage (String query, TdApi.Message message) {
       this.foundMessage = new MessageId(message.chatId, message.id);
       this.searchQuery = query;
+      // If message is in a forum topic, set the topic ID
+      if (message.topicId != null && message.topicId.getConstructor() == TdApi.MessageTopicForum.CONSTRUCTOR) {
+        this.messageTopicId = message.topicId;
+      }
       return highlightMessage(foundMessage);
     }
 
@@ -2117,6 +2130,50 @@ public class TdlibUi extends Handler {
       openChatProfile(context, chat, messageThread, urlOpenParameters);
       params.onDone();
       return;
+    }
+
+    // Check if this is a forum chat that should be viewed as topics
+    if (tdlib.isForum(chat.id) && messageThread == null && messageTopicId == null) {
+      // Check if forum has tabs layout enabled
+      long supergroupId = ChatId.toSupergroupId(chat.id);
+      TdApi.Supergroup supergroup = supergroupId != 0 ? tdlib.cache().supergroup(supergroupId) : null;
+      boolean hasForumTabs = supergroup != null && supergroup.hasForumTabs;
+
+      // Show topics view if viewAsTopics is true OR if forum has tabs layout enabled
+      // Forums with tabs should always open in tabs view by default
+      // Users can use "View as chat" option to switch to unified view (sets viewAsTopics to false)
+      if (chat.viewAsTopics || hasForumTabs) {
+        ViewController<?> forumController;
+        // Check user's saved preference for forum view (tabs vs topics list)
+        int viewPreference = tdlib.settings().getForumViewPreference(chat.id);
+        boolean preferTabs = hasForumTabs && viewPreference != TdlibSettingsManager.FORUM_VIEW_TOPICS;
+        boolean preferTopics = !hasForumTabs || viewPreference == TdlibSettingsManager.FORUM_VIEW_TOPICS;
+
+        if (preferTabs) {
+          ForumTopicTabsController tabsController = new ForumTopicTabsController(context.context(), context.tdlib());
+          tabsController.setArguments(new ForumTopicTabsController.Arguments(chat));
+          forumController = tabsController;
+        } else {
+          ForumTopicsController listController = new ForumTopicsController(context.context(), context.tdlib());
+          listController.setArguments(new ForumTopicsController.Arguments(chat));
+          forumController = listController;
+        }
+
+        NavigationController nav = context.context().navigation();
+        if (nav.isEmpty()) {
+          nav.initController(forumController);
+          MainController c = new MainController(context.context(), context.tdlib());
+          c.getValue();
+          nav.getStack().insert(c, 0);
+        } else {
+          nav.navigateTo(forumController);
+        }
+        if (params != null) {
+          params.onDone();
+        }
+        return;
+      }
+      // If not hasForumTabs and not viewAsTopics, fall through to open as unified chat
     }
 
     if ((options & CHAT_OPTION_OPEN_DIRECT_MESSAGES_CHAT) != 0) {
@@ -2381,6 +2438,24 @@ public class TdlibUi extends Handler {
     openChatProfile(context, chatId, messageThread, new TdApi.GetChat(chatId), openParameters);
   }
 
+  public void openStory (final TdlibDelegate context, final long storySenderChatId, final int storyId) {
+    openStory(context, storySenderChatId, storyId, null);
+  }
+
+  public void openStory (final TdlibDelegate context, final long storySenderChatId, final int storyId, @Nullable TdApi.Story preloadedStory) {
+    openStory(context, storySenderChatId, storyId, preloadedStory, null, 0);
+  }
+
+  public void openStory (final TdlibDelegate context, final long storySenderChatId, final int storyId,
+                         @Nullable TdApi.Story preloadedStory, @Nullable java.util.List<TdApi.ChatActiveStories> allStories, int initialUserIndex) {
+    if (context.context() == null) {
+      return;
+    }
+    org.thunderdog.challegram.ui.StoryViewController storyController = new org.thunderdog.challegram.ui.StoryViewController(context.context(), tdlib);
+    storyController.setArguments(new org.thunderdog.challegram.ui.StoryViewController.Args(storySenderChatId, storyId, preloadedStory, allStories, initialUserIndex));
+    storyController.open();
+  }
+
   public void openPublicChat (final TdlibDelegate context, final @NonNull String username, final @Nullable UrlOpenParameters openParameters) {
     openChat(context, 0, new TdApi.SearchPublicChat(username), new ChatOpenParameters().urlOpenParameters(openParameters).keepStack().openProfileInCaseOfPrivateChat());
   }
@@ -2500,8 +2575,15 @@ public class TdlibUi extends Handler {
             openMessage(context, messageThread.getChatId(), messageId, messageThread, openParameters);
           }
         });
+      } else if (messageLink.topicId != null && messageLink.topicId.getConstructor() == TdApi.MessageTopicForum.CONSTRUCTOR) {
+        // Handle forum topic links - open the message within the specific topic
+        openChat(context, messageLink.chatId, new ChatOpenParameters()
+          .keepStack()
+          .highlightMessage(messageId)
+          .ensureHighlightAvailable()
+          .messageTopic(messageLink.topicId)
+          .urlOpenParameters(openParameters));
       } else {
-        // TODO: properly handle messageLink.topicId
         openMessage(context, messageLink.chatId, messageId, openParameters);
       }
     } else {
@@ -4072,11 +4154,39 @@ public class TdlibUi extends Handler {
       case TdApi.InternalLinkTypeInvoice.CONSTRUCTOR:
 
       case TdApi.InternalLinkTypeRestorePurchases.CONSTRUCTOR:
+      case TdApi.InternalLinkTypePremiumFeatures.CONSTRUCTOR:
+      case TdApi.InternalLinkTypeRestorePurchases.CONSTRUCTOR: {
+        showLinkTooltip(tdlib, R.drawable.baseline_warning_24, Lang.getString(R.string.InternalUrlUnsupported), openParameters);
+        break;
+      }
+
+      case TdApi.InternalLinkTypeInvoice.CONSTRUCTOR: {
+        TdApi.InternalLinkTypeInvoice invoice = (TdApi.InternalLinkTypeInvoice) linkType;
+        openPaymentForm(context, invoice.invoiceName, openParameters, after);
+        break;
+      }
+
+      case TdApi.InternalLinkTypeBuyStars.CONSTRUCTOR: {
+        TdApi.InternalLinkTypeBuyStars buyStars = (TdApi.InternalLinkTypeBuyStars) linkType;
+        SettingsStarsController starsController = new SettingsStarsController(context.context(), tdlib);
+        starsController.setArguments(new SettingsStarsController.Args(buyStars.starCount, buyStars.purpose));
+        context.context().navigation().navigateTo(starsController);
+        break;
+      }
+
+      case TdApi.InternalLinkTypeMyStars.CONSTRUCTOR: {
+        SettingsStarsController starsController = new SettingsStarsController(context.context(), tdlib);
+        starsController.setArguments(new SettingsStarsController.Args());
+        context.context().navigation().navigateTo(starsController);
+        break;
+      }
+
       case TdApi.InternalLinkTypeChatBoost.CONSTRUCTOR:
       case TdApi.InternalLinkTypeGiftCollection.CONSTRUCTOR:
       case TdApi.InternalLinkTypeGiftAuction.CONSTRUCTOR:
       case TdApi.InternalLinkTypeChatAffiliateProgram.CONSTRUCTOR:
       case TdApi.InternalLinkTypeUpgradedGift.CONSTRUCTOR:
+      case TdApi.InternalLinkTypeMyToncoins.CONSTRUCTOR:
 
       case TdApi.InternalLinkTypePassportDataRequest.CONSTRUCTOR:
 
@@ -8210,5 +8320,74 @@ public class TdlibUi extends Handler {
         act.run();
       }
     }
+  }
+
+  // Payment
+
+  public void openPaymentForm (ViewController<?> context, TdApi.PaymentForm paymentForm, TdApi.InputInvoice inputInvoice) {
+    if (paymentForm.type instanceof TdApi.PaymentFormTypeRegular) {
+      PaymentFormController formController = new PaymentFormController(context.context(), tdlib);
+      formController.setArguments(new PaymentFormController.Args(paymentForm, inputInvoice, 0));
+      context.navigateTo(formController);
+    } else if (paymentForm.type instanceof TdApi.PaymentFormTypeStars) {
+      TdApi.PaymentFormTypeStars starsType = (TdApi.PaymentFormTypeStars) paymentForm.type;
+      showStarsPaymentConfirmation(context, paymentForm, inputInvoice, starsType.starCount);
+    } else {
+      UI.showToast(R.string.PaymentUnsupportedType, Toast.LENGTH_SHORT);
+    }
+  }
+
+  private void showStarsPaymentConfirmation (ViewController<?> context, TdApi.PaymentForm paymentForm, TdApi.InputInvoice inputInvoice, long starCount) {
+    String message = Lang.getString(R.string.StarsPayConfirmMessage, starCount);
+    context.showOptions(
+      message,
+      new int[] { R.id.btn_done, R.id.btn_cancel },
+      new String[] { Lang.getString(R.string.StarsPayConfirm, starCount), Lang.getString(R.string.Cancel) },
+      new int[] { ViewController.OptionColor.BLUE, ViewController.OptionColor.NORMAL },
+      new int[] { R.drawable.baseline_star_24, R.drawable.baseline_cancel_24 },
+      (view, optionId) -> {
+        if (optionId == R.id.btn_done) {
+          sendStarsPayment(paymentForm, inputInvoice);
+        }
+        return true;
+      }
+    );
+  }
+
+  private void sendStarsPayment (TdApi.PaymentForm paymentForm, TdApi.InputInvoice inputInvoice) {
+    UI.showToast(R.string.PaymentProcessing, Toast.LENGTH_SHORT);
+    tdlib.send(new TdApi.SendPaymentForm(inputInvoice, paymentForm.id, "", "", null, 0), (result, error) -> {
+      UI.post(() -> {
+        if (error != null) {
+          UI.showToast(Lang.getString(R.string.StarsPaymentFailed, TD.toErrorString(error)), Toast.LENGTH_SHORT);
+        } else {
+          UI.showToast(R.string.StarsPaymentSuccess, Toast.LENGTH_SHORT);
+        }
+      });
+    });
+  }
+
+  public void openPaymentForm (TdlibDelegate context, String invoiceName, @Nullable UrlOpenParameters openParameters, @Nullable RunnableBool after) {
+    UI.showToast(R.string.LoadingPaymentForm, Toast.LENGTH_SHORT);
+    TdApi.InputInvoiceName inputInvoice = new TdApi.InputInvoiceName(invoiceName);
+    tdlib.send(new TdApi.GetPaymentForm(inputInvoice, null), (result, error) -> {
+      UI.post(() -> {
+        if (error != null) {
+          UI.showToast(TD.toErrorString(error), Toast.LENGTH_SHORT);
+          if (after != null) {
+            after.runWithBool(false);
+          }
+        } else {
+          TdApi.PaymentForm paymentForm = (TdApi.PaymentForm) result;
+          ViewController<?> controller = context.context().navigation().getCurrentStackItem();
+          if (controller != null) {
+            openPaymentForm(controller, paymentForm, inputInvoice);
+          }
+          if (after != null) {
+            after.runWithBool(true);
+          }
+        }
+      });
+    });
   }
 }

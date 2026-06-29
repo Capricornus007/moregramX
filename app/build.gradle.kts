@@ -237,6 +237,7 @@ android {
     // TODO: Exclude in FOSS variant
     kotlin.directories += "src/google/main/java"
     java.directories += "src/google/main/java"
+    res.srcDir("src/main/reX-values")
   }
 
   lint {
@@ -259,7 +260,7 @@ android {
     }
     variantBuilder.enable = sdkVariant.minSdk >= abiVariant.minSdk &&
       !(abiVariant.flavor == "universal" && sdkVariant.flavor == "legacy") &&
-      (variantBuilder.buildType != "debug" || sdkVariant.flavor == "legacy" || (abiVariant.flavor == "x86" || abiVariant.flavor == "x64" || abiVariant.flavor == "universal"))
+      (variantBuilder.buildType != "debug" || sdkVariant.flavor == "legacy" || (abiVariant.flavor == "x86" || abiVariant.flavor == "x64" || abiVariant.flavor == "universal" || abiVariant.flavor == "arm64"))
   }
   productFlavors {
     Sdk.VARIANTS.forEach { (sdkIndex, variant) ->
@@ -667,6 +668,8 @@ dependencies {
   postLollipopImplementation(libs.androidx.media.inspector.latest)
   // Play In-App Updates: https://developer.android.com/reference/com/google/android/play/core/release-notes-in_app_updates
   implementation(libs.google.play.app.update)
+  // Google Play Billing: https://developer.android.com/google/play/billing/release-notes
+  implementation(libs.google.play.billing)
   // The Checker Framework: https://checkerframework.org/CHANGELOG.md
   compileOnly(libs.annotations.checkerframework)
   // OkHttp: https://github.com/square/okhttp/blob/master/CHANGELOG.md

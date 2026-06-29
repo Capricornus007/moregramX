@@ -19,6 +19,7 @@ import androidx.work.Configuration
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.MainScope
+import ni.shikatu.rex.ReXConfig
 import org.thunderdog.challegram.push.FirebaseDeviceTokenRetriever
 import org.thunderdog.challegram.service.PushHandler
 import org.thunderdog.challegram.telegram.TdlibNotificationUtils
@@ -58,6 +59,7 @@ class BaseApplication : TgxApplication(), Configuration.Provider {
     )
 
     UI.initApp(applicationContext)
+    ReXConfig.load(applicationContext);
 
     if (!BuildConfig.EXPERIMENTAL) {
       val deviceTokenRetriever = TdlibNotificationUtils.getDeviceTokenRetriever()
