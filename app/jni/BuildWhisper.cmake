@@ -8,6 +8,13 @@ set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 set(GGML_NATIVE OFF CACHE BOOL "" FORCE)
 set(GGML_USE_CPU ON CACHE BOOL "" FORCE)
 
+# ggml defaults to OpenMP, which links the NDK's prebuilt libomp.so. That lib
+# (NDK 23) only has 4 KB-aligned LOAD segments, so it fails Android 15's 16 KB
+# page-size check while every other .so already passes. ggml runs fine on its
+# own pthread threadpool without OpenMP, so drop it and the unaligned .so goes
+# away. Switch this to -static-openmp instead if OpenMP throughput matters.
+set(GGML_OPENMP OFF CACHE BOOL "" FORCE)
+
 add_subdirectory("${WHISPER_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/whisper_build")
 
 foreach(_target whisper ggml ggml-cpu ggml-base)
