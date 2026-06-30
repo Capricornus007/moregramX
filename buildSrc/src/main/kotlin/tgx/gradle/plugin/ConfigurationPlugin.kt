@@ -65,7 +65,17 @@ open class ConfigurationPlugin : Plugin<Project> {
     val huaweiAppGalleryUrl = properties.getProperty("app.huawei_download_url", null)
     val amazonAppStoreUrl = properties.getProperty("app.amazon_download_url", null)
     val isExampleBuild = applicationId.startsWith("com.example.") || applicationId.startsWith("org.example.")
-    val isExperimentalBuild = isExampleBuild || keystore == null || properties.getProperty("app.experimental", "false") == "true"
+    // A build is "experimental" (push disabled, google-services plugin skipped) when it
+    // uses the sample app id or, by default, has no signing keystore. An explicit
+    // app.experimental in local.properties overrides the keystore heuristic, so a CI /
+    // self-signed build that carries the official app id + google-services.json can still
+    // register for push by setting app.experimental=false. Sample-id builds stay locked
+    // experimental since they have no real Firebase project to talk to.
+    val isExperimentalBuild = isExampleBuild || when (properties.getProperty("app.experimental")?.lowercase()) {
+      "true" -> true
+      "false" -> false
+      else -> keystore == null
+    }
     val doNotObfuscate = isExampleBuild || properties.getProperty("app.dontobfuscate", "false") == "true"
     val forceOptimize = properties.getProperty("app.forceoptimize") == "true"
     val appExtension = getOrSample("tgx.extension")

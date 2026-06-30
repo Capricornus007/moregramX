@@ -44,6 +44,7 @@ jobs:
           telegram.api_hash=3a17e5d593011bb391296f1f413b7e12
           youtube.api_key=
           tgx.extension=none
+          app.experimental=false
           EOF
           echo "sdk.dir=$ANDROID_HOME" >> local.properties
 
