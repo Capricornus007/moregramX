@@ -43,13 +43,14 @@ jobs:
       - name: Create local.properties
         run: |
           cat << 'EOF' > local.properties
-          app.id=org.thunderdog.challegram
-          app.name=Telegram X
+          app.id=org.moregramx.mgx
+          app.name=moregramX
           app.download_url=https://telegram.org/dlx
-          telegram.api_id=21724
-          telegram.api_hash=3a17e5d593011bb391296f1f413b7e12
+          telegram.api_id=23793598
+          telegram.api_hash=273a536b9232da26405a3faa74c418f2
           youtube.api_key=
           tgx.extension=none
+          app.experimental=false
           EOF
           echo "sdk.dir=$ANDROID_HOME" >> local.properties
 
