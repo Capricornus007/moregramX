@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [ "my-combined-tgx" ]
 
+# A new push supersedes the previous build; don't let ~15-min runs stack up.
+concurrency:
+  group: android-ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
