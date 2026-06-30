@@ -276,8 +276,11 @@ productFlavors {
         }
         val selectedMinSdk = maxOf(variant.minSdk, actualMinSdk)
 
-        // 強行讓最終的 minSdk 至少為 21
-        minSdk = maxOf(selectedMinSdk, 21)
+        // 強行讓最終的 minSdk 至少為 21。native 也得用同一個值，否則 legacy flavor
+        // 的 minSdk 是 16，CMake 會以 android-16 sysroot 連結，而 whisper/ggml 會用到
+        // API 18 才加進 Bionic 的 getline，連結階段就會報 undefined symbol: getline。
+        val effectiveMinSdk = maxOf(selectedMinSdk, 21)
+        minSdk = effectiveMinSdk
 
         if (selectedMinSdk < 21) {
           proguardFile("proguard-r8-bug-android-4.x-workaround.pro")
@@ -297,7 +300,7 @@ productFlavors {
         )
         externalNativeBuild.cmake {
           arguments(
-            "-DANDROID_PLATFORM=android-${selectedMinSdk}",
+            "-DANDROID_PLATFORM=android-${effectiveMinSdk}",
             "-DTGX_FLAVOR=${variant.flavor}",
             "-DANDROID_STL=${if (Config.SHARED_STL) "c++_shared" else "c++_static"}",
             "-DCMAKE_BUILD_WITH_INSTALL_RPATH=ON",
