@@ -58,8 +58,11 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build with Gradle
+        # Only one variant: assembleDebug fans out to ~14 flavor/ABI native
+        # builds (~3h, close to the 6h job cap). latestArm64 covers all modern
+        # 64-bit devices and finishes in ~15 min.
         run: |
-          ./gradlew assembleDebug --stacktrace --no-daemon --max-workers=2 -Dorg.gradle.jvmargs="-Xmx3g -XX:+UseG1GC"
+          ./gradlew :app:assembleLatestArm64Debug --stacktrace --no-daemon --max-workers=2 -Dorg.gradle.jvmargs="-Xmx3g -XX:+UseG1GC"
 
       - name: Upload APK as Artifact
         uses: actions/upload-artifact@v4
