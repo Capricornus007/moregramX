@@ -42,8 +42,8 @@ jobs:
       - name: Create local.properties
         run: |
           cat << 'EOF' > local.properties
-          app.id=org.thunderdog.challegram
-          app.name=Telegram X
+          app.id=org.moregramx.mgx
+          app.name=moregramX
           app.download_url=https://telegram.org/dlx
           telegram.api_id=23793598
           telegram.api_hash=273a536b9232da26405a3faa74c418f2
