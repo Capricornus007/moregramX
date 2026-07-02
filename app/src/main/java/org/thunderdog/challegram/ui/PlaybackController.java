@@ -2365,10 +2365,10 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
       boolean isFakeProfileAudio = message.id == 0 && message.chatId == playListChatId && tdlib.isSelfChat(playListChatId);
       if (isFakeProfileAudio) {
         ids.append(R.id.btn_removeProfileAudio);
-        strings.append(R.string.RemoveProfileAudio);
+        strings.append(R.string.RemoveFromProfile);
       } else if (message.id != 0 || !tdlib.isSelfChat(playListChatId)) {
         ids.append(R.id.btn_pinAudioProfile);
-        strings.append(R.string.SaveMusicToProfile);
+        strings.append(R.string.AddToProfile);
       }
 
       if (tracks.size() > 5 && isScrollUnlocked) {

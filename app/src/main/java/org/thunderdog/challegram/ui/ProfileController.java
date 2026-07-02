@@ -685,6 +685,13 @@ public class ProfileController extends ViewController<ProfileController.Args> im
       }
     }
 
+    if (mode == Mode.CHANNEL && isCreator()) {
+      TdApi.UserFullInfo myUserFull = tdlib.myUserFull();
+      boolean isPersonal = myUserFull != null && myUserFull.personalChatId == getChatId();
+      ids.append(R.id.btn_setPersonalChannel);
+      strings.append(Lang.getString(isPersonal ? R.string.RemoveFromProfile : R.string.AddToProfile));
+    }
+
     if (!tdlib.isDirectMessagesChat(getChatId()) && (mode == Mode.SUPERGROUP || mode == Mode.GROUP)) {
       if (!canManageChat()) {
         ids.append(R.id.more_btn_viewAdmins);
@@ -790,6 +797,10 @@ public class ProfileController extends ViewController<ProfileController.Args> im
           manageChat();
         } else if (id == R.id.more_btn_viewStats) {
           openStats();
+        } else if (id == R.id.btn_setPersonalChannel) {
+          TdApi.UserFullInfo myUserFull = tdlib.myUserFull();
+          boolean isPersonal = myUserFull != null && myUserFull.personalChatId == getChatId();
+          tdlib.client().send(new TdApi.SetPersonalChat(isPersonal ? 0 : getChatId()), tdlib.okHandler());
         } else if (id == R.id.more_btn_editDescription) {
           editDescription(false);
           return;
