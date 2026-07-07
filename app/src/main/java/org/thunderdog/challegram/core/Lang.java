@@ -322,7 +322,7 @@ public class Lang {
         return string.value;
     }
     try {
-      return getAndroidString(resId);
+      return allowCloud ? getLocalizedAndroidString(resId) : getAndroidString(resId);
     } catch (Resources.NotFoundException e) {
       Log.e("Resource not found (shitty modified lang pack?): %d %s", resId, getResourceEntryName(resId));
       return "";
@@ -337,6 +337,50 @@ public class Lang {
   private static String getAndroidString (@StringRes int resId, Object... formatArgs) {
     // TODO non-current languagePackInfo
     return UI.getAppContext().getResources().getString(resId, formatArgs);
+  }
+
+  private static volatile Resources appLocaleResources;
+  private static volatile String appLocaleResourcesPackId;
+
+  private static Resources getAppLocaleResources () {
+    String packId = packId();
+    if (appLocaleResources == null || !packId.equals(appLocaleResourcesPackId)) {
+      Resources appResources = UI.getAppContext().getResources();
+      Resources localeResources = appResources;
+      try {
+        String languageCode = packId.startsWith("X") ? normalizeLanguageCode(packId) : packId;
+        Locale locale = switch (languageCode) {
+          case "zh-Hant" -> Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
+            ? Locale.forLanguageTag("zh-Hant")
+            : obtainLocale("zh-TW");
+          case "zh-Hans" -> Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
+            ? Locale.forLanguageTag("zh-Hans")
+            : obtainLocale("zh-CN");
+          default -> obtainLocale(languageCode);
+        };
+        Configuration configuration = new Configuration(appResources.getConfiguration());
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+          configuration.setLocale(locale);
+          localeResources = UI.getAppContext().createConfigurationContext(configuration).getResources();
+        } else {
+          configuration.locale = locale;
+          localeResources = new Resources(appResources.getAssets(), appResources.getDisplayMetrics(), configuration);
+        }
+      } catch (Throwable t) {
+        Log.e("Unable to build resources for language %s", t, packId);
+      }
+      appLocaleResources = localeResources;
+      appLocaleResourcesPackId = packId;
+    }
+    return appLocaleResources;
+  }
+
+  private static String getLocalizedAndroidString (@StringRes int resId) throws Resources.NotFoundException {
+    return getAppLocaleResources().getString(resId);
+  }
+
+  private static String getLocalizedAndroidString (@StringRes int resId, Object... formatArgs) {
+    return getAppLocaleResources().getString(resId, formatArgs);
   }
 
   private static final int FLAG_LOWERCASE = 1;
@@ -441,10 +485,10 @@ public class Lang {
     }
     try {
       if (creator != null || flags != 0 || hasSpanned) {
-        String format = applyFlags(getAndroidString(resId), flags);
+        String format = applyFlags(allowCloud ? getLocalizedAndroidString(resId) : getAndroidString(resId), flags);
         return formatString(format, hasSpanned, creator, formatArgs);
       } else {
-        return getAndroidString(resId, formatArgs);
+        return allowCloud ? getLocalizedAndroidString(resId, formatArgs) : getAndroidString(resId, formatArgs);
       }
     } catch (Resources.NotFoundException e) {
       Log.e("Resource not found (shitty modified lang pack?): %d %s", resId, getResourceEntryName(resId));

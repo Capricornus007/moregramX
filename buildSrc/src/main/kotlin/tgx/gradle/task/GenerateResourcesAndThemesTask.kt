@@ -229,6 +229,17 @@ open class GenerateResourcesAndThemesTask : BaseTask() {
       """.trimIndent())
     }
 
+    // API <= 21 fallback for local dialect strings
+    for ((scriptFolder, legacyFolder) in arrayOf("b+zh+Hans" to "zh-rCN", "b+zh+Hant" to "zh-rTW")) {
+      val source = File("app/src/main/res/values-$scriptFolder/moex_strings.xml")
+      if (source.exists()) {
+        val content = source.readText()
+        writeToFile("app/src/main/res/values-$legacyFolder/moex_strings.xml") { xml ->
+          xml.append(content)
+        }
+      }
+    }
+
     // LangUtils.kt
 
     writeToFile("app/src/main/java/org/thunderdog/challegram/core/LangUtils.kt") { kt ->
