@@ -2021,8 +2021,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   private void joinChat () {
     if (referrer != null) {
-      tdlib.send(new TdApi.JoinChatByInviteLink(referrer.inviteLink), (chat, error) -> {
-        if (error != null) {
+      tdlib.send(new TdApi.JoinChatByInviteLink(referrer.inviteLink), (chatJoinResult, error) -> {
+        if (error != null || chatJoinResult.getConstructor() == TdApi.ChatJoinResultDeclined.CONSTRUCTOR) {
           tdlib.send(new TdApi.AddChatMember(chat.id, tdlib.myUserId(), 0), tdlib.errorHandler());
         }
       });
@@ -2979,15 +2979,15 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (tdlib.canSendBasicMessage(chat)) {
       draftMessage = getDraftMessage();
       if (!Td.isEmpty(fillDraft)) {
-        if (Td.isEmpty(draftMessage) || Td.isEmpty(((TdApi.InputMessageText) draftMessage.inputMessageText).text) /*allow dropping replyTo*/) {
+        if (Td.isEmpty(draftMessage) /*allow dropping replyTo*/) {
           draftMessage = new TdApi.DraftMessage(
             null,
             0,
-            new TdApi.InputMessageText(fillDraft, null, false),
+            new TdApi.DraftMessageContentText(fillDraft, null),
             0,
             null
           );
-        } else if (!Td.equalsTo(((TdApi.InputMessageText) draftMessage.inputMessageText).text, fillDraft)) {
+        } else if (!Td.equalsTo(Td.textContent(draftMessage), fillDraft)) {
           promptDraftPrefillOnFocus = true;
         }
       }
@@ -3005,7 +3005,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       checkCanSendMessagesToUser(true);
     }
     if (inputView != null) {
-      inputView.setChat(chat, messageThread, draftMessage != null ? draftMessage.inputMessageText : null, getCustomInputPlaceholder(), silentButton != null && silentButton.getIsSilent());
+      inputView.setChat(chat, messageThread, draftMessage != null ? draftMessage.content : null, getCustomInputPlaceholder(), silentButton != null && silentButton.getIsSilent());
     }
     ignoreDraftLoad = false;
     discardAttachedFiles(false);
@@ -4136,12 +4136,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
     Runnable act = () -> {
       if (inputView != null) {
-        inputView.setDraft(new TdApi.InputMessageText(fillDraft, null, false));
+        inputView.setDraft(new TdApi.DraftMessageContentText(fillDraft, null));
       }
     };
     TdApi.DraftMessage currentDraft = getDraftMessage();
     if (checkCurrentDraft && !Td.isEmpty(currentDraft)) {
-      TdApi.FormattedText currentText = ((TdApi.InputMessageText) currentDraft.inputMessageText).text;
+      TdApi.FormattedText currentText = Td.textContent(currentDraft);
       if (!Td.isEmpty(currentText) && !Td.equalsTo(currentText, fillDraft)) {
         showWarning(Lang.getMarkdownString(this, R.string.DraftPreFillWarning), isConfirmed -> {
           if (isConfirmed) {
@@ -4297,15 +4297,14 @@ public class MessagesController extends ViewController<MessagesController.Argume
         final TdApi.FormattedText outputText = inputView.getOutputText(false);
         final @Nullable ReplyInfo replyTo = getCurrentReplyId();
         final long date = tdlib.currentTime(TimeUnit.SECONDS);
-        final TdApi.InputMessageText inputMessageText = new TdApi.InputMessageText(
+        final TdApi.DraftMessageContentText draftText = new TdApi.DraftMessageContentText(
           outputText,
-          findTargetContext().linkPreviewOptions,
-          false
+          findTargetContext().linkPreviewOptions
         );
         final TdApi.DraftMessage draftMessage = new TdApi.DraftMessage(
           replyTo != null ? replyTo.toInputMessageReply() : null,
           (int) date,
-          inputMessageText,
+          draftText,
           0,
           null
         );
@@ -7191,6 +7190,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
           }
           break;
         }
+        case TdApi.MessageRichMessage.CONSTRUCTOR: {
+          TdApi.MessageRichMessage oldMessageRich = (TdApi.MessageRichMessage) editContext.message.content;
+          // TODO rich message changes
+          return true;
+        }
         case TdApi.MessagePhoto.CONSTRUCTOR:
         case TdApi.MessageVideo.CONSTRUCTOR:
         case TdApi.MessageAudio.CONSTRUCTOR:
@@ -7201,7 +7205,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
           return !Td.equalsTo(oldText, newText);
         }
         default: {
-          Td.assertMessageContent_baa076bf();
+          Td.assertMessageContent_bb294b24();
           break;
         }
       }
@@ -7544,7 +7548,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
     if (inputView != null) {
       TdApi.DraftMessage draftMessage = getDraftMessage();
-      inputView.setDraft(draftMessage != null ? draftMessage.inputMessageText : null);
+      inputView.setDraft(draftMessage != null ? draftMessage.content : null);
       setInputBlockFlag(FLAG_INPUT_EDITING, false);
     }
     setInEditMode(false, "");
@@ -7570,10 +7574,13 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
     switch (editContext.message.content.getConstructor()) {
       case TdApi.MessageText.CONSTRUCTOR:
+      case TdApi.MessageRichMessage.CONSTRUCTOR:
       case TdApi.MessageAnimatedEmoji.CONSTRUCTOR: {
         if (Td.isEmpty(newText)) {
           return;
         }
+
+        TdApi.InputMessageText newInputMessageText = new TdApi.InputMessageText(newText, newOptions, false);
 
         TdApi.MessageText oldMessageText;
         if (editContext.message.content.getConstructor() == TdApi.MessageAnimatedEmoji.CONSTRUCTOR) {
@@ -7583,7 +7590,6 @@ public class MessagesController extends ViewController<MessagesController.Argume
         }
         TdApi.LinkPreviewOptions oldLinkPreviewOptions = oldMessageText.linkPreviewOptions;
 
-        TdApi.InputMessageText newInputMessageText = new TdApi.InputMessageText(newText, newOptions, false);
         if (!Td.equalsTo(newInputMessageText.text, oldMessageText.text) || !Td.equalsTo(newInputMessageText.linkPreviewOptions, oldLinkPreviewOptions)) {
           final int maxLength = tdlib.maxMessageTextLength();
           final int newTextLength = newText != null ? newText.text.codePointCount(0, newText.text.length()) : 0;
@@ -7644,7 +7650,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
         break;
       }
       default: {
-        Td.assertMessageContent_baa076bf();
+        Td.assertMessageContent_bb294b24();
         throw Td.unsupported(editContext.message.content);
       }
     }
@@ -8105,9 +8111,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
   }
 
-  public void sendPickedLocation (TdApi.Location location, int heading, final TdApi.MessageSendOptions sendOptions) {
+  public void sendPickedLocation (TdApi.Location location, final TdApi.MessageSendOptions sendOptions) {
     if (getChatId() == currentShareLocationChatId) {
-      send(new TdApi.InputMessageLocation(location, 0, heading, 0), true, sendOptions, null);
+      send(new TdApi.InputMessageLocation(location), true, sendOptions, null);
       if (currentShareLocationDestroyKeyboard) {
         onDestroyCommandKeyboard();
       }
@@ -8116,7 +8122,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   private void shareCurrentLocation (final boolean destroyKeyboard, Location location) {
     if (getChatId() == currentShareLocationChatId) {
-      send(new TdApi.InputMessageLocation(new TdApi.Location(location.getLatitude(), location.getLongitude(), location.getAccuracy()), 0, U.getHeading(location), 0), true, Td.newSendOptions(), null);
+      send(new TdApi.InputMessageLocation(new TdApi.Location(location.getLatitude(), location.getLongitude(), location.getAccuracy())), true, Td.newSendOptions(), null);
       if (destroyKeyboard) {
         onDestroyCommandKeyboard();
       }
@@ -10466,7 +10472,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       for (int i = 0; i < content.length; i++) {
         final TdApi.FormattedText caption = i == content.length - 1 ? lastFileCaption : null;
         MediaBottomFilesController.MusicEntry musicFile = musicFiles.get(i);
-        content[i] = tdlib.filegen().createThumbnail(new TdApi.InputMessageAudio(TD.createInputFile(musicFile.getPath(), musicFile.getMimeType()), null, (int) (musicFile.getDuration() / 1000l), musicFile.getTitle(), musicFile.getArtist(), caption), isSecretChat());
+        content[i] = tdlib.filegen().createThumbnail(new TdApi.InputMessageAudio(new TdApi.InputAudio(TD.createInputFile(musicFile.getPath(), musicFile.getMimeType()), null, (int) (musicFile.getDuration() / 1000l), musicFile.getTitle(), musicFile.getArtist()), caption), isSecretChat());
       }
       ReplyInfo replyInfo = allowReply ? obtainReplyTo() : null;
       TdApi.InputMessageReplyTo replyTo = replyInfo != null ? replyInfo.toInputMessageReply() : null;
@@ -10663,7 +10669,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
             file = new AudioFile(audioPath);
             file.loadId3Tags();
 
-            TdApi.InputMessageAudio inputMessageAudio = new TdApi.InputMessageAudio(TD.createInputFile(audioPath), null, file.getDuration(), file.getTitle(), file.getPerformer(), null);
+            TdApi.InputMessageAudio inputMessageAudio = new TdApi.InputMessageAudio(new TdApi.InputAudio(TD.createInputFile(audioPath), null, file.getDuration(), file.getTitle(), file.getPerformer()), null);
 
             tdlib.sendMessage(chatId, topicId, replyTo, sendOptions, inputMessageAudio);
           });
@@ -10784,7 +10790,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
           height = sampledHeight;
         }
         TdApi.InputFileGenerated inputFile = PhotoGenerationInfo.newFile(path, U.getRotationForExifOrientation(orientation));
-        TdApi.InputMessagePhoto photo = tdlib.filegen().createThumbnail(new TdApi.InputMessagePhoto(inputFile, null, null, null, width, height, null, false, selfDestructType, false), isSecret);
+        TdApi.InputMessagePhoto photo = tdlib.filegen().createThumbnail(new TdApi.InputMessagePhoto(new TdApi.InputPhoto(inputFile, null, null, null, width, height), null, false, selfDestructType, false), isSecret);
         tdlib.sendMessage(chatId, topicId, replyTo, sendOptions, photo);
       });
     }
@@ -10851,9 +10857,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
           if (asFiles && !forceVideo) {
             content = tdlib.filegen().createThumbnail(TD.toInputMessageContent(file.getFilePath(), inputVideo, fileInfo, caption, showCaptionAboveMedia, hasSpoiler), isSecretChat);
           } else if (sendAsAnimation && file.getSelfDestructType() == null && (files.length == 1 || !needGroupMedia)) {
-            content = tdlib.filegen().createThumbnail(new TdApi.InputMessageAnimation(inputVideo, null, null, file.getVideoDuration(true), width, height, caption, showCaptionAboveMedia, hasSpoiler), isSecretChat);
+            content = tdlib.filegen().createThumbnail(new TdApi.InputMessageAnimation(new TdApi.InputAnimation(inputVideo, null, null, file.getVideoDuration(true), width, height), caption, showCaptionAboveMedia, hasSpoiler), isSecretChat);
           } else {
-            content = tdlib.filegen().createThumbnail(new TdApi.InputMessageVideo(inputVideo, null, null, 0, null, file.getVideoDuration(true), width, height, U.canStreamVideo(inputVideo), caption, showCaptionAboveMedia, file.getSelfDestructType(), hasSpoiler), isSecretChat);
+            content = tdlib.filegen().createThumbnail(new TdApi.InputMessageVideo(new TdApi.InputVideo(inputVideo, null, null, 0, null, file.getVideoDuration(true), width, height, U.canStreamVideo(inputVideo)), caption, showCaptionAboveMedia, file.getSelfDestructType(), hasSpoiler), isSecretChat);
           }
         } else {
           int[] size = new int[2];
@@ -10872,9 +10878,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
           TdApi.FormattedText caption = file.getCaption(true, !disableMarkdown);
 
           if (asFiles) {
-            content = tdlib.filegen().createThumbnail(new TdApi.InputMessageDocument(inputFile, null, false, caption), isSecretChat);
+            content = tdlib.filegen().createThumbnail(new TdApi.InputMessageDocument(new TdApi.InputDocument(inputFile, null, false), caption), isSecretChat);
           } else {
-            content = tdlib.filegen().createThumbnail(new TdApi.InputMessagePhoto(inputFile, null, null, null, width, height, caption, showCaptionAboveMedia, file.getSelfDestructType(), hasSpoiler), isSecretChat);
+            content = tdlib.filegen().createThumbnail(new TdApi.InputMessagePhoto(new TdApi.InputPhoto(inputFile, null, null, null, width, height), caption, showCaptionAboveMedia, file.getSelfDestructType(), hasSpoiler), isSecretChat);
           }
         }
         inputContent[i] = content;
@@ -11473,7 +11479,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
         });
       }));
     }
-    inputView.setDraft(draftMessage != null ? draftMessage.inputMessageText : null);
+    inputView.setDraft(draftMessage != null ? draftMessage.content : null);
   }
 
   private TdApi.CanSendMessageToUserResult canSendMessageToUser;

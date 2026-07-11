@@ -1930,7 +1930,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
   }
 
   public boolean isBadInstantView (TdApi.WebPageInstantView instantView) {
-    return instantView == null || !instantView.isFull || instantView.pageBlocks == null || instantView.pageBlocks.length == 0 || !TD.hasInstantView(instantView.version);
+    return instantView == null || !instantView.isFull || instantView.blocks == null || instantView.blocks.length == 0 || !TD.hasInstantView(instantView.version);
   }
 
   public void fetchInstantView (String url, ResultHandler<TdApi.WebPageInstantView> callback) {
@@ -4897,12 +4897,12 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
   }
 
   public void sendMessage (long chatId, @Nullable TdApi.MessageTopic topicId, @Nullable TdApi.InputMessageReplyTo replyTo, TdApi.MessageSendOptions options, TdApi.Animation animation) {
-    TdApi.InputMessageContent inputMessageContent = new TdApi.InputMessageAnimation(new TdApi.InputFileId(animation.animation.id), null, null, animation.duration, animation.width, animation.height, null, false, false);
+    TdApi.InputMessageContent inputMessageContent = new TdApi.InputMessageAnimation(new TdApi.InputAnimation(new TdApi.InputFileId(animation.animation.id), null, null, animation.duration, animation.width, animation.height), null, false, false);
     sendMessage(chatId, topicId, replyTo, options, inputMessageContent);
   }
 
   public void sendMessage (long chatId, @Nullable TdApi.MessageTopic topicId, @Nullable TdApi.InputMessageReplyTo replyTo, TdApi.MessageSendOptions options, TdApi.Audio audio) {
-    TdApi.InputMessageContent inputMessageContent = new TdApi.InputMessageAudio(new TdApi.InputFileId(audio.audio.id), null, audio.duration, audio.title, audio.performer, null);
+    TdApi.InputMessageContent inputMessageContent = new TdApi.InputMessageAudio(new TdApi.InputAudio(new TdApi.InputFileId(audio.audio.id), null, audio.duration, audio.title, audio.performer), null);
     sendMessage(chatId, topicId, replyTo, options, inputMessageContent);
   }
 
@@ -4951,7 +4951,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
       case TdApi.MessageAnimation.CONSTRUCTOR:
         return !photoVideoOnly;
       default:
-        Td.assertMessageContent_baa076bf();
+        Td.assertMessageContent_bb294b24();
         break;
     }
 
@@ -5035,7 +5035,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
         case TdApi.MessageAnimatedEmoji.CONSTRUCTOR:
           return Td.textOrCaption(messageText);
       }
-      Td.assertMessageContent_baa076bf();
+      Td.assertMessageContent_bb294b24();
       throw Td.unsupported(messageText);
     }
     MessageEditMediaPending pendingEditMedia = getPendingMessageMedia(chatId, messageId);
@@ -7633,6 +7633,10 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
     }
   }
 
+  private void updatePendingMessage (TdApi.UpdatePendingMessage update) {
+
+  }
+
   private void updateNewMessage (TdApi.UpdateNewMessage update, boolean isUpdate) {
     if (update.message.sendingState instanceof TdApi.MessageSendingStatePending && update.message.content.getConstructor() != TdApi.MessageChatSetMessageAutoDeleteTime.CONSTRUCTOR) {
       addRemoveSendingMessage(update.message.chatId, update.message.id, true);
@@ -7709,13 +7713,17 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
     context.global().notifyUpdateMessageContent(this, update);
 
     switch (update.newContent.getConstructor()) {
-      case TdApi.MessageLocation.CONSTRUCTOR: {
-        cache().updateLiveLocation(update.chatId, update.messageId, (TdApi.MessageLocation) update.newContent);
+      case TdApi.MessageLiveLocation.CONSTRUCTOR: {
+        cache().updateLiveLocation(update.chatId, update.messageId, (TdApi.MessageLiveLocation) update.newContent);
         break;
       }
       case TdApi.MessagePoll.CONSTRUCTOR: {
         TdApi.Poll poll = ((TdApi.MessagePoll) update.newContent).poll;
         listeners().updatePoll(poll);
+        break;
+      }
+      default: {
+        Td.assertMessageContent_bb294b24();
         break;
       }
     }
@@ -9443,6 +9451,23 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
     context().global().notifyResolvableProblemAvailabilityMightHaveChanged();
   }
 
+  private TdApi.WebBrowserSettings webBrowserSettings;
+
+  @Nullable
+  public TdApi.WebBrowserSettings webBrowserSettings () {
+    synchronized (dataLock) {
+      return webBrowserSettings;
+    }
+  }
+
+  @TdlibThread
+  private void updateWebBrowserSettings (TdApi.UpdateWebBrowserSettings update) {
+    synchronized (dataLock) {
+      this.webBrowserSettings = update.settings;
+    }
+    listeners().updateWebBrowserSettings(update);
+  }
+
   @TdlibThread
   private void updateSpeedLimitNotification (TdApi.UpdateSpeedLimitNotification update) {
     listeners().updateSpeedLimitNotification(update);
@@ -9496,6 +9521,11 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
     }
 
     listeners.updateChatBackground(update);
+  }
+
+  @TdlibThread
+  private void updateChatJoinResult (TdApi.UpdateChatJoinResult update) {
+    // TODO
   }
 
   private <T extends TdApi.Update> void updateChat (T update, long chatId, RunnableData<TdApi.Chat> chatModifier, RunnableData<T> updateDispatcher) {
@@ -9939,6 +9969,12 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
       case TdApi.UpdateSavedNotificationSounds.CONSTRUCTOR:
         onUpdateSavedNotificationSounds((TdApi.UpdateSavedNotificationSounds) update);
         break;
+
+      // Pending messages
+      case TdApi.UpdatePendingMessage.CONSTRUCTOR: {
+        updatePendingMessage((TdApi.UpdatePendingMessage) update);
+        break;
+      }
 
       // Messages
       case TdApi.UpdateNewMessage.CONSTRUCTOR: {
@@ -10532,6 +10568,10 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
         updateSuggestedActions((TdApi.UpdateSuggestedActions) update);
         break;
       }
+      case TdApi.UpdateWebBrowserSettings.CONSTRUCTOR: {
+        updateWebBrowserSettings((TdApi.UpdateWebBrowserSettings) update);
+        break;
+      }
       case TdApi.UpdateSpeedLimitNotification.CONSTRUCTOR: {
         updateSpeedLimitNotification((TdApi.UpdateSpeedLimitNotification) update);
         break;
@@ -10546,6 +10586,10 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
       }
       case TdApi.UpdateChatBackground.CONSTRUCTOR: {
         updateChatBackground((TdApi.UpdateChatBackground) update);
+        break;
+      }
+      case TdApi.UpdateChatJoinResult.CONSTRUCTOR: {
+        updateChatJoinResult((TdApi.UpdateChatJoinResult) update);
         break;
       }
       case TdApi.UpdateChatAccentColors.CONSTRUCTOR: {
@@ -10579,8 +10623,6 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
         break;
       }
 
-
-      case TdApi.UpdatePendingTextMessage.CONSTRUCTOR:
       case TdApi.UpdateLiveStoryTopDonors.CONSTRUCTOR:
       case TdApi.UpdateGiftAuctionState.CONSTRUCTOR:
       case TdApi.UpdateActiveGiftAuctions.CONSTRUCTOR:
@@ -10617,7 +10659,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
         throw Td.unsupported(update);
       }
       default: {
-        Td.assertUpdate_ad02591();
+        Td.assertUpdate_17f693d6();
         throw Td.unsupported(update);
       }
     }
@@ -11546,9 +11588,11 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
           return getDefaultRestrictionText(chat, RightId.SEND_VOICE_NOTES);
         // RightId.SEND_BASIC_MESSAGES
         case TdApi.MessageText.CONSTRUCTOR:
+        case TdApi.MessageRichMessage.CONSTRUCTOR:
         case TdApi.MessageAnimatedEmoji.CONSTRUCTOR:
         case TdApi.MessageVenue.CONSTRUCTOR:
         case TdApi.MessageLocation.CONSTRUCTOR:
+        case TdApi.MessageLiveLocation.CONSTRUCTOR:
         case TdApi.MessageProximityAlertTriggered.CONSTRUCTOR:
         case TdApi.MessageContact.CONSTRUCTOR:
         case TdApi.MessageInvoice.CONSTRUCTOR:
@@ -11637,7 +11681,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
           // assuming we want to check RightId.SEND_BASIC_MESSAGES
           return getBasicMessageRestrictionText(chat);
         default:
-          Td.assertMessageContent_baa076bf();
+          Td.assertMessageContent_bb294b24();
           throw Td.unsupported(message.content);
       }
     }
@@ -11677,7 +11721,9 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
         case TdApi.InputMessageForwarded.CONSTRUCTOR,
              TdApi.InputMessageInvoice.CONSTRUCTOR,
              TdApi.InputMessageLocation.CONSTRUCTOR,
+             TdApi.InputMessageLiveLocation.CONSTRUCTOR,
              TdApi.InputMessageText.CONSTRUCTOR,
+             TdApi.InputMessageRichMessage.CONSTRUCTOR,
              TdApi.InputMessageVenue.CONSTRUCTOR,
              TdApi.InputMessageContact.CONSTRUCTOR,
              TdApi.InputMessageStory.CONSTRUCTOR,
@@ -11685,7 +11731,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
              TdApi.InputMessageStakeDice.CONSTRUCTOR ->
           getBasicMessageRestrictionText(chat);
         default -> {
-          Td.assertInputMessageContent_eb9f33ef();
+          Td.assertInputMessageContent_7c412303();
           throw Td.unsupported(content);
         }
       };
