@@ -7,7 +7,7 @@ name: Java Compile Check
 
 on:
   push:
-    branches: [ "my-combined-tgx" ]
+    branches: [ "main" ]
   workflow_dispatch:
 
 concurrency:

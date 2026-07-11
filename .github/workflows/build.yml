@@ -2,9 +2,10 @@ name: Android CI
 
 on:
   push:
-    branches: [ "my-combined-tgx" ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ "my-combined-tgx" ]
+    branches: [ "main" ]
+  workflow_dispatch:
 
 # A new push supersedes the previous build; don't let ~15-min runs stack up.
 concurrency:
