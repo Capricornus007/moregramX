@@ -2340,7 +2340,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
         c.setArguments(new ShareController.Args(message).setAllowCopyLink(true));
       } else {
         TdApi.Audio audio = ((TdApi.MessageAudio) message.content).audio;
-        c.setArguments(new ShareController.Args(new TdApi.InputMessageAudio(new TdApi.InputFileRemote(audio.audio.remote.id), null, audio.duration, audio.title, audio.performer, null)));
+        c.setArguments(new ShareController.Args(new TdApi.InputMessageAudio(new TdApi.InputAudio(new TdApi.InputFileRemote(audio.audio.remote.id), null, audio.duration, audio.title, audio.performer), null)));
       }
       c.show();
     } else if (id == R.id.btn_showInPlaylist) {
