@@ -475,7 +475,7 @@ android {
           rename("mapping.txt", "$fileName.txt")
         }
         tasks.named {
-          it.startsWith("assemble") && it.endsWith("Release")
+          it == "assemble${variant.name.replaceFirstChar { it.uppercase() }}"
         }.configureEach {
           finalizedBy(copyTask)
         }
