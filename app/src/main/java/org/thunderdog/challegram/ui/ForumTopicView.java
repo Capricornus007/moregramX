@@ -223,18 +223,18 @@ public class ForumTopicView extends BaseView implements TdlibEmojiManager.Watche
     // Build title
     this.titleText = topic.info.name;
     // Don't add pin/mute/lock emojis to title - will draw icons instead
-
 // Check if we should show draft (draft exists and has formatted text)
     boolean hasDraft = topic.draftMessage != null && topic.draftMessage.inputMessageText instanceof TdApi.InputMessageText;
 
-if (hasDraft) {
+    if (hasDraft) {
       // Show draft preview
       this.showingDraft = true;
       TdApi.InputMessageText inputMessageText = (TdApi.InputMessageText) topic.draftMessage.inputMessageText;
       TdApi.FormattedText inputText = inputMessageText.text;
-        inputText.text : "";
+      
       this.senderText = Lang.getString(R.string.Draft);
-      this.previewText = draftText;
+      this.previewText = inputText != null ? inputText.text : ""; 
+      
       // Get FormattedText from draft for custom emoji rendering
       this.previewFormattedText = inputText;
       this.timeText = Lang.timeOrDateShort(topic.draftMessage.date, java.util.concurrent.TimeUnit.SECONDS);
@@ -280,7 +280,6 @@ if (hasDraft) {
 
     // Check muted state (respects useDefaultMuteFor and parent chat settings)
     this.isMuted = tdlib.forumTopicNeedsMuteIcon(topic.info.chatId, topic);
-
     // Unread counter - pass muted state for proper badge coloring
     if (topic.unreadCount > 0) {
       if (unreadCounter == null) {
