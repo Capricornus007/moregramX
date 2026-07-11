@@ -225,13 +225,13 @@ public class ForumTopicView extends BaseView implements TdlibEmojiManager.Watche
     // Don't add pin/mute/lock emojis to title - will draw icons instead
 
 // Check if we should show draft (draft exists and has formatted text)
-    boolean hasDraft = topic.draftMessage != null && topic.draftMessage.text != null;
+    boolean hasDraft = topic.draftMessage != null && topic.draftMessage.inputMessageText instanceof TdApi.InputMessageText;
 
-    if (hasDraft) {
+if (hasDraft) {
       // Show draft preview
       this.showingDraft = true;
-      TdApi.FormattedText inputText = topic.draftMessage.text;
-      String draftText = inputText.text != null && !StringUtils.isEmpty(inputText.text) ?
+      TdApi.InputMessageText inputMessageText = (TdApi.InputMessageText) topic.draftMessage.inputMessageText;
+      TdApi.FormattedText inputText = inputMessageText.text;
         inputText.text : "";
       this.senderText = Lang.getString(R.string.Draft);
       this.previewText = draftText;
