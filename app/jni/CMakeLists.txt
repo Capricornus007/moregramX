@@ -101,6 +101,10 @@ list(APPEND ADD_LINKER_FLAGS
 )
 Join(ADD_LINKER_FLAGS "${ADD_LINKER_FLAGS}" " ")
 set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${ADD_LINKER_FLAGS}")
+# 強制 64 位元架構下，所有編譯生成的動態連結庫 (.so) 全都使用 16 KB 頁面大小對齊
+if (${ANDROID_ABI} STREQUAL "arm64-v8a" OR ${ANDROID_ABI} STREQUAL "x86_64")
+  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-z,max-page-size=16384")
+endif()
 
 # == Libraries ==
 

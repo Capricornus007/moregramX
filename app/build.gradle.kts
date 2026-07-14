@@ -490,9 +490,14 @@ productFlavors {
     }
   }
 
-  // Packaging
+// Packaging
 
   packaging {
+    // 1. 強制設定 jniLibs 不進行壓縮（這是 16 KB 運行的關鍵）
+    jniLibs {
+      useLegacyPackaging = true
+    }
+
     Config.SUPPORTED_ABI.forEach { abi ->
       jniLibs.pickFirsts.let { set ->
         if (Config.SHARED_STL) {
