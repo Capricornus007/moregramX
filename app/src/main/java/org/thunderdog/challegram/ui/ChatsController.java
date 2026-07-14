@@ -2534,6 +2534,30 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
       return;
     }
 
+    ArrayList<ListItem> items = new ArrayList<>();
+
+    if (archiveList != null && archiveList.totalCount() > 0) {
+      items.add(new ListItem(ListItem.TYPE_ICONIZED_EMPTY, R.id.changePhoneText, R.drawable.baseline_archive_96, Lang.getMarkdownString(this, R.string.OpenArchiveHint), false));
+      items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
+      items.add(new ListItem(ListItem.TYPE_BUTTON, R.id.btn_archive, 0, R.string.ArchiveTitle));
+      items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
+    } else {
+      items.add(new ListItem(ListItem.TYPE_ICONIZED_EMPTY, R.id.changePhoneText, R.drawable.baseline_forum_96, Lang.getMarkdownString(this, R.string.NoChatsText)));
+      items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
+      items.add(new ListItem(ListItem.TYPE_BUTTON, R.id.btn_invite, 0, R.string.InviteFriends));
+      items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
+    }
+
+    noChatsAdapter.setItems(items);
+    if (noChatsView == null) {
+      noChatsView = (RecyclerView) Views.inflate(context(), R.layout.recycler_settings, contentView);
+      noChatsView.setLayoutManager(new LinearLayoutManager(context()));
+      noChatsView.setAdapter(noChatsAdapter);
+      noChatsView.setAlpha(0f);
+      contentView.addView(noChatsView);
+    }
+  }
+
     noChatsAdapter = new SettingsAdapter(this, v -> {
       final int viewId = v.getId();
       if (viewId == R.id.btn_invite) {
