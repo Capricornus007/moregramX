@@ -11,7 +11,6 @@ set(TGCALLS_DIR "${TGCALLS_DEPS_DIR}/tgcalls")
 add_library(tgcalls STATIC
   "${TGCALLS_DIR}/tgcalls/utils/gzip.cpp"
 
-  "${TGCALLS_DIR}/tgcalls/legacy/InstanceImplLegacy.cpp"
 
   "${TGCALLS_DIR}/tgcalls/desktop_capturer/DesktopCaptureSourceManager.cpp"
   "${TGCALLS_DIR}/tgcalls/desktop_capturer/DesktopCaptureSourceHelper.cpp"
@@ -49,7 +48,6 @@ add_library(tgcalls STATIC
   "${TGCALLS_DIR}/tgcalls/group/AudioStreamingPartPersistentDecoder.cpp"
   "${TGCALLS_DIR}/tgcalls/group/AVIOContextImpl.cpp"
   "${TGCALLS_DIR}/tgcalls/group/GroupInstanceCustomImpl.cpp"
-  "${TGCALLS_DIR}/tgcalls/group/GroupInstanceReferenceImpl.cpp"
   "${TGCALLS_DIR}/tgcalls/group/GroupJoinPayloadInternal.cpp"
   "${TGCALLS_DIR}/tgcalls/group/GroupNetworkManager.cpp"
   "${TGCALLS_DIR}/tgcalls/group/StreamingMediaContext.cpp"

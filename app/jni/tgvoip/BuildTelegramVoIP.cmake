@@ -355,7 +355,6 @@ else()
   )
 endif()
 target_compile_definitions(tgvoip PRIVATE
-  TGVOIP_USE_CUSTOM_CRYPTO
   TGVOIP_HAS_CONFIG
   TGVOIP_NO_VIDEO
   TGVOIP_NO_GROUP_CALLS
@@ -381,7 +380,6 @@ if (${NEED_WEBRTC})
 else()
   target_compile_definitions(tgvoip PRIVATE
     TGVOIP_NO_DSP
-    TGVOIP_NO_CRYPTO_INIT
   )
 endif()
 target_include_directories(tgvoip PUBLIC

@@ -28,7 +28,7 @@
 
 #include <os/android/JNIUtilities.h>
 
-#include <tgcalls/legacy/InstanceImplLegacy.h>
+// #include <tgcalls/legacy/InstanceImplLegacy.h>
 #include <tgcalls/InstanceImpl.h>
 #include <tgcalls/v2/InstanceV2Impl.h>
 #include <tgcalls/v2/InstanceV2ReferenceImpl.h>
@@ -135,7 +135,7 @@ namespace tgcalls {
       jni::throw_new(env, #impl" could not be registered", jni_class::IllegalStateException(env)); \
     }
     // "2.4.4"
-    REGISTER(InstanceImplLegacy)
+    // REGISTER(InstanceImplLegacy)
     // "2.7.7", "5.0.0"
     REGISTER(InstanceImpl)
     // "7.0.0", "8.0.0", "9.0.0"
