@@ -105,7 +105,7 @@
 	branch = main
 [submodule "tgcalls"]
 	path = app/jni/tgvoip/third_party/tgcalls
-	url = https://github.com/TGX-Android/tgcalls
+	url = git@github.com:Capricornus007/tgcalls.git
 	shallow = true
 	branch = main
 [submodule "libevent"]
