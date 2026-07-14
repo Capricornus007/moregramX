@@ -805,7 +805,7 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
     if (BitwiseUtils.hasFlag(reasons, ChatsAdapter.ArchiveUpdate.ALL)) {
       adapter.updateArchive(ChatsAdapter.ArchiveUpdate.ALL);
     } else {
-      BitwiseUtils.iterateFlags(reasons, (reason) ->
+      BitwiseUtils.iterateFlags(reasons, (int reason) ->
         adapter.updateArchive(reason)
       );
     }
