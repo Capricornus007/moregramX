@@ -7324,7 +7324,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
   private boolean needHideEventDate () {
     //noinspection WrongConstant
-    return (event != null & event.hideDate) || (msg.content.getConstructor() == TdApiExt.MessageChatEvent.CONSTRUCTOR && ((TdApiExt.MessageChatEvent) msg.content).hideDate);
+    return (event != null && event.hideDate) || (msg.content.getConstructor() == TdApiExt.MessageChatEvent.CONSTRUCTOR && ((TdApiExt.MessageChatEvent) msg.content).hideDate);
   }
 
   public final boolean isEventLog () {
@@ -8507,6 +8507,8 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
         case TdApi.MessageManagedBotCreated.CONSTRUCTOR: // TODO TGMessageService
         case TdApi.MessagePollOptionAdded.CONSTRUCTOR: // TODO TGMessageService
         case TdApi.MessagePollOptionDeleted.CONSTRUCTOR: // TODO TGMessageService
+        case TdApi.MessageChatAddedToCommunity.CONSTRUCTOR: // TODO TGMessageService
+        case TdApi.MessageChatRemovedFromCommunity.CONSTRUCTOR: // TODO TGMessageService
           break;
 
         case TdApi.MessageUnsupported.CONSTRUCTOR:
@@ -8519,7 +8521,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
           break;
         }
         default: {
-          Td.assertMessageContent_bb294b24();
+          Td.assertMessageContent_a80283cf();
           throw Td.unsupported(msg.content);
         }
       }

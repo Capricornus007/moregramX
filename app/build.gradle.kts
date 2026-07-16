@@ -412,7 +412,10 @@ productFlavors {
         libs.google.recaptcha.lollipop,
         libs.google.recaptcha.marshmallow,
         libs.google.recaptcha.latest
-      )
+      )!!.get().version!!
+      require(recaptchaVersion.isNotEmpty() && recaptchaVersion.matches(Regex("^[0-9.]+$"))) {
+        "Invalid ReCaptcha version: $recaptchaVersion"
+      }
 
       variant.buildConfigFields!!.apply {
         put("ABI", BuildConfigField(

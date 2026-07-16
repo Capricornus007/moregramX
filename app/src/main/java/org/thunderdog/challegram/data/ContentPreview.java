@@ -49,6 +49,7 @@ public class ContentPreview {
   public static final Emoji EMOJI_AUDIO = new Emoji("\uD83C\uDFB5", R.drawable.baseline_music_note_16);
   public static final Emoji EMOJI_CONTACT = new Emoji("\uD83D\uDC64", R.drawable.baseline_person_16);
   public static final Emoji EMOJI_POLL = new Emoji("\uD83D\uDCCA", R.drawable.baseline_poll_16);
+  public static final Emoji EMOJI_POLL_OPTION = new Emoji("\uD83D\uDCCA", R.drawable.baseline_ballot_16);
   public static final Emoji EMOJI_QUIZ = new Emoji("\u2753", R.drawable.baseline_help_16);
   public static final Emoji EMOJI_PAID_PHOTO = new Emoji("\u2B50", R.drawable.baseline_premium_star_16); // ⭐
   public static final Emoji EMOJI_PAID_VIDEO = new Emoji("\u2B50", R.drawable.baseline_premium_star_16);
@@ -776,7 +777,7 @@ public class ContentPreview {
       case TdApi.MessagePassportDataReceived.CONSTRUCTOR:
       case TdApi.MessageWebAppDataReceived.CONSTRUCTOR:
       default:
-        Td.assertMessageContent_bb294b24();
+        Td.assertMessageContent_a80283cf();
         throw Td.unsupported(message.content);
     }
     Refresher refresher = null;
@@ -1620,6 +1621,8 @@ public class ContentPreview {
       case TdApi.MessagePollOptionAdded.CONSTRUCTOR:
       case TdApi.MessagePollOptionDeleted.CONSTRUCTOR:
       case TdApi.MessageRichMessage.CONSTRUCTOR:
+      case TdApi.MessageChatAddedToCommunity.CONSTRUCTOR:
+      case TdApi.MessageChatRemovedFromCommunity.CONSTRUCTOR:
         // TODO support these previews
         return new ContentPreview(EMOJI_QUIZ, R.string.UnsupportedMessage);
         
@@ -1630,7 +1633,7 @@ public class ContentPreview {
       case TdApi.MessagePassportDataReceived.CONSTRUCTOR:
       case TdApi.MessageWebAppDataReceived.CONSTRUCTOR:
       default:
-        Td.assertMessageContent_bb294b24();
+        Td.assertMessageContent_a80283cf();
         throw new UnsupportedOperationException(Integer.toString(type));
     }
   }
