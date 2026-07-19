@@ -5580,6 +5580,10 @@ public class TD {
     return false;
   }
 
+  public static boolean isChecklist (TdApi.MessageContent content) {
+    return content != null && content.getConstructor() == TdApi.MessageChecklist.CONSTRUCTOR;
+  }
+
   public static boolean canAccessMembers (TdApi.Supergroup supergroup) {
     return supergroup != null && !supergroup.isDirectMessagesGroup;
   }
