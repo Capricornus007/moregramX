@@ -448,6 +448,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
   private final TdlibCache cache;
   private final TdlibEmojiManager emoji;
   private final TdlibEmojiReactionsManager reactions;
+  private final TdlibForumTopicManager topics;
   private final TdlibOutlineManager outline;
   private final TdlibSingleton<TdApi.Stickers> genericReactionEffects;
   private final TdlibListeners listeners;
@@ -552,6 +553,11 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
     this.cache = new TdlibCache(this);
     if (needMeasure) {
       Log.v("INITIALIZATION: Tdlib.cache -> %dms", SystemClock.uptimeMillis() - ms);
+      ms = SystemClock.uptimeMillis();
+    }
+    this.topics = new TdlibForumTopicManager(this);
+    if (needMeasure) {
+      Log.v("INITIALIZATION: Tdlib.topics -> %dms", SystemClock.uptimeMillis() - ms);
       ms = SystemClock.uptimeMillis();
     }
     this.emoji = new TdlibEmojiManager(this);
@@ -2353,6 +2359,10 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
 
   public TdlibEmojiManager emoji () {
     return emoji;
+  }
+
+  public TdlibForumTopicManager topics () {
+    return topics;
   }
 
   public TdlibEmojiReactionsManager reactions () {
@@ -4703,7 +4713,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
     switch (reactionType.getConstructor()) {
       case TdApi.ReactionTypeEmoji.CONSTRUCTOR: {
         TdApi.ReactionTypeEmoji emoji = (TdApi.ReactionTypeEmoji) reactionType;
-        RunnableData<TdlibEmojiReactionsManager.Entry> emojiReactionWatcher = (newEntry) -> {
+        TdlibDataManager.Callback<TdlibEmojiReactionsManager.Entry> emojiReactionWatcher = (newEntry, inPlace) -> {
           if (newEntry.value != null) {
             TGReaction reaction = new TGReaction(this, newEntry.value);
             synchronized (dataLock) {
@@ -4732,7 +4742,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
       }
       case TdApi.ReactionTypeCustomEmoji.CONSTRUCTOR: {
         TdApi.ReactionTypeCustomEmoji customEmoji = (TdApi.ReactionTypeCustomEmoji) reactionType;
-        RunnableData<TdlibEmojiManager.Entry> customReactionWatcher = (newEntry) -> {
+        TdlibDataManager.Callback<TdlibEmojiManager.Entry> customReactionWatcher = (newEntry, inPlace) -> {
           if (newEntry.value != null) {
             TGReaction reaction = new TGReaction(this, newEntry.value);
             synchronized (dataLock) {
@@ -5021,7 +5031,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
       });
     };
     if (customEmojiId != 0) {
-      emoji().findOrRequest(customEmojiId, entry -> {
+      emoji().findOrRequest(customEmojiId, (entry, inPlace) -> {
         if (entry != null && !entry.isNotFound()) {
           TdApi.Sticker customEmojiSticker = entry.value;
           TdApi.MessageAnimatedEmoji animatedEmoji = new TdApi.MessageAnimatedEmoji(new TdApi.AnimatedEmoji(customEmojiSticker, customEmojiSticker.width, customEmojiSticker.height, 0, null), content.text.text);
@@ -7405,7 +7415,6 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
         chatList.clear();
       }
     }
-    forumTopicInfos.clear();
   }
 
   @TdlibThread
@@ -8561,15 +8570,13 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
 
   @TdlibThread
   private void updateForumTopicInfo (TdApi.UpdateForumTopicInfo update) {
-    String cacheKey = update.info.chatId + "_" + update.info.forumTopicId;
-    synchronized (dataLock) {
-      forumTopicInfos.put(cacheKey, update.info);
-    }
+    topics.updateForumTopicInfo(update);
     listeners.updateForumTopicInfo(update);
   }
 
   @TdlibThread
   private void updateForumTopic (TdApi.UpdateForumTopic update) {
+    topics.updateForumTopic(update);
     listeners.updateForumTopic(update);
   }
 
@@ -10772,7 +10779,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
       return;
     myEmojiStatusId = newEmojiStatusId;
     if (newEmojiStatusId != 0) {
-      emoji().findOrRequest(newEmojiStatusId, entry -> {
+      emoji().findOrRequest(newEmojiStatusId, (entry, inPlace) -> {
         if (!entry.isNotFound() && newEmojiStatusId == myEmojiStatusId) {
           account().storeUserEmojiStatusMetadata(newEmojiStatusId, entry.value);
           client().send(new TdApi.DownloadFile(entry.value.sticker.id, TdlibFilesManager.PRIORITY_SELF_EMOJI_STATUS, 0, 0, true), emojiStatusHandler(entry, false));
