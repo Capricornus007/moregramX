@@ -217,6 +217,9 @@ public abstract class TextEntity {
   }
 
   public static TextEntity[] valueOf (Tdlib tdlib, TdApi.FormattedText text, TdlibUi.UrlOpenParameters openParameters) {
+    if (text == null) {
+      return null;
+    }
     return valueOf(tdlib, text.text, text.entities, openParameters);
   }
 

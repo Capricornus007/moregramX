@@ -1891,8 +1891,8 @@ public class SettingsAdapter extends RecyclerView.Adapter<SettingHolder> impleme
         LinearLayout textColumn = (LinearLayout) wrapView.getChildAt(2);
         CustomTextView subtitleView = (CustomTextView) textColumn.getChildAt(0);
         TdApi.FormattedText formatted = data.second;
-        TextEntity[] entities = TextEntity.valueOf(tdlib, formatted, null);
-        subtitleView.setText(formatted.text, entities, Text.FLAG_IGNORE_CONTINUOUS_NEWLINES, false);
+        TextEntity[] entities = formatted != null ? TextEntity.valueOf(tdlib, formatted, null) : null;
+        subtitleView.setText(formatted != null ? formatted.text : null, entities, Text.FLAG_IGNORE_CONTINUOUS_NEWLINES, false);
 
         TextView membersView = (TextView) textColumn.getChildAt(1);
         int memberCount = item.getIntValue();
