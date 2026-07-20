@@ -7,6 +7,7 @@ import android.widget.Toast;
 import org.thunderdog.challegram.R;
 import org.thunderdog.challegram.U;
 import org.thunderdog.challegram.component.base.SettingView;
+import org.thunderdog.challegram.config.Config;
 import org.thunderdog.challegram.core.Lang;
 import org.thunderdog.challegram.navigation.SettingsWrapBuilder;
 import org.thunderdog.challegram.telegram.Tdlib;
@@ -16,6 +17,7 @@ import org.thunderdog.challegram.tool.UI;
 import org.thunderdog.challegram.ui.ListItem;
 import org.thunderdog.challegram.ui.RecyclerViewController;
 import org.thunderdog.challegram.ui.SettingsAdapter;
+import org.thunderdog.challegram.unsorted.Settings;
 import org.thunderdog.challegram.v.CustomRecyclerView;
 
 import java.util.ArrayList;
@@ -95,8 +97,7 @@ public class SettingsMoexController extends RecyclerViewController<SettingsMoexC
       MoexConfig.instance().toggleEnableFeaturesButton();
       adapter.updateValuedSettingById(viewId);
     } else if (viewId == R.id.btn_showIdProfile) {
-      MoexConfig.instance().toggleShowIdProfile();
-      adapter.updateValuedSettingById(viewId);
+      handleSettingClick(v, adapter);
     } else if (viewId == R.id.btn_hideMessagesBadge) {
       MoexConfig.instance().toggleHideMessagesBadge();
       adapter.updateValuedSettingById(viewId);
@@ -143,6 +144,8 @@ public class SettingsMoexController extends RecyclerViewController<SettingsMoexC
       adapter.updateValuedSettingById(viewId);
     } else if (viewId == R.id.btn_rearRounds) {
       showRoundVideoCameraOptions();
+    } else if (viewId == R.id.btn_toggleEdgeAnimSide) {
+      handleSettingClick(v, adapter);
     }
   }
 
@@ -291,7 +294,7 @@ public class SettingsMoexController extends RecyclerViewController<SettingsMoexC
         } else if (itemId == R.id.btn_enableFeaturesButton) {
           view.getToggler().setRadioEnabled(MoexConfig.enableTestFeatures, isUpdate);
         } else if (itemId == R.id.btn_showIdProfile) {
-          view.getToggler().setRadioEnabled(MoexConfig.showId, isUpdate);
+          updateSettingView(view, item, isUpdate);
         } else if (itemId == R.id.btn_hideMessagesBadge) {
           view.getToggler().setRadioEnabled(MoexConfig.hideMessagesBadge, isUpdate);
         } else if (itemId == R.id.btn_changeSizeLimit) {
@@ -392,6 +395,8 @@ public class SettingsMoexController extends RecyclerViewController<SettingsMoexC
           view.getToggler().setRadioEnabled(MoexConfig.darkenDrawer, isUpdate);
         } else if (itemId == R.id.btn_silent) {
           view.getToggler().setRadioEnabled(MoexConfig.silentMessage, isUpdate);
+        } else if (itemId == R.id.btn_toggleEdgeAnimSide) {
+          updateSettingView(view, item, isUpdate);
         } else if (itemId == R.id.btn_rearRounds) {
           switch (MoexConfig.instance().getRoundVideos()) {
             case MoexConfig.START_WITH_FRONT:
@@ -418,11 +423,18 @@ public class SettingsMoexController extends RecyclerViewController<SettingsMoexC
         items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_hideMessagesBadge, 0, R.string.hideMessagesBadge));
         items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
         items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_headerText, 0, R.string.changeHeaderText));
+        if (Config.EDGE_TO_EDGE_AVAILABLE) {
+          items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
+          items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_toggleEdgeAnimSide, 0, R.string.RightSwipeEdgeAnimation).setLongId(Settings.SETTING_FLAG_FORCE_DEFAULT_ANIMATION_FOR_RIGHT_SWIPE_EDGE).setBoolValue(true));
+        }
         items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
+        if (Config.EDGE_TO_EDGE_AVAILABLE) {
+          items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.RightSwipeEdgeAnimationInfo));
+        }
 
         items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.ProfileOptions));
         items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
-        items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_showIdProfile, 0, R.string.showIdProfile));
+        items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_showIdProfile, 0, R.string.showIdProfile).setLongValue(Settings.EXPERIMENT_FLAG_SHOW_PEER_IDS));
         items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
         items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_hidePhone, 0, R.string.hidePhoneNumber));
         items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
