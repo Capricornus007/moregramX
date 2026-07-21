@@ -1027,6 +1027,11 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
           }
         }
       }
+      if (allMessages.length == 1 && Td.isAudio(singleMessage.content)) {
+        ids.append(R.id.btn_pinAudioProfile);
+        strings.append(R.string.AddToProfile);
+        icons.append(R.drawable.baseline_queue_music_24);
+      }
       if (allMessages.length == 1 && playListAddMode != TGPlayerController.ADD_MODE_NONE) {
         ids.append(R.id.btn_addToPlaylist);
         if (playListAddMode == TGPlayerController.ADD_MODE_MOVE) {

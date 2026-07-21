@@ -147,6 +147,7 @@ public class StickerPreviewView extends FrameLayoutFix implements FactorAnimator
   private @Nullable PreviewCallback previewCallback;
   private @Nullable View holderView;
   private @Nullable StickerSmallView controllerView;
+  private @Nullable Runnable onInterruptListener;
   private @PorterDuffColorId int repaintingColorId = ColorId.iconActive;
 
   public void setPreviewCallback (View holderView, PreviewCallback previewCallback) {
@@ -160,10 +161,18 @@ public class StickerPreviewView extends FrameLayoutFix implements FactorAnimator
     this.setPreviewCallback(stickerView, stickerView);
   }
 
+  public void setOnInterruptListener (@Nullable Runnable onInterruptListener) {
+    this.onInterruptListener = onInterruptListener;
+  }
+
   @Override
   public boolean onBackPressed (boolean fromTop, boolean commit) {
     if (commit) {
-      closePreviewIfNeeded();
+      if (onInterruptListener != null) {
+        onInterruptListener.run();
+      } else {
+        closePreviewIfNeeded();
+      }
     }
     return true;
   }
@@ -977,7 +986,11 @@ public class StickerPreviewView extends FrameLayoutFix implements FactorAnimator
   @Override
   public boolean onTouchEvent (MotionEvent event) {
     if (event.getAction() == MotionEvent.ACTION_DOWN) {
-      closePreviewIfNeeded();
+      if (onInterruptListener != null) {
+        onInterruptListener.run();
+      } else {
+        closePreviewIfNeeded();
+      }
     }
     return true;
   }

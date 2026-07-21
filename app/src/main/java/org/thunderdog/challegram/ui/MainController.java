@@ -122,6 +122,7 @@ import org.thunderdog.challegram.unsorted.Settings;
 import org.thunderdog.challegram.unsorted.Test;
 import org.thunderdog.challegram.util.AppUpdater;
 import org.thunderdog.challegram.util.FeatureAvailability;
+import org.thunderdog.challegram.util.HapticMenuHelper;
 import org.thunderdog.challegram.util.StringList;
 import org.thunderdog.challegram.util.text.Counter;
 import org.thunderdog.challegram.util.text.IconSpan;
@@ -140,6 +141,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -162,6 +164,7 @@ import tgx.td.ChatPosition;
 import tgx.td.Td;
 import tgx.td.TdConstants;
 import moe.kirao.mgx.MoexConfig;
+import moe.kirao.mgx.utils.RecentChannelsTracker;
 
 public class MainController extends ViewPagerController<Void> implements Menu, MoreDelegate, OverlayButtonWrap.Callback, TdlibOptionListener, AppUpdater.Listener, ChatFoldersListener, GlobalCountersListener, Settings.ChatFolderSettingsListener, MoexConfig.SettingsChangeListener {
   private static final long MAIN_PAGER_ITEM_ID = Long.MIN_VALUE;
@@ -793,6 +796,8 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     if (composeWrap != null) {
       composeWrap.close();
     }
+    detachRecentChannelsHaptic();
+    updateBirthdayReminder(false);
   }
 
   @Override
@@ -1131,6 +1136,7 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   @Override
   public void destroy () {
     super.destroy();
+    detachRecentChannelsHaptic();
     tdlib.listeners().removeOptionListener(this);
     context().appUpdater().removeListener(this);
     tdlib.context().global().removeCountersListener(this);
@@ -1319,6 +1325,39 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
         }
       })
     ));
+    attachRecentChannelsHaptic();
+    updateBirthdayReminder(true);
+  }
+
+  @Override
+  public void onContactCloseBirthdayUsersChanged (TdApi.CloseBirthdayUser[] birthdayUsers) {
+    runOnUiThreadOptional(() -> updateBirthdayReminder(isFocused()));
+  }
+
+  private void updateBirthdayReminder (boolean show) {
+    if (headerView != null) {
+      headerView.getFilling().setBirthdayReminder(tdlib, todayBirthdayUsers(), show);
+    }
+  }
+
+  private @Nullable TdApi.CloseBirthdayUser[] todayBirthdayUsers () {
+    TdApi.CloseBirthdayUser[] users = tdlib.closeBirthdayUsers();
+    if (users == null || users.length == 0) {
+      return null;
+    }
+    Calendar now = Calendar.getInstance();
+    int day = now.get(Calendar.DAY_OF_MONTH);
+    int month = now.get(Calendar.MONTH) + 1;
+    ArrayList<TdApi.CloseBirthdayUser> today = null;
+    for (TdApi.CloseBirthdayUser user : users) {
+      if (user.birthdate != null && user.birthdate.day == day && user.birthdate.month == month) {
+        if (today == null) {
+          today = new ArrayList<>();
+        }
+        today.add(user);
+      }
+    }
+    return today != null ? today.toArray(new TdApi.CloseBirthdayUser[0]) : null;
   }
 
   @Override
@@ -1356,6 +1395,78 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
   protected int getMenuButtonsWidth () {
     return 0; // disable header margins
   }
+
+  private HapticMenuHelper recentChannelsHaptic;
+
+  private @Nullable BackHeaderButton getMenuBurgerButton () {
+    if (headerView == null) {
+      return null;
+    }
+    return headerView.getBackButton();
+  }
+
+  private void attachRecentChannelsHaptic () {
+    BackHeaderButton btn = getMenuBurgerButton();
+    if (btn == null) {
+      return;
+    }
+    if (recentChannelsHaptic == null) {
+      recentChannelsHaptic = new HapticMenuHelper(recentChannelsProvider, recentChannelsClickListener, getThemeListeners(), null);
+    }
+    recentChannelsHaptic
+      .attachToView(btn)
+      .selectableMode(btn);
+  }
+
+  private void detachRecentChannelsHaptic () {
+    if (recentChannelsHaptic == null) {
+      return;
+    }
+    if (recentChannelsHaptic.isMenuOpened()) {
+      recentChannelsHaptic.hideMenu();
+    }
+    BackHeaderButton btn = getMenuBurgerButton();
+    if (btn != null) {
+      recentChannelsHaptic.detachFromView(btn);
+      btn.setOnTouchListener(null);
+    }
+  }
+
+  private final HapticMenuHelper.Provider recentChannelsProvider = new HapticMenuHelper.Provider() {
+    @Override
+    public List<HapticMenuHelper.MenuItem> onCreateHapticMenu (View view) {
+      List<Long> recent = RecentChannelsTracker.getRecent(tdlib);
+      if (recent.isEmpty()) {
+        return Collections.emptyList();
+      }
+      List<HapticMenuHelper.MenuItem> items = new ArrayList<>(recent.size());
+      for (long chatId : recent) {
+        TdApi.Chat chat = tdlib.chat(chatId);
+        if (chat == null) {
+          continue;
+        }
+        String title = tdlib.chatTitle(chat);
+        String username = tdlib.chatUsername(chat);
+        CharSequence subtitle = !StringUtils.isEmpty(username) ? "@" + username : "";
+        TdApi.MessageSender sender = new TdApi.MessageSenderChat(chatId);
+        items.add(new HapticMenuHelper.MenuItem(R.id.btn_recentChannel, title, subtitle, 0, tdlib, sender, false));
+      }
+      return items;
+    }
+
+    @Override
+    public int getAnchorMode (View view) {
+      return MenuMoreWrap.ANCHOR_MODE_HEADER;
+    }
+  };
+
+  private final HapticMenuHelper.OnItemClickListener recentChannelsClickListener = (view, parentView, item) -> {
+    if (item.messageSenderId instanceof TdApi.MessageSenderChat) {
+      long chatId = ((TdApi.MessageSenderChat) item.messageSenderId).chatId;
+      tdlib.ui().openChat(this, chatId, null);
+    }
+    return true;
+  };
 
   public boolean showComposeWrap (ViewController<?> controller) {
     if (!inSearchMode() && (controller == null || getCurrentPagerItem() == controller)) {

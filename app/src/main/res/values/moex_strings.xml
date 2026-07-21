@@ -13,7 +13,7 @@
   <string name="MoexChannelLink" translatable="false">https://t.me/moeGramX</string>
   <string name="MoexCrowdinLink" translatable="false">https://kiri.su/crowdin</string>
   <string name="MoexChatLink" translatable="false">https://t.me/moe_chat</string>
-  <string name="MoexSourceLink" translatable="false">https://kiri.su/moexgit</string>
+  <string name="MoexSourceLink" translatable="false">https://github.com/moeCrafters/moeGramX</string>
   <string name="MoexHideButtons">Message panel</string>
   <string name="DisableCommandsButton">Commands</string>
   <string name="DisableCameraButton">Camera</string>
@@ -90,5 +90,25 @@
   <string name="RearCamera">Rear</string>
   <string name="Ask">Ask</string>
   <string name="Platform">Platform</string>
-  <string name="DcID">DC</string>
+  <string name="DcID" translatable="false">DC</string>
+  <string name="DcInfo" translatable="false">DC%1$d, %2$s</string>
+  <string name="AddToProfile">Add to Profile</string>
+  <string name="AudioPinned">Audio added to Profile</string>
+  <string name="AudioAlreadyPinned">Audio is already pinned to Profile</string>
+  <string name="RemoveFromProfile">Remove from Profile</string>
+  <string name="RemoveProfileAudioConfirm">Remove %1$s from your profile audio?</string>
+  <string name="AudioUnpinned">Audio removed from Profile</string>
+  <string name="ProxyDisableOnVpn">Disable while system VPN is active</string>
+  <string name="ProxyDisableOnVpnHint">When a system VPN is connected, route Telegram traffic through it instead of the proxy. The proxy is restored automatically once the VPN is disconnected.</string>
+  <string name="AutoPauseMedia">Pause system media</string>
+  <string name="AutoPauseMediaHint">Briefly pause music or other audio from other apps while a voice message, round video, or video plays in moeGramX.</string>
+  <string name="AutoPauseMediaResume">Resume after playback</string>
+  <string name="ProxyAlertType">Proxy type</string>
+  <string name="ProxyAlertStatus">Status</string>
+  <string name="ProxyAlertCheck">check</string>
+  <string name="ProxyMtprotoFakeTls" translatable="false">(FakeTLS)</string>
+  <string name="ProxyMtprotoSecure" translatable="false">(secure)</string>
+  <string name="ProxyMtprotoPlain" translatable="false">(plain)</string>
+  <string name="moex_birthdayBarSubtitle">Birthday today</string>
+  <string name="moex_birthdaysTodayTitle">%1$d birthdays today</string>
 </resources>

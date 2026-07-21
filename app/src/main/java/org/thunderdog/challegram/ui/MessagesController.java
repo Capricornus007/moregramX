@@ -6022,7 +6022,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
         });
       } else if (id == R.id.btn_msgRepeat) {
         TdApi.Message msg = selectedMessage.getMessage();
-        tdlib.client().send(new TdApi.ForwardMessages(msg.chatId, msg.topicId instanceof TdApi.MessageTopic
+        tdlib.client().send(new TdApi.ForwardMessages(msg.chatId, msg.topicId instanceof TdApi.MessageTopicForum
           || msg.topicId instanceof TdApi.MessageTopicDirectMessages ? msg.topicId : null, msg.chatId, new long[] {msg.id}, null, true, false), tdlib.messageHandler());
       } else if (id == R.id.btn_msgDetails) {
         MessageDetailsController.Args args = new MessageDetailsController.Args(selectedMessage, messageThread);
@@ -6094,6 +6094,19 @@ public class MessagesController extends ViewController<MessagesController.Argume
           tdlib.ui().showStickerSet(this, sticker.sticker.setId, null);
         }
         return true;
+      } else if (id == R.id.btn_pinAudioProfile) {
+        int fileId = TD.getFileId(selectedMessage.getMessage());
+        tdlib.send(new TdApi.IsProfileAudio(fileId), (ok, err) -> {
+          if (err == null) {
+            UI.showToast(R.string.AudioAlreadyPinned, Toast.LENGTH_SHORT);
+          } else {
+            tdlib.send(
+              new TdApi.AddProfileAudio(fileId),
+              Ok -> UI.showToast(R.string.AudioPinned, Toast.LENGTH_SHORT),
+              UI::showError
+            );
+          }
+        });
       }
       return true;
     };

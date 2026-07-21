@@ -7,14 +7,17 @@ import android.widget.Toast;
 import org.thunderdog.challegram.R;
 import org.thunderdog.challegram.U;
 import org.thunderdog.challegram.component.base.SettingView;
+import org.thunderdog.challegram.config.Config;
 import org.thunderdog.challegram.core.Lang;
 import org.thunderdog.challegram.navigation.SettingsWrapBuilder;
 import org.thunderdog.challegram.telegram.Tdlib;
 import org.thunderdog.challegram.telegram.TdlibUi;
+import org.thunderdog.challegram.theme.ColorId;
 import org.thunderdog.challegram.tool.UI;
 import org.thunderdog.challegram.ui.ListItem;
 import org.thunderdog.challegram.ui.RecyclerViewController;
 import org.thunderdog.challegram.ui.SettingsAdapter;
+import org.thunderdog.challegram.unsorted.Settings;
 import org.thunderdog.challegram.v.CustomRecyclerView;
 
 import java.util.ArrayList;
@@ -94,8 +97,7 @@ public class SettingsMoexController extends RecyclerViewController<SettingsMoexC
       MoexConfig.instance().toggleEnableFeaturesButton();
       adapter.updateValuedSettingById(viewId);
     } else if (viewId == R.id.btn_showIdProfile) {
-      MoexConfig.instance().toggleShowIdProfile();
-      adapter.updateValuedSettingById(viewId);
+      handleSettingClick(v, adapter);
     } else if (viewId == R.id.btn_hideMessagesBadge) {
       MoexConfig.instance().toggleHideMessagesBadge();
       adapter.updateValuedSettingById(viewId);
@@ -107,6 +109,8 @@ public class SettingsMoexController extends RecyclerViewController<SettingsMoexC
     } else if (viewId == R.id.btn_blurDrawer) {
       MoexConfig.instance().toggleBlurDrawer();
       adapter.updateValuedSettingById(viewId);
+    } else if (viewId == R.id.btn_autoPauseMedia) {
+      showAutoPauseTypeOptions();
     } else if (viewId == R.id.btn_headerText) {
       showHeaderTextOptions();
     } else if (viewId == R.id.btn_disableReactions) {
@@ -140,6 +144,8 @@ public class SettingsMoexController extends RecyclerViewController<SettingsMoexC
       adapter.updateValuedSettingById(viewId);
     } else if (viewId == R.id.btn_rearRounds) {
       showRoundVideoCameraOptions();
+    } else if (viewId == R.id.btn_toggleEdgeAnimSide) {
+      handleSettingClick(v, adapter);
     }
   }
 
@@ -157,7 +163,7 @@ public class SettingsMoexController extends RecyclerViewController<SettingsMoexC
       new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_sizeLimit800, 0, R.string.px800, R.id.btn_changeSizeLimit, sizeLimitOption == MoexConfig.SIZE_LIMIT_800),
       new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_sizeLimit1280, 0, R.string.px1280, R.id.btn_changeSizeLimit, sizeLimitOption == MoexConfig.SIZE_LIMIT_1280),
       new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_sizeLimit2560, 0, R.string.px2560, R.id.btn_changeSizeLimit, sizeLimitOption == MoexConfig.SIZE_LIMIT_2560),
-    }).addHeaderItem(Lang.getMarkdownString(this, R.string.SizeLimitDesc)).setIntDelegate((id, result) -> {
+    }).setAllowResize(false).addHeaderItem(Lang.getMarkdownString(this, R.string.SizeLimitDesc)).setIntDelegate((id, result) -> {
       int sizeLimit = result.get(R.id.btn_changeSizeLimit);
       int sizeOption;
       if (sizeLimit == R.id.btn_sizeLimit800) {
@@ -224,6 +230,28 @@ public class SettingsMoexController extends RecyclerViewController<SettingsMoexC
     }));
   }
 
+  private void showAutoPauseTypeOptions () {
+    int flags = MoexConfig.instance().getAutoPauseMediaTypes();
+    showSettings(new SettingsWrapBuilder(R.id.btn_autoPauseMedia).setRawItems(new ListItem[] {
+      new ListItem(ListItem.TYPE_CHECKBOX_OPTION, R.id.btn_autoPauseResume, 0, R.string.AutoPauseMediaResume, R.id.btn_autoPauseResume, MoexConfig.autoPauseResumeSystemPlayback),
+      new ListItem(ListItem.TYPE_SHADOW_BOTTOM).setTextColorId(ColorId.background),
+      new ListItem(ListItem.TYPE_SHADOW_TOP).setTextColorId(ColorId.background),
+      new ListItem(ListItem.TYPE_CHECKBOX_OPTION, R.id.autoPauseTypeVoice, 0, R.string.VoiceMessages, R.id.autoPauseTypeVoice, (flags & MoexConfig.AUTO_PAUSE_MEDIA_VOICE) != 0),
+      new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+      new ListItem(ListItem.TYPE_CHECKBOX_OPTION, R.id.autoPauseTypeRound, 0, R.string.VideoMessages, R.id.autoPauseTypeRound, (flags & MoexConfig.AUTO_PAUSE_MEDIA_ROUND) != 0),
+      new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+      new ListItem(ListItem.TYPE_CHECKBOX_OPTION, R.id.autoPauseTypeVideo, 0, R.string.Videos, R.id.autoPauseTypeVideo, (flags & MoexConfig.AUTO_PAUSE_MEDIA_VIDEO) != 0),
+    }).setNeedSeparators(false).setIntDelegate((id, result) -> {
+      int newFlags = 0;
+      if (result.get(R.id.autoPauseTypeVoice) == R.id.autoPauseTypeVoice) newFlags |= MoexConfig.AUTO_PAUSE_MEDIA_VOICE;
+      if (result.get(R.id.autoPauseTypeRound) == R.id.autoPauseTypeRound) newFlags |= MoexConfig.AUTO_PAUSE_MEDIA_ROUND;
+      if (result.get(R.id.autoPauseTypeVideo) == R.id.autoPauseTypeVideo) newFlags |= MoexConfig.AUTO_PAUSE_MEDIA_VIDEO;
+      MoexConfig.instance().setAutoPauseMediaTypes(newFlags);
+      MoexConfig.instance().setAutoPauseResumeSystemPlayback(result.get(R.id.btn_autoPauseResume) == R.id.btn_autoPauseResume);
+      adapter.updateValuedSettingById(R.id.btn_autoPauseMedia);
+    }));
+  }
+
   private void showRoundVideoCameraOptions () {
     int selected = MoexConfig.instance().getRoundVideos();
     showSettings(new SettingsWrapBuilder(R.id.btn_rearRounds).setRawItems(new ListItem[] {
@@ -266,7 +294,7 @@ public class SettingsMoexController extends RecyclerViewController<SettingsMoexC
         } else if (itemId == R.id.btn_enableFeaturesButton) {
           view.getToggler().setRadioEnabled(MoexConfig.enableTestFeatures, isUpdate);
         } else if (itemId == R.id.btn_showIdProfile) {
-          view.getToggler().setRadioEnabled(MoexConfig.showId, isUpdate);
+          updateSettingView(view, item, isUpdate);
         } else if (itemId == R.id.btn_hideMessagesBadge) {
           view.getToggler().setRadioEnabled(MoexConfig.hideMessagesBadge, isUpdate);
         } else if (itemId == R.id.btn_changeSizeLimit) {
@@ -294,6 +322,23 @@ public class SettingsMoexController extends RecyclerViewController<SettingsMoexC
           view.getToggler().setRadioEnabled(MoexConfig.squareAvatar, isUpdate);
         } else if (itemId == R.id.btn_blurDrawer) {
           view.getToggler().setRadioEnabled(MoexConfig.blurDrawer, isUpdate);
+        } else if (itemId == R.id.btn_autoPauseMedia) {
+          int flags = MoexConfig.instance().getAutoPauseMediaTypes();
+          view.getToggler().setRadioEnabled(flags != 0, isUpdate);
+          if (flags == MoexConfig.AUTO_PAUSE_MEDIA_ALL) {
+            view.setData(R.string.AllMedia);
+          } else if (flags == 0) {
+            view.setData(R.string.Off);
+          } else {
+            StringBuilder sb = new StringBuilder();
+            if ((flags & MoexConfig.AUTO_PAUSE_MEDIA_VOICE) != 0)
+              sb.append(Lang.getString(R.string.VoiceMessages));
+            if ((flags & MoexConfig.AUTO_PAUSE_MEDIA_ROUND) != 0)
+              sb.append(sb.length() > 0 ? ", " : "").append(Lang.getString(R.string.VideoMessages));
+            if ((flags & MoexConfig.AUTO_PAUSE_MEDIA_VIDEO) != 0)
+              sb.append(sb.length() > 0 ? ", " : "").append(Lang.getString(R.string.Videos));
+            view.setData(sb.toString());
+          }
         } else if (itemId == R.id.btn_headerText) {
           int mode = MoexConfig.instance().getHeaderText();
           switch (mode) {
@@ -350,6 +395,8 @@ public class SettingsMoexController extends RecyclerViewController<SettingsMoexC
           view.getToggler().setRadioEnabled(MoexConfig.darkenDrawer, isUpdate);
         } else if (itemId == R.id.btn_silent) {
           view.getToggler().setRadioEnabled(MoexConfig.silentMessage, isUpdate);
+        } else if (itemId == R.id.btn_toggleEdgeAnimSide) {
+          updateSettingView(view, item, isUpdate);
         } else if (itemId == R.id.btn_rearRounds) {
           switch (MoexConfig.instance().getRoundVideos()) {
             case MoexConfig.START_WITH_FRONT:
@@ -376,11 +423,18 @@ public class SettingsMoexController extends RecyclerViewController<SettingsMoexC
         items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_hideMessagesBadge, 0, R.string.hideMessagesBadge));
         items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
         items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_headerText, 0, R.string.changeHeaderText));
+        if (Config.EDGE_TO_EDGE_AVAILABLE) {
+          items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
+          items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_toggleEdgeAnimSide, 0, R.string.RightSwipeEdgeAnimation).setLongId(Settings.SETTING_FLAG_FORCE_DEFAULT_ANIMATION_FOR_RIGHT_SWIPE_EDGE).setBoolValue(true));
+        }
         items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
+        if (Config.EDGE_TO_EDGE_AVAILABLE) {
+          items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.RightSwipeEdgeAnimationInfo));
+        }
 
         items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.ProfileOptions));
         items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
-        items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_showIdProfile, 0, R.string.showIdProfile));
+        items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_showIdProfile, 0, R.string.showIdProfile).setLongValue(Settings.EXPERIMENT_FLAG_SHOW_PEER_IDS));
         items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
         items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_hidePhone, 0, R.string.hidePhoneNumber));
         items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
@@ -429,6 +483,12 @@ public class SettingsMoexController extends RecyclerViewController<SettingsMoexC
         items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_typingInstead, 0, R.string.TypingInstead));
         items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
         items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, Lang.getMarkdownString(this, R.string.TypingInsteadInfo), false));
+
+        items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.AutoPauseMedia));
+        items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
+        items.add(new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT_WITH_TOGGLER, R.id.btn_autoPauseMedia, 0, R.string.AutoPauseMedia));
+        items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
+        items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.AutoPauseMediaHint));
         break;
       case CATEGORY_MISC:
         items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.ExperimentalOptions));

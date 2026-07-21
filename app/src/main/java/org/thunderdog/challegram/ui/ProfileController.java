@@ -97,7 +97,6 @@ import org.thunderdog.challegram.navigation.StopwatchHeaderButton;
 import org.thunderdog.challegram.navigation.ViewController;
 import org.thunderdog.challegram.navigation.ViewPagerHeaderViewCompact;
 import org.thunderdog.challegram.navigation.ViewPagerTopView;
-import org.thunderdog.challegram.player.TGPlayerController;
 import org.thunderdog.challegram.support.RippleSupport;
 import org.thunderdog.challegram.support.ViewSupport;
 import org.thunderdog.challegram.telegram.ChatListener;
@@ -701,6 +700,14 @@ public class ProfileController extends ViewController<ProfileController.Args> im
       strings.append(R.string.CreateStory);
     }
 
+    // Add/Remove Personal Channel button
+    if (mode == Mode.CHANNEL && isCreator()) {
+      TdApi.UserFullInfo myUserFull = tdlib.myUserFull();
+      boolean isPersonal = myUserFull != null && myUserFull.personalChatId == getChatId();
+      ids.append(R.id.btn_setPersonalChannel);
+      strings.append(Lang.getString(isPersonal ? R.string.RemoveFromProfile : R.string.AddToProfile));
+    }
+
     if (!tdlib.isDirectMessagesChat(getChatId()) && (mode == Mode.SUPERGROUP || mode == Mode.GROUP)) {
       if (!canManageChat()) {
         ids.append(R.id.more_btn_viewAdmins);
@@ -808,7 +815,10 @@ public class ProfileController extends ViewController<ProfileController.Args> im
           openStats();
         } else if (id == R.id.more_btn_createStory) {
           openStoryCompose();
-        } else if (id == R.id.more_btn_editDescription) {
+        } else if (id == R.id.btn_setPersonalChannel) {
+          TdApi.UserFullInfo myUserFull = tdlib.myUserFull();
+          boolean isPersonal = myUserFull != null && myUserFull.personalChatId == getChatId();
+          tdlib.client().send(new TdApi.SetPersonalChat(isPersonal ? 0 : getChatId()), tdlib.okHandler());
           editDescription(false);
           return;
         } else if (id == R.id.more_btn_join) {
@@ -1830,7 +1840,7 @@ public class ProfileController extends ViewController<ProfileController.Args> im
             dcId = SystemUtils.getDcIdFromRemoteId(chat.photo.small.remote.id);
           }
           if (dcId != 0) {
-            view.setName("DC" + dcId + ", " + ChatUtils.getDCName(dcId));
+            view.setName(Lang.getString(R.string.DcInfo, dcId, ChatUtils.getDCName(dcId)));
           } else {
             view.setName(getPeerTypeStringResourceId());
           }
@@ -2005,8 +2015,6 @@ public class ProfileController extends ViewController<ProfileController.Args> im
           if (audio != null) {
             view.setData(TD.getTitle(audio));
             view.setName(TD.getSubtitle(audio));
-          } else {
-            view.setName(Lang.getString(R.string.LoadingInformation));
           }
         }
         if (item.getViewType() == ListItem.TYPE_RADIO_SETTING) {
@@ -5471,64 +5479,8 @@ public class ProfileController extends ViewController<ProfileController.Args> im
           return true;
         });
     } else if (viewId == R.id.btn_music) {
-      playProfileAudios();
+      tdlib.ui().playProfileAudios(this, user.id);
     }
-  }
-
-  private void playProfileAudios () {
-    tdlib.send(new TdApi.GetUserProfileAudios(user.id, 0, 100), (result, error) -> {
-      if (result == null || result.audios.length == 0) {
-        return;
-      }
-
-      final ArrayList<TdApi.Message> messages = new ArrayList<>(result.audios.length);
-      final long chatId = chat != null ? chat.id : 0;
-
-      for (TdApi.Audio audio : result.audios) {
-        TdApi.Message message = new TdApi.Message();
-        message.id = 0;
-        message.senderId = new TdApi.MessageSenderUser(user.id);
-        message.chatId = chatId;
-        message.content = new TdApi.MessageAudio(audio, null);
-        message.date = 0;
-        messages.add(message);
-      }
-
-      TGPlayerController.PlayListBuilder builder = new TGPlayerController.PlayListBuilder() {
-        @Override
-        public TGPlayerController.PlayList buildPlayList (TdApi.Message fromMessage) {
-          for (int i = 0; i < messages.size(); i++) {
-            if (TGPlayerController.compareTracks(messages.get(i), fromMessage)) {
-              return new TGPlayerController.PlayList(messages, i).setReachedEnds(true, true);
-            }
-          }
-          return null;
-        }
-
-        @Override
-        public boolean wouldReusePlayList (TdApi.Message fromMessage, boolean isReverse, boolean hasAltered, List<TdApi.Message> trackList, long playListChatId) {
-          return false;
-        }
-      };
-
-      runOnUiThreadOptional(() -> {
-        TGPlayerController player = tdlib.context().player();
-        TdApi.Message firstTrack = messages.get(0);
-        TdApi.Message currentTrack = player.getCurrentTrack();
-
-        // Only play if not already playing this track
-        boolean isAlreadyPlaying = currentTrack != null && TGPlayerController.compareTracks(currentTrack, firstTrack);
-        if (!isAlreadyPlaying) {
-          player.playPauseMessage(tdlib, firstTrack, builder);
-        }
-
-        // Always open the player
-        PlaybackController c = new PlaybackController(context(), tdlib);
-        if (c.prepare() != -1) {
-          navigationController.navigateTo(c);
-        }
-      });
-    });
   }
 
   private void convertToBroadcastGroup (View view) {

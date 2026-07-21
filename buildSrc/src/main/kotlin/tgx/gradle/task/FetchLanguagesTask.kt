@@ -150,8 +150,6 @@ open class FetchLanguagesTask : BaseTask() {
     val defaultStrings = mutableMapOf<String, String>()
     val threeDotFixKeysList = mutableListOf<Pair<String, List<String>>>()
 
-    val allFolders = mutableListOf<String>()
-
     val latch = CountDownLatch(languageCodes.size)
 
     logger.lifecycle("Fetching ${languageCodes.size} languages...")
@@ -207,8 +205,6 @@ open class FetchLanguagesTask : BaseTask() {
                 !languageCode.matches(Regex("^[a-z]+$")) -> fatal("Unsupported language code: $languageCode")
                 else -> arrayOf(languageCode)
               }
-
-              allFolders.addAll(outputFolders)
 
               for (outputFolder in outputFolders) {
                 writeToFile("app/src/main/res/values-${outputFolder}/strings.xml") { xml ->
@@ -268,7 +264,7 @@ open class FetchLanguagesTask : BaseTask() {
 
     val time = measureTimeMillis {
       writeToFile("app/src/main/res/.gitignore") { gitignore ->
-        gitignore.append(allFolders.sorted().joinToString("\n") { "values-$it" })
+        gitignore.append("values-*/strings.xml")
       }
     }
     logger.lifecycle("Updated .gitignore in ${time}ms")
