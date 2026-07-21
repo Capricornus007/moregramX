@@ -6101,7 +6101,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
             UI.showToast(R.string.AudioAlreadyPinned, Toast.LENGTH_SHORT);
           } else {
             tdlib.send(
-              new TdApi.AddProfileAudio(fileId),
+              new TdApi.AddProfileAudio(new TdApi.InputAudio(new TdApi.InputFileId(fileId), null, 0, null, null)),
               Ok -> UI.showToast(R.string.AudioPinned, Toast.LENGTH_SHORT),
               UI::showError
             );
