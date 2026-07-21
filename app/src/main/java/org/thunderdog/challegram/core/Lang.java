@@ -1057,6 +1057,9 @@ public class Lang {
     } else {
       result = chatTitle;
     }
+    if (ChatId.isSecret(chatId)) {
+      result = Lang.getCharSequence(R.string.format_notificationTitleSecret, result);
+    }
     return getSilentNotificationTitle(result, true, isSelfChat, isMultiChat, isChannel, areOnlyScheduled, areOnlySilent);
   }
 
