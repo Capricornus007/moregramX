@@ -219,9 +219,9 @@ public class TdlibManager implements Iterable<TdlibAccount>, UI.StateListener {
       if (extras.needReply) {
         long messageId = extras.messageIds[extras.messageIds.length - 1];
         if (extras.forceExternalReply) {
-          replyTo = new TdApi.InputMessageReplyToExternalMessage(extras.chatId, messageId, null, 0);
+          replyTo = new TdApi.InputMessageReplyToExternalMessage(extras.chatId, messageId, null, 0, "");
         } else {
-          replyTo = new TdApi.InputMessageReplyToMessage(messageId, null, 0);
+          replyTo = new TdApi.InputMessageReplyToMessage(messageId, null, 0, "");
         }
       } else {
         replyTo = null;
@@ -315,7 +315,7 @@ public class TdlibManager implements Iterable<TdlibAccount>, UI.StateListener {
   private final CallManager calls = new CallManager(this);
   private final Settings.ProxyChangeListener proxyChangeListener = new Settings.ProxyChangeListener() {
     @Override
-    public void onProxyConfigurationChanged (int proxyId, @Nullable TdApi.InternalLinkTypeProxy proxy, String description, boolean isCurrent, boolean isNewAdd) {
+    public void onProxyConfigurationChanged (int proxyId, @Nullable TdApi.Proxy proxy, String description, boolean isCurrent, boolean isNewAdd) {
       if (isCurrent) {
         applyProxyToAllAccounts(proxyId, proxy);
       }
@@ -1616,7 +1616,7 @@ public class TdlibManager implements Iterable<TdlibAccount>, UI.StateListener {
     return failureCount == 0;
   }
 
-  public void processPushOrSync (long pushId, int accountId, String payload, @Nullable Runnable after) {
+  public void processPushOrSync (long pushId, int accountId, String payload,  @Nullable Runnable after) {
     performTdlibTask(pushId, accountId, (account, onDone) -> account.tdlib().processPushOrSync(pushId, payload, onDone), Config.MAX_RUNNING_TDLIBS, null, after);
   }
 
@@ -1839,6 +1839,9 @@ public class TdlibManager implements Iterable<TdlibAccount>, UI.StateListener {
     return device;
   }
 
+  private static final String JOB_TYPE_EVENT_REPORT = "event";
+  private static final String JOB_TYPE_CRASH_REPORT = "crash";
+
   private void reportEvent (String type, Map<String, Object> event) {
     AppBuildInfo appBuildInfo = Settings.instance().getCurrentBuildInformation();
 
@@ -1851,9 +1854,9 @@ public class TdlibManager implements Iterable<TdlibAccount>, UI.StateListener {
     event.put("device_id", Settings.instance().crashDeviceId());
 
     Tdlib tdlib = serviceTdlib();
-    tdlib.incrementJobReferenceCount();
-    tdlib.client().send(new TdApi.SaveApplicationLogEvent(type, appBuildInfo.maxCommitDate(), JSON.toObject(event)), result -> {
-      tdlib.decrementJobReferenceCount();
+    tdlib.incrementJobReferenceCount(JOB_TYPE_EVENT_REPORT);
+    tdlib.send(new TdApi.SaveApplicationLogEvent(type, appBuildInfo.maxCommitDate(), JSON.toObject(event)), (ok, error) -> {
+      tdlib.decrementJobReferenceCount(JOB_TYPE_EVENT_REPORT);
     });
   }
 
@@ -1871,7 +1874,7 @@ public class TdlibManager implements Iterable<TdlibAccount>, UI.StateListener {
             if (pendingRequests.get() != 0)
               return;
           }
-          tdlib.decrementJobReferenceCount();
+          tdlib.decrementJobReferenceCount(JOB_TYPE_CRASH_REPORT);
         };
         boolean isEmpty = true;
         for (Crash crash : savingCrashes) {
@@ -1879,7 +1882,7 @@ public class TdlibManager implements Iterable<TdlibAccount>, UI.StateListener {
           if (saveFunction != null) {
             if (isEmpty) {
               isEmpty = false;
-              tdlib.incrementJobReferenceCount();
+              tdlib.incrementJobReferenceCount(JOB_TYPE_CRASH_REPORT);
             }
             synchronized (pendingRequests) {
               pendingRequests.incrementAndGet();

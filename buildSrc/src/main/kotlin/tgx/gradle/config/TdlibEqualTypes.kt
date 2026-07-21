@@ -9,18 +9,30 @@ fun tdlibEqualTypes(): Array<TdlibType> = arrayOf(
   )),
   TdlibType("InternalLinkType", isExperimental = true),
   TdlibType("InviteLinkChatType"),
-  TdlibType("PollType", isExperimental = true),
 
+  TdlibType("Location"),
+  TdlibType("Venue"),
+  TdlibType("MessageLocation"),
+
+  TdlibType("Proxy"),
   TdlibType("ProxyType"),
+
+  TdlibType("SettingsSection"),
+
   TdlibType("InlineKeyboardButtonType"),
   TdlibType("KeyboardButtonType"),
   TdlibType("KeyboardButton"),
+  TdlibType("ButtonStyle"),
   TdlibType("InlineKeyboardButton"),
   TdlibType("WebAppOpenMode"),
   TdlibType("ReplyMarkup"),
 
   TdlibType("GroupCall"),
+  TdlibType("MessageGroupCall"),
   TdlibType("GroupCallRecentSpeaker"),
+  TdlibType("GroupCallParticipantVideoInfo"),
+  TdlibType("GroupCallParticipant"),
+  TdlibType("GroupCallVideoSourceGroup"),
 
   TdlibType("Call"),
   TdlibType("CallState"),
@@ -51,8 +63,10 @@ fun tdlibEqualTypes(): Array<TdlibType> = arrayOf(
   TdlibType("VideoNote"),
   TdlibType("Video"),
   TdlibType("Audio"),
+  TdlibType("PollVoteRestrictionReason"),
 
   TdlibType("StoryList"),
+  TdlibType("StoryContentType"),
   TdlibType("SuggestedAction", isExperimental = true),
 
   TdlibType("TargetChat"),
@@ -89,6 +103,19 @@ fun tdlibEqualTypes(): Array<TdlibType> = arrayOf(
   TdlibType("ThemeSettings"),
   TdlibType("BuiltInTheme"),
 
+  TdlibType("RichMessage"),
+  TdlibType("RichText"),
+  TdlibType("PageBlock"),
+  TdlibType("PageBlockCaption"),
+  TdlibType("PageBlockListItem"),
+  TdlibType("PageBlockRelatedArticle"),
+  TdlibType("PageBlockTableCell"),
+  TdlibType("PageBlockHorizontalAlignment"),
+  TdlibType("PageBlockVerticalAlignment"),
+  TdlibType("ChatPhotoInfo"),
+
+  TdlibType("DraftMessageContent", isExperimental = true),
+
   TdlibType("CanSendMessageToUserResult"),
   TdlibType("MessageSelfDestructType"),
   TdlibType("MessageSender"),
@@ -103,6 +130,9 @@ fun tdlibEqualTypes(): Array<TdlibType> = arrayOf(
 
   TdlibType("LinkPreviewType"),
   TdlibType("LinkPreviewAlbumMedia"),
+
+  TdlibType("DateTimeFormattingType"),
+  TdlibType("DateTimePartPrecision"),
 
   TdlibType("TextEntityType"),
   TdlibType("TextEntity"),
@@ -123,5 +153,6 @@ fun tdlibEqualTypes(): Array<TdlibType> = arrayOf(
   TdlibType("UpgradedGiftBackdrop"),
   TdlibType("UpgradedGiftBackdropColors"),
   TdlibType("UpgradedGiftOriginalDetails", isExperimental = true),
+  TdlibType("UpgradedGiftAttributeRarity"),
   TdlibType("GiftResaleParameters"),
 )

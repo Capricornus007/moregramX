@@ -389,9 +389,10 @@ public final class TGMessageService extends TGMessageServiceImpl {
               staticResId = R.string.ActionPinnedChecklist;
               break;
             case TdApi.MessageLocation.CONSTRUCTOR:
-              staticResId = ((TdApi.MessageLocation) message.content).livePeriod > 0 ?
-                R.string.ActionPinnedGeoLive :
-                R.string.ActionPinnedGeo;
+              staticResId = R.string.ActionPinnedGeo;
+              break;
+            case TdApi.MessageLiveLocation.CONSTRUCTOR:
+              staticResId = R.string.ActionPinnedGeoLive;
               break;
             case TdApi.MessageVenue.CONSTRUCTOR:
               staticResId = R.string.ActionPinnedGeo;
@@ -429,6 +430,7 @@ public final class TGMessageService extends TGMessageServiceImpl {
               // unreachable
             case TdApi.MessageAnimatedEmoji.CONSTRUCTOR:
             case TdApi.MessageText.CONSTRUCTOR:
+            case TdApi.MessageRichMessage.CONSTRUCTOR:
               // cannot be pinned
             case TdApi.MessageBasicGroupChatCreate.CONSTRUCTOR:
             case TdApi.MessageCall.CONSTRUCTOR:
@@ -498,10 +500,17 @@ public final class TGMessageService extends TGMessageServiceImpl {
             case TdApi.MessageSuggestedPostDeclined.CONSTRUCTOR:
             case TdApi.MessageSuggestedPostPaid.CONSTRUCTOR:
             case TdApi.MessageSuggestedPostRefunded.CONSTRUCTOR:
+            case TdApi.MessageChatHasProtectedContentDisableRequested.CONSTRUCTOR:
+            case TdApi.MessageChatHasProtectedContentToggled.CONSTRUCTOR:
+            case TdApi.MessageChatOwnerChanged.CONSTRUCTOR:
+            case TdApi.MessageChatOwnerLeft.CONSTRUCTOR:
+            case TdApi.MessageManagedBotCreated.CONSTRUCTOR:
+            case TdApi.MessagePollOptionAdded.CONSTRUCTOR:
+            case TdApi.MessagePollOptionDeleted.CONSTRUCTOR:
               staticResId = R.string.ActionPinnedNoText;
               break;
             default:
-              Td.assertMessageContent_11bff7df();
+              Td.assertMessageContent_bb294b24();
               throw Td.unsupported(message.content);
           }
           if (format == null) {
@@ -1493,7 +1502,60 @@ public final class TGMessageService extends TGMessageServiceImpl {
 
   public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.ChatEventAutomaticTranslationToggled automaticTranslationToggled) {
     super(context, msg);
-    throw new IllegalStateException("TODO"); // TODO
+    setTextCreator(() -> {
+      if (msg.isOutgoing) {
+        return getText(
+          automaticTranslationToggled.hasAutomaticTranslation ?
+            R.string.EventLogTranslationOnYou :
+            R.string.EventLogTranslationOffYou
+        );
+      } else {
+        return getText(
+          automaticTranslationToggled.hasAutomaticTranslation ?
+            R.string.EventLogTranslationOn :
+            R.string.EventLogTranslationOff
+        );
+      }
+    });
+  }
+
+  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.ChatEventMemberTagChanged memberTagChanged) {
+    super(context, msg);
+    TdlibSender targetSender = new TdlibSender(tdlib, msg.chatId, new TdApi.MessageSenderUser(memberTagChanged.userId));
+    setTextCreator(() -> {
+      boolean isRemoval = StringUtils.isEmpty(memberTagChanged.newTag);
+      final FormattedArgument tag = new BoldArgument(
+        isRemoval ?
+          memberTagChanged.oldTag :
+          memberTagChanged.newTag
+      );
+      if (msg.isOutgoing) {
+        return getText(
+          isRemoval ?
+            R.string.EventLogTagYouRemoved :
+            R.string.EventLogTagYouSet,
+          tag,
+          new SenderArgument(targetSender)
+        );
+      } else if (targetSender.isSelf()) {
+        return getText(
+          isRemoval ?
+            R.string.EventLogTagRemovedYour :
+            R.string.EventLogTagSetYour,
+          tag,
+          new SenderArgument(sender)
+        );
+      } else {
+        return getText(
+          isRemoval ?
+            R.string.EventLogTagRemoved :
+            R.string.EventLogTagSet,
+          tag,
+          new SenderArgument(sender),
+          new SenderArgument(targetSender)
+        );
+      }
+    });
   }
 
   public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.ChatEventForumTopicCreated forumTopicCreated) {

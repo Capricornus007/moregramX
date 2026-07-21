@@ -286,7 +286,7 @@ public class SharedMembersController extends SharedBaseController<DoubleTextWrap
         ids.append(R.id.btn_editRights);
         colors.append(OptionColor.NORMAL);
         icons.append(R.drawable.baseline_edit_24);
-        strings.append(R.string.EditAdminTitle);
+        strings.append(R.string.EditOwnerTag);
 
         boolean isAnonymous = ((TdApi.ChatMemberStatusCreator) member.status).isAnonymous;
         if (!isChannel() || isAnonymous) {
@@ -472,7 +472,7 @@ public class SharedMembersController extends SharedBaseController<DoubleTextWrap
     TdApi.ChatMemberStatus myStatus = parent.supergroup != null ? parent.supergroup.status : parent.group.status;
 
     TdApi.ChatMember member = content.getMember();
-    if (restrict) {
+    /*if (restrict) {
       int mode = TD.canRestrictMember(myStatus, member.status);
       if (mode == TD.RESTRICT_MODE_NEW) {
         member = null;
@@ -482,7 +482,7 @@ public class SharedMembersController extends SharedBaseController<DoubleTextWrap
       if (mode == TD.RESTRICT_MODE_NEW) {
         member = null;
       }
-    }
+    }*/
 
     EditRightsController c = new EditRightsController(context, tdlib);
     c.setArguments(new EditRightsController.Args(chatId, content.getSenderId(), restrict, myStatus, member));

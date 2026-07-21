@@ -25,6 +25,7 @@ dependencyResolutionManagement {
 rootProject.name = "moeGramX"
 include(
   ":tdlib",
+  ":tgcalls",
 
   ":vkryl:td",
   ":vkryl:android",

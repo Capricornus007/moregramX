@@ -1014,7 +1014,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     mentionButton.setOnLongClickListener(v -> {
       long chatId = getChatId();
       if (chatId != 0 && !isDestroyed()) {
-        tdlib.client().send(new TdApi.ReadAllChatMentions(chatId), tdlib.okHandler());
+        tdlib.send(new TdApi.ReadAllChatMentions(chatId), tdlib.typedOkHandler());
         return true;
       }
       return false;
@@ -1095,7 +1095,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     reactionsButton.setOnLongClickListener(v -> {
       long chatId = getChatId();
       if (chatId != 0 && !isDestroyed()) {
-        tdlib.client().send(new TdApi.ReadAllChatReactions(chatId), tdlib.okHandler());
+        tdlib.send(new TdApi.ReadAllChatReactions(chatId), tdlib.typedOkHandler());
         return true;
       }
       return false;
@@ -2016,13 +2016,13 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   private void joinChat () {
     if (referrer != null) {
-      tdlib.client().send(new TdApi.JoinChatByInviteLink(referrer.inviteLink), result -> {
-        if (result.getConstructor() == TdApi.Error.CONSTRUCTOR) {
-          tdlib.client().send(new TdApi.AddChatMember(chat.id, tdlib.myUserId(), 0), tdlib.okHandler());
+      tdlib.send(new TdApi.JoinChatByInviteLink(referrer.inviteLink), (chatJoinResult, error) -> {
+        if (error != null || chatJoinResult.getConstructor() == TdApi.ChatJoinResultDeclined.CONSTRUCTOR) {
+          tdlib.send(new TdApi.AddChatMember(chat.id, tdlib.myUserId(), 0), tdlib.errorHandler());
         }
       });
     } else {
-      tdlib.client().send(new TdApi.AddChatMember(chat.id, tdlib.myUserId(), 0), tdlib.okHandler());
+      tdlib.send(new TdApi.AddChatMember(chat.id, tdlib.myUserId(), 0), tdlib.errorHandler());
     }
   }
 
@@ -2123,7 +2123,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     } else if (viewId == R.id.btn_silent) {
       if (tdlib.isChannel(chat.id)) {
         boolean silent = silentButton.toggle();
-        tdlib.client().send(new TdApi.ToggleChatDefaultDisableNotification(chat.id, silent), tdlib.okHandler());
+        tdlib.send(new TdApi.ToggleChatDefaultDisableNotification(chat.id, silent), tdlib.typedOkHandler());
         int[] pos = new int[2];
         Views.getPosition(bottomWrap, pos);
         UI.showCustomToast(silentButton.getIsSilent() ? R.string.ChannelNotifyMembersInfoOff : R.string.ChannelNotifyMembersInfoOn, Toast.LENGTH_SHORT, pos[1] <= Screen.currentHeight() / 2 + Screen.dp(60f) ? -(contentView.getMeasuredHeight() - bottomWrap.getTop() + Screen.dp(14f)) : 0);
@@ -2850,7 +2850,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
           manager.openEventLog(chat);
           messagesView.setItemAnimator(new CustomItemAnimator(AnimatorUtils.DECELERATE_INTERPOLATOR, 120l));
           if (getArgumentsStrict().eventLogUserId != 0 && headerCell != null) {
-            manager.applyEventLogFilters(new TdApi.ChatEventLogFilters(true, true, true, true, true, true, true, true, true, true, true, true, true, true), new long[] { getArgumentsStrict().eventLogUserId });
+            manager.applyEventLogFilters(new TdApi.ChatEventLogFilters(true, true, true, true, true, true, true, true, true, true, true, true, true, true, true), new long[] { getArgumentsStrict().eventLogUserId });
           }
           break;
         case PREVIEW_MODE_SEARCH:
@@ -2887,15 +2887,15 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (tdlib.canSendBasicMessage(chat)) {
       draftMessage = getDraftMessage();
       if (!Td.isEmpty(fillDraft)) {
-        if (Td.isEmpty(draftMessage) || Td.isEmpty(((TdApi.InputMessageText) draftMessage.inputMessageText).text) /*allow dropping replyTo*/) {
+        if (Td.isEmpty(draftMessage) /*allow dropping replyTo*/) {
           draftMessage = new TdApi.DraftMessage(
             null,
             0,
-            new TdApi.InputMessageText(fillDraft, null, false),
+            new TdApi.DraftMessageContentText(fillDraft, null),
             0,
             null
           );
-        } else if (!Td.equalsTo(((TdApi.InputMessageText) draftMessage.inputMessageText).text, fillDraft)) {
+        } else if (!Td.equalsTo(Td.textContent(draftMessage), fillDraft)) {
           promptDraftPrefillOnFocus = true;
         }
       }
@@ -2913,7 +2913,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       checkCanSendMessagesToUser(true);
     }
     if (inputView != null) {
-      inputView.setChat(chat, messageThread, draftMessage != null ? draftMessage.inputMessageText : null, getCustomInputPlaceholder(), silentButton != null && silentButton.getIsSilent());
+      inputView.setChat(chat, messageThread, draftMessage != null ? draftMessage.content : null, getCustomInputPlaceholder(), silentButton != null && silentButton.getIsSilent());
     }
     ignoreDraftLoad = false;
     discardAttachedFiles(false);
@@ -3830,7 +3830,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     } else if (id == R.id.menu_btn_reply) {
       MessageWithProperties m = getSingleSelectedMessage();
       if (m != null) {
-        showReply(m, null, 0, true, true);
+        showReply(m, null, 0, "", true, true);
         finishSelectMode(-1);
         if (inputView != null && inputView.isEmpty()) {
           Keyboard.show(inputView);
@@ -3858,7 +3858,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
           if (optionId == R.id.btn_send && selectedMessageIds != null) {
             for (int i = selectedMessageIds.size() - 1; i >= 0; i--) {
               long messageId = selectedMessageIds.keyAt(i);
-              tdlib.client().send(new TdApi.EditMessageSchedulingState(selectedMessageIds.valueAt(i).getChatId(), messageId, null), tdlib.okHandler());
+              tdlib.send(new TdApi.EditMessageSchedulingState(selectedMessageIds.valueAt(i).getChatId(), messageId, null), tdlib.typedOkHandler());
             }
             finishSelectMode(-1);
           }
@@ -3895,7 +3895,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
           if (viewId == R.id.btn_unpinAll) {
             final int size = selectedMessageIds.size();
             for (int i = 0; i < size; i++) {
-              tdlib.client().send(new TdApi.UnpinChatMessage(chat.id, selectedMessageIds.keyAt(i)), tdlib.okHandler());
+              tdlib.send(new TdApi.UnpinChatMessage(chat.id, selectedMessageIds.keyAt(i)), tdlib.typedOkHandler());
             }
             exitOnTransformFinish = true;
             finishSelectMode(-1);
@@ -4035,12 +4035,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
     Runnable act = () -> {
       if (inputView != null) {
-        inputView.setDraft(new TdApi.InputMessageText(fillDraft, null, false));
+        inputView.setDraft(new TdApi.DraftMessageContentText(fillDraft, null));
       }
     };
     TdApi.DraftMessage currentDraft = getDraftMessage();
     if (checkCurrentDraft && !Td.isEmpty(currentDraft)) {
-      TdApi.FormattedText currentText = ((TdApi.InputMessageText) currentDraft.inputMessageText).text;
+      TdApi.FormattedText currentText = Td.textContent(currentDraft);
       if (!Td.isEmpty(currentText) && !Td.equalsTo(currentText, fillDraft)) {
         showWarning(Lang.getMarkdownString(this, R.string.DraftPreFillWarning), isConfirmed -> {
           if (isConfirmed) {
@@ -4196,15 +4196,14 @@ public class MessagesController extends ViewController<MessagesController.Argume
         final TdApi.FormattedText outputText = inputView.getOutputText(false);
         final @Nullable ReplyInfo replyTo = getCurrentReplyId();
         final long date = tdlib.currentTime(TimeUnit.SECONDS);
-        final TdApi.InputMessageText inputMessageText = new TdApi.InputMessageText(
+        final TdApi.DraftMessageContentText draftText = new TdApi.DraftMessageContentText(
           outputText,
-          findTargetContext().linkPreviewOptions,
-          false
+          findTargetContext().linkPreviewOptions
         );
         final TdApi.DraftMessage draftMessage = new TdApi.DraftMessage(
           replyTo != null ? replyTo.toInputMessageReply() : null,
           (int) date,
-          inputMessageText,
+          draftText,
           0,
           null
         );
@@ -4213,11 +4212,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
         if (messageThread != null) {
           messageThread.setDraft(draftMessage);
         }
-        tdlib.client().send(new TdApi.SetChatDraftMessage(
+        tdlib.send(new TdApi.SetChatDraftMessage(
           outputChatId,
           topicId,
           !Td.isEmpty(draftMessage) ? draftMessage : null
-        ), tdlib.okHandler());
+        ), tdlib.typedOkHandler());
         if (hasAttachedFiles()) {
           // TODO save local draft ?
         }
@@ -5642,7 +5641,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
         return true;
       } else if (id == R.id.btn_messageRetractVote) {
         TdApi.Message message = selectedMessage.getMessage();
-        tdlib.client().send(new TdApi.SetPollAnswer(message.chatId, message.id, null), tdlib.okHandler());
+        tdlib.send(new TdApi.SetPollAnswer(message.chatId, message.id, null), tdlib.typedOkHandler());
         return true;
       } else if (id == R.id.btn_messagePollStop) {
         TdApi.Message message = selectedMessage.getMessage();
@@ -5650,7 +5649,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
         boolean isQuiz = poll.type.getConstructor() == TdApi.PollTypeQuiz.CONSTRUCTOR;
         showOptions(Lang.getStringBold(isQuiz ? R.string.StopQuizWarn : R.string.StopPollWarn, poll.question), new int[] {R.id.btn_done, R.id.btn_cancel}, new String[] {Lang.getString(isQuiz ? R.string.StopQuiz : R.string.StopPoll), Lang.getString(R.string.Cancel)}, new int[] {OptionColor.RED, OptionColor.NORMAL}, new int[] {R.drawable.baseline_poll_24, R.drawable.baseline_cancel_24}, (optionItemView, optionId) -> {
           if (optionId == R.id.btn_done) {
-            tdlib.client().send(new TdApi.StopPoll(message.chatId, message.id, message.replyMarkup), tdlib.okHandler());
+            tdlib.send(new TdApi.StopPoll(message.chatId, message.id, message.replyMarkup), tdlib.typedOkHandler());
           }
           return true;
         });
@@ -5673,14 +5672,14 @@ public class MessagesController extends ViewController<MessagesController.Argume
       } else if (id == R.id.btn_messageSendNow) {
         cancelSheduledKeyboardOpeningAndHideAllKeyboards();
         if (!showRestriction(null, tdlib.getSlowModeRestrictionText(getChatId()))) {
-          tdlib.client().send(new TdApi.EditMessageSchedulingState(getChatId(), selectedMessage.getId(), null), tdlib.okHandler());
+          tdlib.send(new TdApi.EditMessageSchedulingState(getChatId(), selectedMessage.getId(), null), tdlib.typedOkHandler());
         }
         return true;
       } else if (id == R.id.btn_messageReschedule) {
         cancelSheduledKeyboardOpeningAndHideAllKeyboards();
         tdlib.ui().showScheduleOptions(this, getChatId(), false, (sendOptions, disableMarkdown) -> {
           if (sendOptions.schedulingState != null) {
-            tdlib.client().send(new TdApi.EditMessageSchedulingState(getChatId(), selectedMessage.getId(), sendOptions.schedulingState), tdlib.okHandler());
+            tdlib.send(new TdApi.EditMessageSchedulingState(getChatId(), selectedMessage.getId(), sendOptions.schedulingState), tdlib.typedOkHandler());
           }
         }, null, null);
         return true;
@@ -5800,7 +5799,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
         boolean isFavorite = id == R.id.btn_messageFavoriteContent;
         int fileId = ((TdApi.MessageSticker) selectedMessage.getMessage().content).sticker.sticker.id;
         TdApi.InputFile inputFile = new TdApi.InputFileId(fileId);
-        tdlib.client().send(isFavorite ? new TdApi.AddFavoriteSticker(inputFile) : new TdApi.RemoveFavoriteSticker(inputFile), tdlib.okHandler());
+        tdlib.send(isFavorite ? new TdApi.AddFavoriteSticker(inputFile) : new TdApi.RemoveFavoriteSticker(inputFile), tdlib.typedOkHandler());
       } else if (id == R.id.btn_messageUnpin || id == R.id.btn_messagePin) {
         pinUnpinMessage(selectedMessage, id == R.id.btn_messagePin);
         return true;
@@ -5808,7 +5807,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
         TdApi.Message message = selectedMessage.getNewestMessage();
         selectedMessage.getMessageProperties(message.id, properties -> runOnUiThreadOptional(() -> {
           if (properties != null) {
-            showReply(new MessageWithProperties(message, properties), null, 0, true, true);
+            showReply(new MessageWithProperties(message, properties), null, 0, "", true, true);
             if (inputView.isEmpty()) {
               Keyboard.show(inputView);
             }
@@ -6522,18 +6521,20 @@ public class MessagesController extends ViewController<MessagesController.Argume
     public final MessageWithProperties message;
     public final @Nullable TdApi.InputTextQuote quote;
     public final int checklistTaskId;
+    public final String pollOptionId;
     public final long inChatId;
     public final @Nullable TdApi.MessageTopic inTopicId;
 
-    public ReplyInfo (Tdlib tdlib, MessageWithProperties message, @Nullable TdApi.InputTextQuote quote, int checklistTaskId) {
-      this(tdlib, message, quote, checklistTaskId, 0, null);
+    public ReplyInfo (Tdlib tdlib, MessageWithProperties message, @Nullable TdApi.InputTextQuote quote, int checklistTaskId, String pollOptionId) {
+      this(tdlib, message, quote, checklistTaskId, pollOptionId, 0, null);
     }
 
-    public ReplyInfo (Tdlib tdlib, MessageWithProperties message, @Nullable TdApi.InputTextQuote quote, int checklistTaskId, long inChatId, @Nullable TdApi.MessageTopic inTopicId) {
+    public ReplyInfo (Tdlib tdlib, MessageWithProperties message, @Nullable TdApi.InputTextQuote quote, int checklistTaskId, String pollOptionId, long inChatId, @Nullable TdApi.MessageTopic inTopicId) {
       this.tdlib = tdlib;
       this.message = message;
       this.quote = quote;
       this.checklistTaskId = checklistTaskId;
+      this.pollOptionId = pollOptionId;
       this.inChatId = inChatId;
       this.inTopicId = inTopicId;
     }
@@ -6549,7 +6550,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       if (inTopicId != null && inTopicId.getConstructor() == TdApi.MessageTopicSavedMessages.CONSTRUCTOR) {
         inTopicId = null;
       }
-      return new ReplyInfo(tdlib, message, quote, checklistTaskId, inChatId, inTopicId);
+      return new ReplyInfo(tdlib, message, quote, checklistTaskId, pollOptionId, inChatId, inTopicId);
     }
 
     @Override
@@ -6575,13 +6576,15 @@ public class MessagesController extends ViewController<MessagesController.Argume
           message.message.chatId,
           message.message.id,
           quote,
-          checklistTaskId
+          checklistTaskId,
+          pollOptionId
         );
       } else {
         return new TdApi.InputMessageReplyToMessage(
           message.message.id,
           quote,
-          checklistTaskId
+          checklistTaskId,
+          pollOptionId
         );
       }
     }
@@ -6634,7 +6637,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
   }
 
-  public void showReply (MessageWithProperties msg, @Nullable TdApi.InputTextQuote quote, int checklistTaskId, boolean byUser, boolean showKeyboard) {
+  public void showReply (MessageWithProperties msg, @Nullable TdApi.InputTextQuote quote, int checklistTaskId, String pollOptionId, boolean byUser, boolean showKeyboard) {
     if (inPreviewMode || isInForceTouchMode()) {
       return;
     }
@@ -6650,8 +6653,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
     collapsePinnedMessagesBar(true);
     // TODO show keyboard properly
-    if (reply == null || reply.message.message.id != msg.message.id || reply.message.message.chatId != msg.message.chatId || !Td.equalsTo(reply.quote, quote) || reply.checklistTaskId != checklistTaskId) {
-      setReplyInfo(new ReplyInfo(tdlib, msg, quote, checklistTaskId), true);
+    if (reply == null || reply.message.message.id != msg.message.id || reply.message.message.chatId != msg.message.chatId || !Td.equalsTo(reply.quote, quote) || reply.checklistTaskId != checklistTaskId || !StringUtils.equalsOrBothEmpty(reply.pollOptionId, pollOptionId)) {
+      setReplyInfo(new ReplyInfo(tdlib, msg, quote, checklistTaskId, pollOptionId), true);
 
       if (byUser) {
         inputView.setTextChangedSinceChatOpened(true);
@@ -6816,6 +6819,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     final long replyToChatId, replyToMessageId;
     final TdApi.InputTextQuote replyToQuote;
     final int replyToChecklistTaskId;
+    final String replyToPollOptionId;
     switch (replyTo.getConstructor()) {
       case TdApi.InputMessageReplyToMessage.CONSTRUCTOR: {
         TdApi.InputMessageReplyToMessage replyToMessage = (TdApi.InputMessageReplyToMessage) replyTo;
@@ -6823,6 +6827,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
         replyToMessageId = replyToMessage.messageId;
         replyToQuote = replyToMessage.quote;
         replyToChecklistTaskId = replyToMessage.checklistTaskId;
+        replyToPollOptionId = replyToMessage.pollOptionId;
         break;
       }
       case TdApi.InputMessageReplyToExternalMessage.CONSTRUCTOR: {
@@ -6831,6 +6836,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
         replyToMessageId = replyToExternalMessage.messageId;
         replyToQuote = replyToExternalMessage.quote;
         replyToChecklistTaskId = replyToExternalMessage.checklistTaskId;
+        replyToPollOptionId = replyToExternalMessage.pollOptionId;
         break;
       }
       case TdApi.InputMessageReplyToStory.CONSTRUCTOR: // Unreachable.
@@ -6843,7 +6849,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       TGMessage foundMessage = manager.getAdapter().findMessageById(replyToMessageId);
       if (foundMessage != null) {
         foundMessage.getMessageWithProperties(msg -> runOnUiThreadOptional(() -> {
-          forceReply(msg, replyToQuote, replyToChecklistTaskId);
+          forceReply(msg, replyToQuote, replyToChecklistTaskId, replyToPollOptionId);
         }));
         return;
       }
@@ -6860,7 +6866,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
                   forceReply(
                     new MessageWithProperties(foundReplyMessage, properties),
                     replyToQuote,
-                    replyToChecklistTaskId
+                    replyToChecklistTaskId,
+                    replyToPollOptionId
                   );
                 }
               }));
@@ -6871,13 +6878,13 @@ public class MessagesController extends ViewController<MessagesController.Argume
     });
   }
 
-  public void forceReply (MessageWithProperties message, @Nullable TdApi.InputTextQuote quote, int checklistTaskId) {
+  public void forceReply (MessageWithProperties message, @Nullable TdApi.InputTextQuote quote, int checklistTaskId, String pollOptionId) {
     if (message == null || chat == null || inPreviewMode || isInForceTouchMode()) {
       clearReply();
       return;
     }
 
-    setReplyInfo(new ReplyInfo(tdlib, message, quote, checklistTaskId), false);
+    setReplyInfo(new ReplyInfo(tdlib, message, quote, checklistTaskId, pollOptionId), false);
   }
 
   private void setReplyInfo (ReplyInfo replyInfo, boolean animated) {
@@ -7066,6 +7073,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
           }
           break;
         }
+        case TdApi.MessageRichMessage.CONSTRUCTOR: {
+          TdApi.MessageRichMessage oldMessageRich = (TdApi.MessageRichMessage) editContext.message.content;
+          // TODO rich message changes
+          return true;
+        }
         case TdApi.MessagePhoto.CONSTRUCTOR:
         case TdApi.MessageVideo.CONSTRUCTOR:
         case TdApi.MessageAudio.CONSTRUCTOR:
@@ -7076,7 +7088,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
           return !Td.equalsTo(oldText, newText);
         }
         default: {
-          Td.assertMessageContent_11bff7df();
+          Td.assertMessageContent_bb294b24();
           break;
         }
       }
@@ -7390,7 +7402,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
     if (inputView != null) {
       TdApi.DraftMessage draftMessage = getDraftMessage();
-      inputView.setDraft(draftMessage != null ? draftMessage.inputMessageText : null);
+      inputView.setDraft(draftMessage != null ? draftMessage.content : null);
       setInputBlockFlag(FLAG_INPUT_EDITING, false);
     }
     setInEditMode(false, "");
@@ -7416,10 +7428,13 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
     switch (editContext.message.content.getConstructor()) {
       case TdApi.MessageText.CONSTRUCTOR:
+      case TdApi.MessageRichMessage.CONSTRUCTOR:
       case TdApi.MessageAnimatedEmoji.CONSTRUCTOR: {
         if (Td.isEmpty(newText)) {
           return;
         }
+
+        TdApi.InputMessageText newInputMessageText = new TdApi.InputMessageText(newText, newOptions, false);
 
         TdApi.MessageText oldMessageText;
         if (editContext.message.content.getConstructor() == TdApi.MessageAnimatedEmoji.CONSTRUCTOR) {
@@ -7429,7 +7444,6 @@ public class MessagesController extends ViewController<MessagesController.Argume
         }
         TdApi.LinkPreviewOptions oldLinkPreviewOptions = oldMessageText.linkPreviewOptions;
 
-        TdApi.InputMessageText newInputMessageText = new TdApi.InputMessageText(newText, newOptions, false);
         if (!Td.equalsTo(newInputMessageText.text, oldMessageText.text) || !Td.equalsTo(newInputMessageText.linkPreviewOptions, oldLinkPreviewOptions)) {
           final int maxLength = tdlib.maxMessageTextLength();
           final int newTextLength = newText != null ? newText.text.codePointCount(0, newText.text.length()) : 0;
@@ -7490,7 +7504,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
         break;
       }
       default: {
-        Td.assertMessageContent_11bff7df();
+        Td.assertMessageContent_bb294b24();
         throw Td.unsupported(editContext.message.content);
       }
     }
@@ -7868,9 +7882,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
   }
 
-  public void sendPickedLocation (TdApi.Location location, int heading, final TdApi.MessageSendOptions sendOptions) {
+  public void sendPickedLocation (TdApi.Location location, final TdApi.MessageSendOptions sendOptions) {
     if (getChatId() == currentShareLocationChatId) {
-      send(new TdApi.InputMessageLocation(location, 0, heading, 0), true, sendOptions, null);
+      send(new TdApi.InputMessageLocation(location), true, sendOptions, null);
       if (currentShareLocationDestroyKeyboard) {
         onDestroyCommandKeyboard();
       }
@@ -7879,7 +7893,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   private void shareCurrentLocation (final boolean destroyKeyboard, Location location) {
     if (getChatId() == currentShareLocationChatId) {
-      send(new TdApi.InputMessageLocation(new TdApi.Location(location.getLatitude(), location.getLongitude(), location.getAccuracy()), 0, U.getHeading(location), 0), true, Td.newSendOptions(), null);
+      send(new TdApi.InputMessageLocation(new TdApi.Location(location.getLatitude(), location.getLongitude(), location.getAccuracy())), true, Td.newSendOptions(), null);
       if (destroyKeyboard) {
         onDestroyCommandKeyboard();
       }
@@ -8105,16 +8119,16 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (!pin) {
       m.iterate(message -> {
         if (message.isPinned != pin) {
-          TdApi.Function<?> function = pin ?
+          TdApi.Function<TdApi.Ok> function = pin ?
             new TdApi.PinChatMessage(getChatId(), message.id, false, false) :
             new TdApi.UnpinChatMessage(getChatId(), message.id);
-          tdlib.client().send(function, tdlib.okHandler());
+          tdlib.send(function, tdlib.typedOkHandler());
         }
       }, false);
       return;
     }
     if (tdlib.isSelfChat(getChatId())) {
-      tdlib.client().send(new TdApi.PinChatMessage(chatId, m.getSmallestId(), false, false), tdlib.okHandler());
+      tdlib.send(new TdApi.PinChatMessage(chatId, m.getSmallestId(), false, false), tdlib.typedOkHandler());
       return;
     }
     int hintRes;
@@ -8143,7 +8157,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
         boolean isUserChat = ChatId.isUserChat(chatId);
         boolean disableNotification = !isUserChat && !checkbox;
         boolean onlyForSelf = isUserChat && !checkbox;
-        tdlib.client().send(new TdApi.PinChatMessage(chatId, m.getSmallestId(), disableNotification, onlyForSelf), tdlib.okHandler());
+        tdlib.send(new TdApi.PinChatMessage(chatId, m.getSmallestId(), disableNotification, onlyForSelf), tdlib.typedOkHandler());
       })
     .setRawItems(new ListItem[] {item}).setSaveStr(R.string.Pin));
   }
@@ -8198,7 +8212,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       .build(),
       (itemView, id) -> {
         if (id == R.id.btn_unpinMessage) {
-          tdlib.client().send(new TdApi.UnpinAllChatMessages(getChatId()), tdlib.okHandler());
+          tdlib.send(new TdApi.UnpinAllChatMessages(getChatId()), tdlib.typedOkHandler());
         } else if (id == R.id.btn_dismissForSelf) {
           manager.dismissPinnedMessage();
         }
@@ -8277,7 +8291,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   // Action bar
 
   private void dismissActionBar () {
-    tdlib.client().send(new TdApi.RemoveChatActionBar(getChatId()), tdlib.okHandler());
+    tdlib.send(new TdApi.RemoveChatActionBar(getChatId()), tdlib.typedOkHandler());
   }
 
   private boolean needActionBar () {
@@ -8292,7 +8306,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   private TopBarView.Item newUnarchiveItem (long chatId) {
     return new TopBarView.Item(R.id.btn_unarchiveChat, R.string.UnarchiveUnmute, v -> {
-      tdlib.client().send(new TdApi.AddChatToList(chatId, new TdApi.ChatListMain()), tdlib.okHandler());
+      tdlib.send(new TdApi.AddChatToList(chatId, new TdApi.ChatListMain()), tdlib.typedOkHandler());
       TdApi.ChatNotificationSettings settings = tdlib.chatSettings(chatId);
       if (settings != null) {
         TdApi.ChatNotificationSettings newSettings = new TdApi.ChatNotificationSettings(
@@ -8305,7 +8319,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
           settings.useDefaultDisablePinnedMessageNotifications, settings.disablePinnedMessageNotifications,
           settings.useDefaultDisableMentionNotifications, settings.disableMentionNotifications
         );
-        tdlib.client().send(new TdApi.SetChatNotificationSettings(chatId, newSettings), tdlib.okHandler());
+        tdlib.send(new TdApi.SetChatNotificationSettings(chatId, newSettings), tdlib.typedOkHandler());
       }
     });
   }
@@ -8340,7 +8354,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
           }
 
           if (reportSpam) {
-            tdlib.client().send(new TdApi.ReportChat(getChatId(), null, null, null), tdlib.okHandler());
+            tdlib.send(new TdApi.ReportChat(getChatId(), null, null, null), tdlib.errorHandler());
           }
           if (deleteChat) {
             deleteAndLeave();
@@ -8414,7 +8428,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
                   return false;
                 }
 
-                tdlib.setChatMemberStatus(chat.id, senderId, new TdApi.ChatMemberStatusMember(), null, (ok, error) -> {
+                tdlib.setChatMemberStatus(chat.id, senderId, new TdApi.ChatMemberStatusMember(), null, (ok, error, failedToAddMember) -> {
                   runOnUiThreadOptional(() -> {
                     if (!ok && error != null) {
                       context.context()
@@ -8442,7 +8456,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
             if (user != null) {
               showOptions(TD.getUserName(user) + ", " + Strings.formatPhone(user.phoneNumber), new int[] {R.id.btn_shareMyContact, R.id.btn_cancel}, new String[] {Lang.getString(R.string.SharePhoneNumberAction), Lang.getString(R.string.Cancel)}, new int[] {OptionColor.BLUE, OptionColor.NORMAL}, new int[] {R.drawable.baseline_contact_phone_24, R.drawable.baseline_cancel_24}, (itemView, id1) -> {
                 if (id1 == R.id.btn_shareMyContact) {
-                  tdlib.client().send(new TdApi.SharePhoneNumber(tdlib.chatUserId(chatId)), tdlib.okHandler());
+                  tdlib.send(new TdApi.SharePhoneNumber(tdlib.chatUserId(chatId)), tdlib.typedOkHandler());
                 }
                 return true;
               });
@@ -9557,6 +9571,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
               true,
               true,
               true,
+              true,
               true
             );
             final LongList userIds1;
@@ -10127,7 +10142,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       for (int i = 0; i < content.length; i++) {
         final TdApi.FormattedText caption = i == content.length - 1 ? lastFileCaption : null;
         MediaBottomFilesController.MusicEntry musicFile = musicFiles.get(i);
-        content[i] = tdlib.filegen().createThumbnail(new TdApi.InputMessageAudio(TD.createInputFile(musicFile.getPath(), musicFile.getMimeType()), null, (int) (musicFile.getDuration() / 1000l), musicFile.getTitle(), musicFile.getArtist(), caption), isSecretChat());
+        content[i] = tdlib.filegen().createThumbnail(new TdApi.InputMessageAudio(new TdApi.InputAudio(TD.createInputFile(musicFile.getPath(), musicFile.getMimeType()), null, (int) (musicFile.getDuration() / 1000l), musicFile.getTitle(), musicFile.getArtist()), caption), isSecretChat());
       }
       ReplyInfo replyInfo = allowReply ? obtainReplyTo() : null;
       TdApi.InputMessageReplyTo replyTo = replyInfo != null ? replyInfo.toInputMessageReply() : null;
@@ -10324,7 +10339,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
             file = new AudioFile(audioPath);
             file.loadId3Tags();
 
-            TdApi.InputMessageAudio inputMessageAudio = new TdApi.InputMessageAudio(TD.createInputFile(audioPath), null, file.getDuration(), file.getTitle(), file.getPerformer(), null);
+            TdApi.InputMessageAudio inputMessageAudio = new TdApi.InputMessageAudio(new TdApi.InputAudio(TD.createInputFile(audioPath), null, file.getDuration(), file.getTitle(), file.getPerformer()), null);
 
             tdlib.sendMessage(chatId, topicId, replyTo, sendOptions, inputMessageAudio);
           });
@@ -10436,7 +10451,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
           height = sampledHeight;
         }
         TdApi.InputFileGenerated inputFile = PhotoGenerationInfo.newFile(path, U.getRotationForExifOrientation(orientation));
-        TdApi.InputMessagePhoto photo = tdlib.filegen().createThumbnail(new TdApi.InputMessagePhoto(inputFile, null, null, width, height, null, false, selfDestructType, false), isSecret);
+        TdApi.InputMessagePhoto photo = tdlib.filegen().createThumbnail(new TdApi.InputMessagePhoto(new TdApi.InputPhoto(inputFile, null, null, null, width, height), null, false, selfDestructType, false), isSecret);
         tdlib.sendMessage(chatId, topicId, replyTo, sendOptions, photo);
       });
     }
@@ -10503,9 +10518,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
           if (asFiles && !forceVideo) {
             content = tdlib.filegen().createThumbnail(TD.toInputMessageContent(file.getFilePath(), inputVideo, fileInfo, caption, showCaptionAboveMedia, hasSpoiler), isSecretChat);
           } else if (sendAsAnimation && file.getSelfDestructType() == null && (files.length == 1 || !needGroupMedia)) {
-            content = tdlib.filegen().createThumbnail(new TdApi.InputMessageAnimation(inputVideo, null, null, file.getVideoDuration(true), width, height, caption, showCaptionAboveMedia, hasSpoiler), isSecretChat);
+            content = tdlib.filegen().createThumbnail(new TdApi.InputMessageAnimation(new TdApi.InputAnimation(inputVideo, null, null, file.getVideoDuration(true), width, height), caption, showCaptionAboveMedia, hasSpoiler), isSecretChat);
           } else {
-            content = tdlib.filegen().createThumbnail(new TdApi.InputMessageVideo(inputVideo, null, null, 0, null, file.getVideoDuration(true), width, height, U.canStreamVideo(inputVideo), caption, showCaptionAboveMedia, file.getSelfDestructType(), hasSpoiler), isSecretChat);
+            content = tdlib.filegen().createThumbnail(new TdApi.InputMessageVideo(new TdApi.InputVideo(inputVideo, null, null, 0, null, file.getVideoDuration(true), width, height, U.canStreamVideo(inputVideo)), caption, showCaptionAboveMedia, file.getSelfDestructType(), hasSpoiler), isSecretChat);
           }
         } else {
           int[] size = new int[2];
@@ -10524,9 +10539,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
           TdApi.FormattedText caption = file.getCaption(true, !disableMarkdown);
 
           if (asFiles) {
-            content = tdlib.filegen().createThumbnail(new TdApi.InputMessageDocument(inputFile, null, false, caption), isSecretChat);
+            content = tdlib.filegen().createThumbnail(new TdApi.InputMessageDocument(new TdApi.InputDocument(inputFile, null, false), caption), isSecretChat);
           } else {
-            content = tdlib.filegen().createThumbnail(new TdApi.InputMessagePhoto(inputFile, null, null, width, height, caption, showCaptionAboveMedia, file.getSelfDestructType(), hasSpoiler), isSecretChat);
+            content = tdlib.filegen().createThumbnail(new TdApi.InputMessagePhoto(new TdApi.InputPhoto(inputFile, null, null, null, width, height), caption, showCaptionAboveMedia, file.getSelfDestructType(), hasSpoiler), isSecretChat);
           }
         }
         inputContent[i] = content;
@@ -10972,10 +10987,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   @Override
-  public void onChatReplyMarkupChanged (final long chatId, final long replyMarkupMessageId) {
+  public void onChatReplyMarkupChanged (final long chatId, final @Nullable TdApi.Message replyMarkupMessage) {
     tdlib.ui().post(() -> {
       if (getChatId() == chatId && botHelper != null) {
-        botHelper.updateReplyMarkup(chatId, replyMarkupMessageId);
+        botHelper.updateReplyMarkup(chatId, replyMarkupMessage);
       }
     });
   }
@@ -11011,6 +11026,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       long replyChatId, replyMessageId;
       TdApi.InputTextQuote replyQuote;
       int replyChecklistTaskId;
+      String replyPollOptionId;
       switch (replyTo.getConstructor()) {
         case TdApi.InputMessageReplyToMessage.CONSTRUCTOR: {
           TdApi.InputMessageReplyToMessage replyToMessage = (TdApi.InputMessageReplyToMessage) replyTo;
@@ -11018,6 +11034,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
           replyMessageId = replyToMessage.messageId;
           replyQuote = replyToMessage.quote;
           replyChecklistTaskId = replyToMessage.checklistTaskId;
+          replyPollOptionId = replyToMessage.pollOptionId;
           break;
         }
         case TdApi.InputMessageReplyToExternalMessage.CONSTRUCTOR: {
@@ -11026,6 +11043,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
           replyMessageId = replyToExternalMessage.messageId;
           replyQuote = replyToExternalMessage.quote;
           replyChecklistTaskId = replyToExternalMessage.checklistTaskId;
+          replyPollOptionId = replyToExternalMessage.pollOptionId;
           break;
         }
         case TdApi.InputMessageReplyToStory.CONSTRUCTOR: // Unreachable
@@ -11036,14 +11054,14 @@ public class MessagesController extends ViewController<MessagesController.Argume
       tdlib.send(new TdApi.GetMessage(replyChatId, replyMessageId), (remoteMessage, error) -> tdlib.send(new TdApi.GetMessageProperties(replyChatId, replyMessageId), (properties, error1) -> {
         runOnUiThreadOptional(() -> {
           if (getChatId() == chatId && Td.equalsTo(getDraftMessage(), draftMessage) && remoteMessage != null && properties != null) {
-            showReply(new MessageWithProperties(remoteMessage, properties), replyQuote, replyChecklistTaskId, false, false);
+            showReply(new MessageWithProperties(remoteMessage, properties), replyQuote, replyChecklistTaskId, replyPollOptionId, false, false);
           } else {
             closeReply(false, true);
           }
         });
       }));
     }
-    inputView.setDraft(draftMessage != null ? draftMessage.inputMessageText : null);
+    inputView.setDraft(draftMessage != null ? draftMessage.content : null);
   }
 
   private TdApi.CanSendMessageToUserResult canSendMessageToUser;

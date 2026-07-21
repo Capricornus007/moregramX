@@ -5159,7 +5159,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
   public boolean canBeForwarded () {
     TdApi.MessageProperties properties = lastMessageProperties();
-    return properties.canBeForwarded && (msg.content.getConstructor() != TdApi.MessageLocation.CONSTRUCTOR || ((TdApi.MessageLocation) msg.content).expiresIn == 0) && !isEventLog();
+    return properties.canBeForwarded && !isEventLog();
   }
 
   public boolean canBeReacted () {
@@ -5582,7 +5582,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
   public void readContent () {
     if (!isEventLog()) {
-      tdlib.client().send(new TdApi.OpenMessageContent(msg.chatId, msg.id), tdlib.okHandler());
+      tdlib.send(new TdApi.OpenMessageContent(msg.chatId, msg.id), tdlib.typedOkHandler());
       if (!isOutgoing()) {
         startHotTimer(true);
       }
@@ -7267,7 +7267,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
   private boolean needHideEventDate () {
     //noinspection WrongConstant
-    return (event != null & event.hideDate) || (msg.content.getConstructor() == TdApiExt.MessageChatEvent.CONSTRUCTOR && ((TdApiExt.MessageChatEvent) msg.content).hideDate);
+    return (event != null && event.hideDate) || (msg.content.getConstructor() == TdApiExt.MessageChatEvent.CONSTRUCTOR && ((TdApiExt.MessageChatEvent) msg.content).hideDate);
   }
 
   public final boolean isEventLog () {
@@ -8079,7 +8079,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     }
     fakeMessage.replyMarkup = new TdApi.ReplyMarkupInlineKeyboard(new TdApi.InlineKeyboardButton[][]{
       new TdApi.InlineKeyboardButton[] {
-        new TdApi.InlineKeyboardButton(sponsoredMessage.buttonText, type)
+        new TdApi.InlineKeyboardButton(sponsoredMessage.buttonText, 0, new TdApi.ButtonStyleDefault(), type)
       }
     });
     return fakeMessage;
@@ -8153,6 +8153,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
   public static TGMessage valueOf (MessagesManager context, TdApi.Message msg, TdApi.MessageContent content) {
     final Tdlib tdlib = context.controller().tdlib();
+    int unsupportedStringRes = R.string.UnsupportedMessage;
     try {
       if (content == null) {
         return new TGMessageText(context, msg, new TdApi.FormattedText(Lang.getString(R.string.DeletedMessage), null));
@@ -8170,8 +8171,6 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       if (content.getConstructor() == TdApiExt.MessageChatEvent.CONSTRUCTOR) {
         return ChatEventUtil.newMessage(context, msg, (TdApiExt.MessageChatEvent) content);
       }
-
-      int unsupportedStringRes = R.string.UnsupportedMessage;
 
       final boolean allowAnimatedEmoji = !Settings.instance().getNewSetting(Settings.SETTING_FLAG_NO_ANIMATED_EMOJI);
       final boolean allowNonBubbleEmoji = Settings.instance().useBigEmoji();
@@ -8249,8 +8248,10 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
           return new TGMessagePoll(context, msg, nonNull((TdApi.MessagePoll) content).poll);
         }
         case TdApi.MessageLocation.CONSTRUCTOR: {
-          TdApi.MessageLocation location = (TdApi.MessageLocation) content;
-          return new TGMessageLocation(context, msg, nonNull(location.location), location.livePeriod, location.expiresIn);
+          return new TGMessageLocation(context, msg, (TdApi.MessageLocation) content);
+        }
+        case TdApi.MessageLiveLocation.CONSTRUCTOR: {
+          return new TGMessageLocation(context, msg, (TdApi.MessageLiveLocation) content);
         }
         case TdApi.MessageVenue.CONSTRUCTOR: {
           return new TGMessageLocation(context, msg, ((TdApi.MessageVenue) content).venue);
@@ -8394,6 +8395,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
           return new TGMessageGiveaway(context, msg, (TdApi.MessageGiveaway) content);
         }
         // unsupported
+        case TdApi.MessageRichMessage.CONSTRUCTOR:
         case TdApi.MessageInvoice.CONSTRUCTOR:
         case TdApi.MessagePassportDataSent.CONSTRUCTOR:
         case TdApi.MessageStory.CONSTRUCTOR:
@@ -8424,6 +8426,13 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
         case TdApi.MessageSuggestedPostRefunded.CONSTRUCTOR:
         case TdApi.MessageGiftedTon.CONSTRUCTOR:
         case TdApi.MessagePaymentSuccessfulBot.CONSTRUCTOR:
+        case TdApi.MessageChatHasProtectedContentDisableRequested.CONSTRUCTOR: // TODO TGMessageService
+        case TdApi.MessageChatHasProtectedContentToggled.CONSTRUCTOR: // TODO TGMessageService
+        case TdApi.MessageChatOwnerChanged.CONSTRUCTOR: // TODO TGMessageService
+        case TdApi.MessageChatOwnerLeft.CONSTRUCTOR: // TODO TGMessageService
+        case TdApi.MessageManagedBotCreated.CONSTRUCTOR: // TODO TGMessageService
+        case TdApi.MessagePollOptionAdded.CONSTRUCTOR: // TODO TGMessageService
+        case TdApi.MessagePollOptionDeleted.CONSTRUCTOR: // TODO TGMessageService
           break;
 
         case TdApi.MessageUnsupported.CONSTRUCTOR:
@@ -8436,20 +8445,22 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
           break;
         }
         default: {
-          Td.assertMessageContent_11bff7df();
+          Td.assertMessageContent_bb294b24();
           throw Td.unsupported(msg.content);
         }
       }
-      String unsupportedText = Lang.getString(unsupportedStringRes);
-      TGMessageText text = new TGMessageText(context, msg, new TdApi.FormattedText(unsupportedText, new TdApi.TextEntity[]{
-        new TdApi.TextEntity(0, unsupportedText.length(), new TdApi.TextEntityTypeItalic())
-      }));
-      text.addMessageFlags(FLAG_UNSUPPORTED);
-      return text;
+    } catch (UnsupportedOperationException e) {
+      Log.v("Unsupported message (app-level)", e);
     } catch (Throwable t) {
       Log.e("Cannot parse message", t);
       return valueOfError(context, msg, t);
     }
+    String unsupportedText = Lang.getString(unsupportedStringRes);
+    TGMessageText text = new TGMessageText(context, msg, new TdApi.FormattedText(unsupportedText, new TdApi.TextEntity[]{
+      new TdApi.TextEntity(0, unsupportedText.length(), new TdApi.TextEntityTypeItalic())
+    }));
+    text.addMessageFlags(FLAG_UNSUPPORTED);
+    return text;
   }
 
   public static TGMessage valueOfError (MessagesManager context, TdApi.Message msg, Throwable error) {
@@ -8869,7 +8880,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
         TdApi.Message message = getNewestMessage();
         getMessageProperties(message.id, properties -> {
           runOnUiThreadOptional(() -> {
-            messagesController().showReply(new MessageWithProperties(message, properties), null, 0, true, true);
+            messagesController().showReply(new MessageWithProperties(message, properties), null, 0, "", true, true);
           });
         });
       }, true, false);

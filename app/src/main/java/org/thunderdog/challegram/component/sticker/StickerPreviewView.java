@@ -537,9 +537,9 @@ public class StickerPreviewView extends FrameLayoutFix implements FactorAnimator
       if (viewId == R.id.btn_favorite) {
         final int stickerId = sticker.getId();
         if (tdlib.isStickerFavorite(stickerId)) {
-          tdlib.client().send(new TdApi.RemoveFavoriteSticker(new TdApi.InputFileId(stickerId)), tdlib.okHandler());
+          tdlib.send(new TdApi.RemoveFavoriteSticker(new TdApi.InputFileId(stickerId)), tdlib.typedOkHandler());
         } else {
-          tdlib.client().send(new TdApi.AddFavoriteSticker(new TdApi.InputFileId(stickerId)), tdlib.okHandler());
+          tdlib.send(new TdApi.AddFavoriteSticker(new TdApi.InputFileId(stickerId)), tdlib.typedOkHandler());
         }
         closePreviewIfNeeded();
       } else if (viewId == R.id.btn_send) {
@@ -570,7 +570,7 @@ public class StickerPreviewView extends FrameLayoutFix implements FactorAnimator
         if (sticker.isCustomEmoji()) {
           Emoji.instance().removeRecentCustomEmoji(sticker.getCustomEmojiId());
         } else {
-          tdlib.client().send(new TdApi.RemoveRecentSticker(false, new TdApi.InputFileId(stickerId)), tdlib.okHandler());
+          tdlib.send(new TdApi.RemoveRecentSticker(false, new TdApi.InputFileId(stickerId)), tdlib.typedOkHandler());
         }
         closePreviewIfNeeded();
       } else {

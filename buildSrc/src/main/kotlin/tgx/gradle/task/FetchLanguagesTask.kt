@@ -202,7 +202,7 @@ open class FetchLanguagesTask : BaseTask() {
 
             if (!isDefault) {
               val outputFolders = knownOutputFolders[languageCode] ?: when {
-                languageCode.contains('-') -> fatal("Unsupported language code: $languageCode")
+                !languageCode.matches(Regex("^[a-z]+$")) -> fatal("Unsupported language code: $languageCode")
                 else -> arrayOf(languageCode)
               }
 

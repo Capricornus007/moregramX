@@ -1,38 +1,39 @@
 @file:Suppress("UnstableApiUsage")
 
-import com.android.build.gradle.internal.api.ApkVariantOutputImpl
+import com.android.build.api.artifact.SingleArtifact
+import com.android.build.api.variant.BuildConfigField
+import com.android.build.api.variant.impl.VariantOutputImpl
 import tgx.gradle.*
 import tgx.gradle.task.*
 import java.util.*
 
 plugins {
   id(libs.plugins.android.application.get().pluginId)
-  alias(libs.plugins.kotlin.android)
   id("tgx-config")
   id("tgx-module")
 }
 
-val generateResourcesAndThemes by tasks.registering(GenerateResourcesAndThemesTask::class) {
+val generateResourcesAndThemes = tasks.register<GenerateResourcesAndThemesTask>("generateResourcesAndThemes") {
   group = "Setup"
   description = "Generates fresh strings, ids, theme resources and utility methods based on current static files"
 }
-val updateLanguages by tasks.registering(FetchLanguagesTask::class) {
+val updateLanguages = tasks.register<FetchLanguagesTask>("updateLanguages") {
   group = "Setup"
   description = "Generates and updates all strings.xml resources based on translations.telegram.org"
 }
-val validateApiTokens by tasks.registering(ValidateApiTokensTask::class) {
+val validateApiTokens = tasks.register<ValidateApiTokensTask>("validateApiTokens") {
   group = "Setup"
   description = "Validates some API tokens to make sure they work properly and won't cause problems"
 }
-val updateExceptions by tasks.registering(UpdateExceptionsTask::class) {
+val updateExceptions = tasks.register<UpdateExceptionsTask>("updateExceptions") {
   group = "Setup"
   description = "Updates exception class names with the app or TDLib version number in order to have separate group on Google Play Developer Console"
 }
-val generatePhoneFormat by tasks.registering(GeneratePhoneFormatTask::class) {
+val generatePhoneFormat = tasks.register<GeneratePhoneFormatTask>("generatePhoneFormat") {
   group = "Setup"
   description = "Generates utility methods for phone formatting, e.g. +12345678901 -> +1 (234) 567 89-01"
 }
-val checkEmojiKeyboard by tasks.registering(CheckEmojiKeyboardTask::class) {
+val checkEmojiKeyboard = tasks.register<CheckEmojiKeyboardTask>("checkEmojiKeyboard") {
   group = "Setup"
   description = "Checks that all supported emoji can be entered from the keyboard"
 }
@@ -95,40 +96,6 @@ android {
 
     // Library versions in BuildConfig.java
 
-    var openSslVersion = ""
-    var openSslVersionFull = ""
-    val openSslVersionFile = File(project.rootDir.absoluteFile, "tdlib/source/openssl/include/openssl/opensslv.h")
-    openSslVersionFile.bufferedReader().use { reader ->
-      val regex = Regex("^#\\s*define OPENSSL_VERSION_NUMBER\\s*((?:0x)[0-9a-fAF]+)L?\$")
-      while (true) {
-        val line = reader.readLine() ?: break
-        val result = regex.find(line)
-        if (result != null) {
-          val rawVersion = result.groupValues[1]
-          val version = if (rawVersion.startsWith("0x")) {
-            rawVersion.substring(2).toLong(16)
-          } else {
-            rawVersion.toLong()
-          }
-          // MNNFFPPS: major minor fix patch status
-          val major = ((version shr 28) and 0xf).toInt()
-          val minor = ((version shr 20) and 0xff).toInt()
-          val fix = ((version shr 12) and 0xff).toInt()
-          val patch = ((version shr 4) and 0xff).toInt()
-          val status = (version and 0xf).toInt()
-          if (status != 0xf) {
-            fatal("Using non-stable OpenSSL version: $rawVersion (status = ${status.toString(16)})")
-          }
-          openSslVersion = "${major}.${minor}"
-          openSslVersionFull = "${major}.${minor}.${fix}${('a'.code - 1 + patch).toChar()}"
-          break
-        }
-      }
-    }
-    if (openSslVersion.isEmpty()) {
-      fatal("OpenSSL not found!")
-    }
-
     var tdlibVersion = ""
     val tdlibCommit = File(project.rootDir.absoluteFile, "tdlib/version.txt").bufferedReader().readLine().take(7)
     val tdlibVersionFile = File(project.rootDir.absoluteFile, "tdlib/source/td/CMakeLists.txt")
@@ -147,8 +114,6 @@ android {
       fatal("TDLib not found!")
     }
 
-    buildConfigString("OPENSSL_VERSION", openSslVersion)
-    buildConfigString("OPENSSL_VERSION_FULL", openSslVersionFull)
     buildConfigString("TDLIB_VERSION", tdlibVersion)
 
     val tgxGitVersionProvider = providers.of(GitVersionValueSource::class) {
@@ -184,6 +149,14 @@ android {
     buildConfigField("String[]", "PULL_REQUEST_AUTHOR", "{${
       config.pullRequests.joinToString(", ") { "\"${it.author}\"" }
     }}")
+
+    // OpenSSL version
+
+    val openSslGit = providers.of(GitVersionValueSource::class) {
+      parameters.module = layout.projectDirectory.dir("../tdlib/source/openssl")
+    }.get()
+    buildConfigString("OPENSSL_COMMIT", openSslGit.commitHashShort)
+    buildConfigString("OPENSSL_COMMIT_URL", openSslGit.commitUrl)
 
     // WebRTC version
 
@@ -232,18 +205,10 @@ android {
     versionName = "${config.majorVersion}.${minorVersion}"
   }
 
-  // TODO: needs performance tests. Must be used once custom icon sets will be available
-  // defaultConfig.vectorDrawables.useSupportLibrary = true
-
   sourceSets.getByName("main") {
-    java.srcDirs("./src/google/java") // TODO: Huawei & FOSS editions
-    java.srcDirs(
-      "./jni/third_party/webrtc/rtc_base/java/src",
-      "./jni/third_party/webrtc/modules/audio_device/android/java/src",
-      "./jni/third_party/webrtc/sdk/android/api",
-      "./jni/third_party/webrtc/sdk/android/src/java",
-      "../thirdparty/WebRTC/src/java"
-    )
+    // TODO: Exclude in FOSS variant
+    kotlin.directories += "src/google/main/java"
+    java.directories += "src/google/main/java"
   }
 
   lint {
@@ -269,11 +234,10 @@ android {
       (variantBuilder.buildType != "debug" || sdkVariant.flavor == "legacy" || (abiVariant.flavor == "x86" || abiVariant.flavor == "x64" || abiVariant.flavor == "universal"))
   }
   productFlavors {
-    Sdk.VARIANTS.forEach { (sdk, variant) ->
+    Sdk.VARIANTS.forEach { (sdkIndex, variant) ->
       create(variant.flavor) {
         dimension = "SDK"
-        versionCode = (sdk + 1)
-        isDefault = sdk == Sdk.LATEST
+        isDefault = sdkIndex == Sdk.LATEST
 
         val actualMinSdk = if (config.isHuaweiBuild) {
           maxOf(variant.minSdk, Config.MIN_SDK_VERSION_HUAWEI)
@@ -312,20 +276,21 @@ android {
 
         sourceSets.getByName(variant.flavor) {
           Config.ANDROIDX_MEDIA_EXTENSIONS.forEach { extension ->
-            java.srcDirs("../thirdparty/androidx-media/${variant.flavor}/libraries/${extension}/src/main/java")
+            java.directories += "../thirdparty/androidx-media/${variant.flavor}/libraries/${extension}/src/main/java"
           }
-          if (variant.flavor != "legacy") {
-            kotlin.srcDirs("./src/postLegacy/kotlin")
-            java.srcDirs("./src/postLegacy/java")
-          }
-          if (variant.flavor != "latest") {
-            kotlin.srcDirs("./src/preLatest/kotlin")
-            java.srcDirs("./src/preLatest/java")
+          val extraFolders = findExtraFolders(variant)
+          extraFolders.forEach { folderName ->
+            kotlin.directories += "src/$folderName/kotlin"
+            java.directories += "src/$folderName/java"
+
+            // TODO: Exclude in FOSS variant
+            kotlin.directories += "src/google/$folderName/kotlin"
+            java.directories += "src/google/$folderName/java"
           }
         }
 
-        Sdk.VARIANTS.forEach { (subSdk, subVariant) ->
-          buildConfigBool("${subVariant.flavor.uppercase()}_FLAVOR", sdk == subSdk)
+        Sdk.VARIANTS.forEach { (subSdkIndex, subVariant) ->
+          buildConfigBool("${subVariant.flavor.uppercase()}_FLAVOR", sdkIndex == subSdkIndex)
         }
 
         var extraProguardFileCount = 0
@@ -357,17 +322,16 @@ android {
       }
     }
 
-    Abi.VARIANTS.forEach { (abi, variant) ->
+    Abi.VARIANTS.forEach { (abiIndex, variant) ->
       create(variant.flavor) {
         dimension = "ABI"
-        versionCode = (abi + 1)
-        isDefault = abi == 0
+        isDefault = abiIndex == 0
         ndkVersion = if (variant.is64Bit) {
           config.primaryNdkVersion
         } else {
           config.legacyNdkVersion
         }
-        ndkPath = File(sdkDirectory, "ndk/$ndkVersion").absolutePath
+        // ndkPath = File(sdkDirectory, "ndk/$ndkVersion").absolutePath
         buildConfigString("NDK_VERSION", ndkVersion)
         buildConfigBool("WEBP_ENABLED", true) // variant.minSdk < 19
         if (ndk.abiFilters.isNotEmpty())
@@ -379,64 +343,140 @@ android {
     }
   }
 
-  applicationVariants.configureEach {
-    val abiFlavor = productFlavors.first { it.dimension == "ABI" }
-    val abi = (abiFlavor.versionCode ?: fatal("null")) - 1
-    val abiVariant = Abi.VARIANTS[abi] ?: fatal("null")
-    val versionCode = defaultConfig.versionCode ?: fatal("null")
+  androidComponents {
+    onVariants { variant ->
+      val abiFlavor = variant.productFlavors.first { it.first == "ABI" }.second
+      val sdkFlavor = variant.productFlavors.first { it.first == "SDK" }.second
 
-    val sdkFlavor = productFlavors.first { it.dimension == "SDK" }
-    val sdk = (sdkFlavor.versionCode ?: fatal("null")) - 1
-    val sdkVariant = Sdk.VARIANTS[sdk] ?: fatal("null")
+      val (abi, abiVariant) = Abi.VARIANTS.entries.first { it.value.flavor == abiFlavor }
+      val (sdk, sdkVariant) = Sdk.VARIANTS.entries.first { it.value.flavor == sdkFlavor }
 
-    val recaptchaVersion = when (sdkVariant.flavor) {
-      "legacy" -> libs.google.recaptcha.legacy
-      "lollipop" -> libs.google.recaptcha.lollipop
-      "latest" -> libs.google.recaptcha.latest
-      else -> error(sdkVariant.flavor)
-    }.get().version!!
-
-    val versionCodeOverride = versionCode * 1000 + if (!buildType.isDebuggable) (sdk * 100 + abi) else 0
-    val versionNameOverride = StringBuilder("${versionName}.${defaultConfig.versionCode}").apply {
-      if (extra.has("app_version_suffix")) {
-        append(extra["app_version_suffix"])
+      val flavorVersionCode = if (variant.debuggable) 0 else {
+        sdk * 100 + abi
       }
-      if (config.extension != "none") {
-        append("-${config.extension}")
-      }
-      if (!sdkVariant.displayName.isNullOrEmpty()) {
-        append("-${sdkVariant.displayName}")
-      }
-      if (abiVariant.displayName != "universal" || (config.extension == "none" && sdkVariant.displayName.isNullOrEmpty())) {
-        append("-${abiVariant.displayName}")
-      }
-      if (extra.has("app_name_suffix")) {
-        append("-${extra["app_name_suffix"]}")
-      }
-      if (buildType.isDebuggable) {
-        append("-debug")
-      }
-    }.toString()
+      val flavorVersionNameSuffix = StringBuilder().apply {
+        if (extra.has("app_version_suffix")) {
+          append(extra["app_version_suffix"])
+        }
+        if (config.extension != "none") {
+          append("-${config.extension}")
+        }
+        if (!sdkVariant.displayName.isNullOrEmpty()) {
+          append("-${sdkVariant.displayName}")
+        }
+        if (abiVariant.displayName != "universal" || (config.extension == "none" && sdkVariant.displayName.isNullOrEmpty())) {
+          append("-${abiVariant.displayName}")
+        }
+        if (extra.has("app_name_suffix")) {
+          append("-${extra["app_name_suffix"]}")
+        }
+        if (variant.debuggable) {
+          append("-debug")
+        }
+      }.toString()
 
-    val fileName = "${config.outputFileNamePrefix}-${versionNameOverride.replace(Regex("-universal(?=-|$)"), "")}"
+      var baseVersionCode: Int? = null
+      var baseVersionName: String? = null
+      var fileName: String? = null
 
-    buildConfigField("int", "ORIGINAL_VERSION_CODE", versionCode.toString())
-    buildConfigField("int", "ABI", abi.toString())
-    buildConfigField("String", "ORIGINAL_VERSION_NAME", "\"${versionName}.${defaultConfig.versionCode}\"")
-    buildConfigField("String", "RECAPTCHA_VERSION", "\"${recaptchaVersion}\"")
+      variant.outputs.forEach { output ->
+        baseVersionCode = output.versionCode.get()
+        val modifiedVersionCode = baseVersionCode * 1000 + flavorVersionCode
+        output.versionCode.set(modifiedVersionCode)
 
-    outputs.map { it as ApkVariantOutputImpl }.forEach { output ->
-      output.versionCodeOverride = versionCodeOverride
-      output.versionNameOverride = versionNameOverride
-      output.outputFileName = "${fileName}.apk"
-    }
+        baseVersionName = output.versionName.get()
+        val modifiedVersionName = "$baseVersionName.$baseVersionCode$flavorVersionNameSuffix"
+        output.versionName.set(modifiedVersionName)
 
-    if (buildType.isMinifyEnabled) {
-      assembleProvider!!.configure {
-        doLast {
-          mappingFileProvider.get().files.forEach { mappingFile ->
-            mappingFile.renameTo(File(mappingFile.parentFile, "${fileName}.txt"))
+        fileName = "${config.outputFileNamePrefix}-${modifiedVersionName.replace(Regex("-universal(?=-|$)"), "")}"
+        if (output is VariantOutputImpl) {
+          output.outputFileName.set("$fileName.apk")
+        }
+      }
+      require(baseVersionCode != null && baseVersionName != null && fileName != null)
+
+      val recaptchaVersion = selectImplementation(
+        sdkVariant,
+        libs.google.recaptcha.legacy,
+        libs.google.recaptcha.lollipop,
+        libs.google.recaptcha.marshmallow,
+        libs.google.recaptcha.latest
+      )!!.get().version!!
+      require(recaptchaVersion.isNotEmpty() && recaptchaVersion.matches(Regex("^[0-9.]+$"))) {
+        "Invalid ReCaptcha version: $recaptchaVersion"
+      }
+
+      variant.buildConfigFields!!.apply {
+        put("ABI", BuildConfigField(
+          "int", abi, null
+        ))
+        put("RECAPTCHA_VERSION", BuildConfigField(
+          "String", "\"$recaptchaVersion\"", null
+        ))
+        put("ORIGINAL_VERSION_CODE", BuildConfigField(
+          "int", baseVersionCode, null
+        ))
+        put("ORIGINAL_VERSION_NAME", BuildConfigField(
+          "String", "\"$baseVersionName.$baseVersionCode\"", null
+        ))
+
+        var openSslVersionFull = ""
+        var openSslReleaseDate = ""
+        val openSslVersionFile = File(project.rootDir.absoluteFile, "tdlib/openssl/${abiVariant.filters.first()}/include/openssl/opensslv.h")
+        openSslVersionFile.bufferedReader().use { reader ->
+          val regex = Regex("^# define (OPENSSL_FULL_VERSION_STR|OPENSSL_RELEASE_DATE)\\s*\"([^\"]+)\"$")
+          while (true) {
+            val line = reader.readLine() ?: break
+            val result = regex.find(line)
+            if (result != null) {
+              val varName = result.groupValues[1]
+              val value = result.groupValues[2]
+              when (varName) {
+                "OPENSSL_FULL_VERSION_STR" -> openSslVersionFull = value
+                "OPENSSL_RELEASE_DATE" -> openSslReleaseDate = value
+                else -> error(varName)
+              }
+              if (openSslVersionFull.isNotEmpty() && openSslReleaseDate.isNotEmpty()) {
+                break
+              }
+            }
           }
+        }
+        if (openSslVersionFull.isEmpty()) {
+          fatal("OpenSSL not found!")
+        }
+        put("OPENSSL_VERSION_FULL", BuildConfigField(
+          "String", "\"$openSslVersionFull\"", null
+        ))
+        put("OPENSSL_RELEASE_DATE", BuildConfigField(
+          "String", "\"$openSslReleaseDate\"", null
+        ))
+      }
+
+      val extraFolders = findExtraFolders(sdkVariant)
+      extraFolders.forEach { folderName ->
+        variant.sources.manifests.addStaticManifestFile(
+          "src/$folderName/AndroidManifest.xml"
+        )
+        // TODO: Exclude in FOSS variant
+        variant.sources.manifests.addStaticManifestFile(
+          "src/google/$folderName/AndroidManifest.xml"
+        )
+      }
+
+      if (variant.isMinifyEnabled) {
+        val copyTask = project.tasks.register<Copy>(
+          "copy${variant.name.replaceFirstChar { it.uppercase() }}MappingFile"
+        ) {
+          description = "Creates a copy of mapping.txt with a build name"
+          from(variant.artifacts.get(SingleArtifact.OBFUSCATION_MAPPING_FILE))
+          into(project.layout.buildDirectory.dir("outputs/mapping/${variant.name}"))
+          rename("mapping.txt", "$fileName.txt")
+        }
+        tasks.named {
+          it.startsWith("assemble") && it.endsWith("Release")
+        }.configureEach {
+          finalizedBy(copyTask)
         }
       }
     }
@@ -478,9 +518,11 @@ gradle.projectsEvaluated {
 }
 
 dependencies {
+  legacyImplementation(libs.androidx.multidex)
   implementation(project(":extension:${config.extension}"))
   // TDLib: https://github.com/tdlib/td/blob/master/CHANGELOG.md
   implementation(project(":tdlib"))
+  implementation(project(":tgcalls"))
   implementation(project(":vkryl:core"))
   implementation(project(":vkryl:leveldb"))
   implementation(project(":vkryl:android"))
@@ -509,6 +551,7 @@ dependencies {
   )
   flavorImplementation(
     libs.androidx.browser.legacy,
+    libs.androidx.browser.lollipop,
     libs.androidx.browser.latest
   )
   flavorImplementation(
@@ -558,10 +601,12 @@ dependencies {
   )
   flavorImplementation(
     libs.google.play.services.maps.legacy,
+    libs.google.play.services.maps.lollipop,
     libs.google.play.services.maps.latest
   )
   flavorImplementation(
     libs.google.play.services.location.legacy,
+    libs.google.play.services.location.lollipop,
     libs.google.play.services.location.latest
   )
   flavorImplementation(
@@ -597,6 +642,7 @@ dependencies {
   flavorImplementation(
     libs.google.recaptcha.legacy,
     libs.google.recaptcha.lollipop,
+    libs.google.recaptcha.marshmallow,
     libs.google.recaptcha.latest
   )
   // AndroidX/media: https://github.com/androidx/media/blob/release/RELEASENOTES.md
@@ -625,11 +671,11 @@ dependencies {
     libs.androidx.media.exoplayer.hls.lollipop,
     libs.androidx.media.exoplayer.hls.latest
   )
-  latestImplementation(libs.androidx.media.inspector.latest)
+  postLollipopImplementation(libs.androidx.media.inspector.latest)
   // Play In-App Updates: https://developer.android.com/reference/com/google/android/play/core/release-notes-in_app_updates
   implementation(libs.google.play.app.update)
   // The Checker Framework: https://checkerframework.org/CHANGELOG.md
-  compileOnly(libs.checkerframework)
+  compileOnly(libs.annotations.checkerframework)
   // OkHttp: https://github.com/square/okhttp/blob/master/CHANGELOG.md
   flavorImplementation(
     libs.okhttp.legacy,
@@ -640,7 +686,7 @@ dependencies {
     artifact { type = "aar" }
   }
   // ReLinker: https://github.com/KeepSafe/ReLinker/blob/master/CHANGELOG.md
-  preLatestImplementation(libs.relinker)
+  preMarshmallowImplementation(libs.relinker)
   // Konfetti: https://github.com/DanielMartinus/Konfetti/blob/main/README.md
   implementation(libs.konfetti)
   // Transcoder: https://github.com/natario1/Transcoder/blob/master/docs/_about/changelog.md
@@ -659,6 +705,13 @@ dependencies {
 
   // Gson: https://github.com/google/gson/blob/main/CHANGELOG.md
   implementation("com.google.code.gson:gson:2.10.1")
+
+  // Compiler warnings
+  compileOnly(libs.annotations.errorprone)
+  compileOnly(libs.annotations.j2objc)
+  compileOnly(libs.androidx.room.latest)
+  compileOnly(libs.annotations.jsr305)
+  compileOnly(libs.annotations.kotlin)
 }
 
 if (!config.isExperimentalBuild) {
