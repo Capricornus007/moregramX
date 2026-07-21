@@ -95,7 +95,6 @@
   <string name="AddToProfile">Add to Profile</string>
   <string name="AudioPinned">Audio added to Profile</string>
   <string name="AudioAlreadyPinned">Audio is already pinned to Profile</string>
-  <string name="RemoveFromProfile">Remove from Profile</string>
   <string name="RemoveProfileAudioConfirm">Remove %1$s from your profile audio?</string>
   <string name="AudioUnpinned">Audio removed from Profile</string>
   <string name="ProxyDisableOnVpn">Disable while system VPN is active</string>
