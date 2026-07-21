@@ -4385,20 +4385,9 @@ public class TdlibUi extends Handler {
   }
 
   private static void pingProxyProbe (Tdlib tdlib, String server, int port, TdApi.ProxyType type, RunnableLong onResult) {
-    tdlib.client().send(new TdApi.AddProxy(server, port, false, type), addResult -> {
-      if (addResult.getConstructor() != TdApi.Proxy.CONSTRUCTOR) {
-        onResult.runWithLong(-1);
-        return;
-      }
-      int tdlibProxyId = ((TdApi.Proxy) addResult).id;
-      tdlib.client().send(new TdApi.PingProxy(tdlibProxyId), pingResult -> {
-        long ms = pingResult.getConstructor() == TdApi.Seconds.CONSTRUCTOR
-          ? Math.round(((TdApi.Seconds) pingResult).seconds * 1000.0)
-          : -1;
-        tdlib.client().send(new TdApi.RemoveProxy(tdlibProxyId), tdlib.okHandler());
-        onResult.runWithLong(ms);
-      });
-    });
+    tdlib.send(new TdApi.PingProxy(new TdApi.Proxy(server, port, type)), (seconds, error) ->
+      onResult.runWithLong(error != null ? -1 : Math.round(seconds.seconds * 1000.0))
+    );
   }
 
   private static final int[] PROXY_ALERT_LABEL_IDS = {R.string.ProxyAlertType, R.string.Country, R.string.UseProxyServer, R.string.UseProxyPort, R.string.ProxyAlertStatus};

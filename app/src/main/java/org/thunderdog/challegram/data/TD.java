@@ -3859,12 +3859,12 @@ public class TD {
       return new DownloadedFile(tdlib, voice.voice, voice.mimeType, new TdApi.FileTypeVoiceNote());
     }
 
-    public static DownloadedFile valueOf (TdApi.Sticker sticker, String mime) {
-      return new DownloadedFile(sticker.sticker, mime.equals("image/webp") ? "sticker.webp" : mime.equals("video/webm") ? "sticker.webm" : "sticker.tgs", mime, new TdApi.FileTypeSticker());
+    public static DownloadedFile valueOf (Tdlib tdlib, TdApi.Sticker sticker, String mime) {
+      return new DownloadedFile(tdlib, sticker.sticker, mime, new TdApi.FileTypeSticker());
     }
 
-    public static DownloadedFile valueOf (TdApi.VideoNote videoNote) {
-      return new DownloadedFile(videoNote.video, "video.mp4", "video/mp4", new TdApi.FileTypeVideoNote());
+    public static DownloadedFile valueOf (Tdlib tdlib, TdApi.VideoNote videoNote) {
+      return new DownloadedFile(tdlib, videoNote.video, "video/mp4", new TdApi.FileTypeVideoNote());
     }
 
     public int getFileId () {
@@ -4428,21 +4428,21 @@ public class TD {
         TdApi.Sticker sticker = ((TdApi.MessageSticker) msg.content).sticker;
         if (sticker != null && TD.isFileLoaded(sticker.sticker)) {
           String mime = U.resolveMimeType(sticker.sticker.local.path);
-          return DownloadedFile.valueOf(sticker, mime);
+          return DownloadedFile.valueOf(tdlib, sticker, mime);
         }
         return null;
       }
       case TdApi.MessageVoiceNote.CONSTRUCTOR: {
         TdApi.VoiceNote voiceNote = ((TdApi.MessageVoiceNote) msg.content).voiceNote;
         if (voiceNote != null && TD.isFileLoaded(voiceNote.voice)) {
-          return DownloadedFile.valueOf(voiceNote);
+          return DownloadedFile.valueOf(tdlib, voiceNote);
         }
         return null;
       }
       case TdApi.MessageVideoNote.CONSTRUCTOR: {
         TdApi.VideoNote videoNote = ((TdApi.MessageVideoNote) msg.content).videoNote;
         if (videoNote != null && TD.isFileLoaded(videoNote.video)) {
-          return DownloadedFile.valueOf(videoNote);
+          return DownloadedFile.valueOf(tdlib, videoNote);
         }
         return null;
       }

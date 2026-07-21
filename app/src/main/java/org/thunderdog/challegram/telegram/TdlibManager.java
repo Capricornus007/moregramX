@@ -340,10 +340,10 @@ public class TdlibManager implements Iterable<TdlibAccount>, UI.StateListener {
     applyProxyToAllAccounts(proxyId, proxy != null ? proxy.proxy : null);
   }
 
-  private void applyProxyToAllAccounts (int proxyId, @Nullable TdApi.InternalLinkTypeProxy proxy) {
+  private void applyProxyToAllAccounts (int proxyId, @Nullable TdApi.Proxy proxy) {
     boolean bypassForVpn = MoexConfig.shouldBypassProxyForVpn();
     int effectiveProxyId = bypassForVpn ? Settings.PROXY_ID_NONE : proxyId;
-    TdApi.InternalLinkTypeProxy effectiveProxy = bypassForVpn ? null : proxy;
+    TdApi.Proxy effectiveProxy = bypassForVpn ? null : proxy;
     for (TdlibAccount account : TdlibManager.this) {
       if (account.tdlib != null) {
         account.tdlib.setProxy(effectiveProxyId, effectiveProxy);

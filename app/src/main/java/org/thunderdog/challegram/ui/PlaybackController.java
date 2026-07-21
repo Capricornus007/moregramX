@@ -2394,7 +2394,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
         c.setArguments(new ShareController.Args(message).setAllowCopyLink(true));
       } else {
         TdApi.Audio audio = ((TdApi.MessageAudio) message.content).audio;
-        c.setArguments(new ShareController.Args(new TdApi.InputMessageAudio(new TdApi.InputFileRemote(audio.audio.remote.id), null, audio.duration, audio.title, audio.performer, null)));
+        c.setArguments(new ShareController.Args(new TdApi.InputMessageAudio(new TdApi.InputAudio(new TdApi.InputFileRemote(audio.audio.remote.id), null, audio.duration, audio.title, audio.performer), null)));
       }
       c.show();
     } else if (id == R.id.btn_showInPlaylist) {
@@ -2446,12 +2446,13 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
           return true;
         });
     } else if (id == R.id.btn_pinAudioProfile) {
-      final int fileId = TD.getFileId(currentItem.getMessage());
+      final TdApi.Audio audio = ((TdApi.MessageAudio) currentItem.getMessage().content).audio;
+      final int fileId = audio.audio.id;
       tdlib.send(new TdApi.IsProfileAudio(fileId), (isPinned, isPinnedError) -> runOnUiThreadOptional(() -> {
         if (isPinnedError == null) {
           UI.showToast(R.string.AudioAlreadyPinned, Toast.LENGTH_SHORT);
         } else {
-          tdlib.send(new TdApi.AddProfileAudio(fileId), addedOk ->
+          tdlib.send(new TdApi.AddProfileAudio(new TdApi.InputFileId(fileId), audio.duration, audio.title, audio.performer), addedOk ->
             UI.showToast(R.string.AudioPinned, Toast.LENGTH_SHORT), UI::showError);
         }
       }));

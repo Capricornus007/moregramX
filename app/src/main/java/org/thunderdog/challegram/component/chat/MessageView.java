@@ -1082,7 +1082,7 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
     int constructor = msg.getMessage().content.getConstructor();
     boolean isPhoto = constructor == TdApi.MessagePhoto.CONSTRUCTOR;
     if (msg.canBeSaved() && (isPhoto || constructor == TdApi.MessageDocument.CONSTRUCTOR) && TD.isFileLoaded(msg.getMessage())) {
-      TD.DownloadedFile downloadedFile = TD.getDownloadedFile(msg.getMessage());
+      TD.DownloadedFile downloadedFile = TD.getDownloadedFile(msg.tdlib(), msg.getMessage());
       if (isPhoto || (downloadedFile != null && downloadedFile.getMimeType().startsWith("image/"))) {
         if (isMore) {
           ids.append(R.id.btn_copyPhoto);
