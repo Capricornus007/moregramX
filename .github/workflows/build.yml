@@ -77,6 +77,16 @@ jobs:
           name: telegram-x-debug-artifacts
           path: app/build/outputs/apk/**/*.apk
 
+      - name: Delete old pre-release
+        if: github.event_name == 'push'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest --yes --cleanup-tag 2>/dev/null || true
+          # Wait a moment for GitHub to process the deletion
+          sleep 3
+
       - name: Upload APK to Latest Release
         uses: softprops/action-gh-release@v2
         if: github.event_name == 'push'
@@ -85,6 +95,7 @@ jobs:
           name: "Latest Debug Build"
           body: "此為自動編譯產出的最新測試版 APK，點擊下方檔案即可直接下載安裝。"
           prerelease: true
+          make_latest: true
           files: app/build/outputs/apk/**/*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
