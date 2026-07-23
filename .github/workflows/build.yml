@@ -64,10 +64,28 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      - name: Setup Signing Keystore
+        if: github.event_name == 'push'
+        env:
+          KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
+          STORE_PASS: ${{ secrets.KEYSTORE_PASS }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ] && [ -n "$STORE_PASS" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > release.keystore
+            echo "KEYSTORE_PATH=$PWD/release.keystore" >> $GITHUB_ENV
+            echo "KEYSTORE_PASS=$STORE_PASS" >> $GITHUB_ENV
+            echo "KEY_ALIAS=mgx" >> $GITHUB_ENV
+            echo "org.gradle.jvmargs=-Xmx3g -XX:+UseG1GC" >> gradle.properties
+            echo "RELEASE_STORE_FILE=$PWD/release.keystore" >> gradle.properties
+            echo "RELEASE_STORE_PASSWORD=$STORE_PASS" >> gradle.properties
+            echo "RELEASE_KEY_ALIAS=mgx" >> gradle.properties
+            echo "RELEASE_KEY_PASSWORD=$STORE_PASS" >> gradle.properties
+            echo "::notice:: Release signing enabled"
+          else
+            echo "::warning:: KEYSTORE_B64 or KEYSTORE_PASS secret not set, skipping release signing"
+          fi
+
       - name: Build with Gradle
-        # Only one variant: assembleDebug fans out to ~14 flavor/ABI native
-        # builds (~3h, close to the 6h job cap). latestArm64 covers all modern
-        # 64-bit devices and finishes in ~15 min.
         run: |
           ./gradlew :app:assembleLatestArm64Debug --stacktrace --no-daemon --max-workers=2 -Dorg.gradle.jvmargs="-Xmx3g -XX:+UseG1GC"
 

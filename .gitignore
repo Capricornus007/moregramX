@@ -20,3 +20,4 @@ keystore.properties
 
 libc++_shared.so
 local.properties
+release.keystore
