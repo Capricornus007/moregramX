@@ -138,3 +138,6 @@
 [submodule "thirdparty/androidx-media/marshmallow"]
 	path = thirdparty/androidx-media/marshmallow
 	url = https://github.com/androidx/media
+[submodule "thirdparty/whispercpp"]
+	path = thirdparty/whispercpp
+	url = https://github.com/ggml-org/whisper.cpp.git
