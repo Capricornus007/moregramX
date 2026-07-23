@@ -271,6 +271,7 @@ productFlavors {
           "-finline-functions"
         )
         externalNativeBuild.cmake {
+          targets += arrayOf("tgxjni", "tgcallsjni")
           arguments(
             "-DANDROID_PLATFORM=android-${effectiveMinSdk}",
             "-DTGX_FLAVOR=${variant.flavor}",
