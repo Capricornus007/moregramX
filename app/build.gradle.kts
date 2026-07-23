@@ -210,7 +210,7 @@ android {
     // TODO: Exclude in FOSS variant
     kotlin.directories += "src/google/main/java"
     java.directories += "src/google/main/java"
-    res.srcDirs += "src/main/reX-values"
+    res.srcDir("src/main/reX-values")
   }
 
   lint {
