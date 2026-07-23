@@ -1367,7 +1367,6 @@ public class MainController extends ViewPagerController<Void> implements Menu, M
     }
     return today != null ? today.toArray(new TdApi.CloseBirthdayUser[0]) : null;
   }
-  }
 
   @Override
   protected int getBackButton () {
