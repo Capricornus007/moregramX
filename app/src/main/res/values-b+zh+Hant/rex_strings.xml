@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <!-- reX Settings -->
+  <string name="reXSettings">reX 設定</string>
+
+  <!-- Whisper Settings -->
+  <string name="WhisperSettings">Whisper 語音辨識</string>
+  <string name="WhisperModel">模型</string>
+  <string name="WhisperDownload">下載模型</string>
+  <string name="WhisperSelectModel">選擇 Whisper 模型</string>
+  <string name="WhisperModelNotSelected">未選擇</string>
+  <string name="WhisperSelectModelFirst">請先選擇模型</string>
+  <string name="WhisperClickToDownload">點擊下載</string>
+  <string name="WhisperDownloading">下載中…</string>
+  <string name="WhisperModelReady">已就緒（點擊刪除）</string>
+  <string name="WhisperDownloadComplete">模型下載成功</string>
+  <string name="WhisperDownloadFailed">下載失敗</string>
+  <string name="WhisperDeleteModel">刪除模型</string>
+  <string name="WhisperDeleteModelConfirm">確定要刪除已下載的模型嗎？</string>
+  <string name="WhisperModelDeleted">模型已刪除</string>
+
+  <!-- Transcription -->
+  <string name="Transcription">語音轉文字</string>
+  <string name="TranscriptionLoading">載入中…</string>
+  <string name="TranscriptionDownloading">正在下載語音訊息…</string>
+  <string name="TranscriptionProcessing">正在轉錄音訊…</string>
+  <string name="TranscriptionComplete">轉錄完成</string>
+  <string name="TranscriptionDetectedLanguage">偵測到語言: %1$s</string>
+  <string name="TranscriptionErrorNoFile">語音檔案無法使用</string>
+  <string name="TranscriptionErrorDownload">下載語音訊息失敗</string>
+  <string name="TranscriptionErrorNoModel">尚未下載 Whisper 模型。請前往 reX 設定下載。</string>
+  <string name="TranscriptionErrorModel">載入 Whisper 模型失敗</string>
+  <string name="TranscriptionErrorConvert">音訊轉換失敗</string>
+  <string name="TranscriptionErrorEmpty">未偵測到語音</string>
+  <string name="TranscriptionErrorFailed">轉錄失敗</string>
+  <string name="TranscriptionError">錯誤</string>
+</resources>
