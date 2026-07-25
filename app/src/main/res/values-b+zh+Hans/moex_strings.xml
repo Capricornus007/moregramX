@@ -50,4 +50,39 @@
   <string name="ProfileOptions">个人资料</string>
   <string name="ActivityOptions">活动</string>
   <string name="HideBottomBar">隐藏底边栏</string>
+
+  <!-- reX Settings -->
+  <string name="reXSettings">reX 设置</string>
+
+  <!-- Whisper Settings -->
+  <string name="WhisperSettings">Whisper 语音识别</string>
+  <string name="WhisperModel">模型</string>
+  <string name="WhisperDownload">下载模型</string>
+  <string name="WhisperSelectModel">选择 Whisper 模型</string>
+  <string name="WhisperModelNotSelected">未选择</string>
+  <string name="WhisperSelectModelFirst">请先选择模型</string>
+  <string name="WhisperClickToDownload">点击下载</string>
+  <string name="WhisperDownloading">下载中…</string>
+  <string name="WhisperModelReady">已就绪（点击删除）</string>
+  <string name="WhisperDownloadComplete">模型下载成功</string>
+  <string name="WhisperDownloadFailed">下载失败</string>
+  <string name="WhisperDeleteModel">删除模型</string>
+  <string name="WhisperDeleteModelConfirm">确定要删除已下载的模型吗？</string>
+  <string name="WhisperModelDeleted">模型已删除</string>
+
+  <!-- Transcription -->
+  <string name="Transcription">语音转文字</string>
+  <string name="TranscriptionLoading">加载中…</string>
+  <string name="TranscriptionDownloading">正在下载语音消息…</string>
+  <string name="TranscriptionProcessing">正在转录音频…</string>
+  <string name="TranscriptionComplete">转录完成</string>
+  <string name="TranscriptionDetectedLanguage">检测到语言: %1$s</string>
+  <string name="TranscriptionErrorNoFile">语音文件不可用</string>
+  <string name="TranscriptionErrorDownload">下载语音消息失败</string>
+  <string name="TranscriptionErrorNoModel">未下载 Whisper 模型。请前往 reX 设置下载。</string>
+  <string name="TranscriptionErrorModel">加载 Whisper 模型失败</string>
+  <string name="TranscriptionErrorConvert">音频转换失败</string>
+  <string name="TranscriptionErrorEmpty">未检测到语音</string>
+  <string name="TranscriptionErrorFailed">转录失败</string>
+  <string name="TranscriptionError">错误</string>
 </resources>
