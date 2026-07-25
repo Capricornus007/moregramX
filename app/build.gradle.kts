@@ -210,7 +210,7 @@ android {
     // TODO: Exclude in FOSS variant
     kotlin.directories += "src/google/main/java"
     java.directories += "src/google/main/java"
-    res.srcDirs = res.srcDirs.toMutableList().apply { add("src/main/reX-values") }
+    res.directories += "src/main/reX-values"
   }
 
   lint {
