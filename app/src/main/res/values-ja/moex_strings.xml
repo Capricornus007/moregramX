@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <!-- reX Settings -->
+  <string name="reXSettings">reX 設定</string>
+
+  <!-- Whisper Settings -->
+  <string name="WhisperSettings">Whisper 音声認識</string>
+  <string name="WhisperModel">モデル</string>
+  <string name="WhisperDownload">モデルをダウンロード</string>
+  <string name="WhisperSelectModel">Whisper モデルを選択</string>
+  <string name="WhisperModelNotSelected">未選択</string>
+  <string name="WhisperSelectModelFirst">先にモデルを選択してください</string>
+  <string name="WhisperClickToDownload">タップしてダウンロード</string>
+  <string name="WhisperDownloading">ダウンロード中…</string>
+  <string name="WhisperModelReady">準備完了（タップで削除）</string>
+  <string name="WhisperDownloadComplete">モデルのダウンロードが完了しました</string>
+  <string name="WhisperDownloadFailed">ダウンロードに失敗しました</string>
+  <string name="WhisperDeleteModel">モデルを削除</string>
+  <string name="WhisperDeleteModelConfirm">ダウンロードしたモデルを削除してもよろしいですか？</string>
+  <string name="WhisperModelDeleted">モデルを削除しました</string>
+
+  <!-- Transcription -->
+  <string name="Transcription">文字起こし</string>
+  <string name="TranscriptionLoading">読み込み中…</string>
+  <string name="TranscriptionDownloading">音声メッセージをダウンロード中…</string>
+  <string name="TranscriptionProcessing">音声を文字起こし中…</string>
+  <string name="TranscriptionComplete">文字起こし完了</string>
+  <string name="TranscriptionDetectedLanguage">検出言語: %1$s</string>
+  <string name="TranscriptionErrorNoFile">音声ファイルが利用できません</string>
+  <string name="TranscriptionErrorDownload">音声メッセージのダウンロードに失敗しました</string>
+  <string name="TranscriptionErrorNoModel">Whisper モデルがダウンロードされていません。reX 設定からダウンロードしてください。</string>
+  <string name="TranscriptionErrorModel">Whisper モデルの読み込みに失敗しました</string>
+  <string name="TranscriptionErrorConvert">音声の変換に失敗しました</string>
+  <string name="TranscriptionErrorEmpty">音声が検出されませんでした</string>
+  <string name="TranscriptionErrorFailed">文字起こしに失敗しました</string>
+  <string name="TranscriptionError">エラー</string>
+</resources>
