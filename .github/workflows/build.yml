@@ -87,12 +87,12 @@ jobs:
 
       - name: Build with Gradle
         run: |
-          ./gradlew :app:assembleLatestArm64Debug --stacktrace --no-daemon --max-workers=2 -Dorg.gradle.jvmargs="-Xmx3g -XX:+UseG1GC"
+          ./gradlew :app:assembleLatestArm64Release --stacktrace --no-daemon --max-workers=2 -Dorg.gradle.jvmargs="-Xmx3g -XX:+UseG1GC"
 
       - name: Upload APK as Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: telegram-x-debug-artifacts
+          name: telegram-x-release-artifacts
           path: app/build/outputs/apk/**/*.apk
 
       - name: Delete old pre-release
@@ -110,8 +110,8 @@ jobs:
         if: github.event_name == 'push'
         with:
           tag_name: latest
-          name: "Latest Debug Build"
-          body: "此為自動編譯產出的最新測試版 APK，點擊下方檔案即可直接下載安裝。"
+          name: "Latest Release Build"
+          body: "此為自動編譯產出的最新正式版 APK（使用自訂簽名），點擊下方檔案即可直接下載安裝。"
           prerelease: true
           make_latest: true
           files: app/build/outputs/apk/**/*.apk
