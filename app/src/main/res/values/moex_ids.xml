@@ -81,5 +81,4 @@
   <item name="btn_recentChannel" type="id" />
   <item name="btn_setPersonalChannel" type="id" />
   <item name="btn_toggleEdgeAnimSide" type="id" />
-  <item name="btn_profileChannel" type="id" />
 </resources>
