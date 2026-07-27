@@ -363,7 +363,7 @@ public class TdlibNotificationHelper implements Iterable<TdlibNotificationGroup>
     // Use a large offset to avoid collisions with regular group IDs
     int topicHash = Long.hashCode(topicId) & 0x7FFFFFFF; // Ensure positive
     int topicOffset = (topicHash % 100000) + 100000; // Range: 100000-199999
-    return baseNotificationId + (TdlibNotificationGroup.MAX_CATEGORY + 1) + groupId * 200000 + topicOffset;
+    return 1 + (TdlibNotificationGroup.MAX_CATEGORY + 1) + groupId * 200000 + topicOffset;
   }
 
   public boolean isEmpty () {
