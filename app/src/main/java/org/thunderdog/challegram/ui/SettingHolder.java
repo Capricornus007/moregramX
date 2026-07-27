@@ -2498,8 +2498,8 @@ public class SettingHolder extends RecyclerView.ViewHolder {
           themeProvider.addThemeTextDecentColorListener(timeView);
         }
         FrameLayout.LayoutParams timeParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        timeParams.gravity = Gravity.TOP | Gravity.END;
-        timeParams.topMargin = Screen.dp(60f);
+        timeParams.gravity = Gravity.BOTTOM | Gravity.END;
+        timeParams.bottomMargin = Screen.dp(12f);
         timeParams.rightMargin = textRightMargin;
         timeView.setLayoutParams(timeParams);
         wrapView.addView(timeView);

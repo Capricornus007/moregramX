@@ -66,4 +66,27 @@
   <string name="StoryId">Quantidade</string>
   <string name="Edited">Editado</string>
   <string name="MoexDarkenDrawer">Avatar escurecido</string>
+  <string name="SilentMessage">Enviar mensagens silenciosas</string>
+  <string name="ProfileNote">Nota</string>
+  <string name="Edit">Editar</string>
+  <string name="ProfileNoteHint">As notas estão visíveis apenas para você.</string>
+  <string name="SelectRoundVideos">Câmera em vídeos redondos</string>
+  <string name="frontCamera">Frontal</string>
+  <string name="RearCamera">Traseira</string>
+  <string name="Ask">Perguntar</string>
+  <string name="Platform">Plataforma</string>
+  <string name="AudioPinned">Áudio adicionado ao perfil</string>
+  <string name="AudioAlreadyPinned">O áudio já está fixado no perfil</string>
+  <string name="RemoveProfileAudioConfirm">Remover %1$s do áudio do seu perfil?</string>
+  <string name="AudioUnpinned">Áudio removido do Perfil</string>
+  <string name="ProxyDisableOnVpn">Desabilitar enquanto a VPN do sistema estiver ativa</string>
+  <string name="ProxyDisableOnVpnHint">Quando uma VPN do sistema está conectada, roteie o tráfego do Telegram através dele ao invés do proxy. O proxy é restaurado automaticamente quando a VPN é desconectada.</string>
+  <string name="AutoPauseMedia">Pausar mídia do sistema</string>
+  <string name="AutoPauseMediaHint">Pausa a música ou outro áudio de outros aplicativos enquanto uma mensagem de voz, vídeo redondo ou vídeo toca em moeGramX.</string>
+  <string name="AutoPauseMediaResume">Retomar após a reprodução</string>
+  <string name="ProxyAlertType">Tipo de Proxy</string>
+  <string name="ProxyAlertStatus">Status</string>
+  <string name="ProxyAlertCheck">verificar</string>
+  <string name="moex_birthdayBarSubtitle">Aniversário hoje</string>
+  <string name="moex_birthdaysTodayTitle">%1$d aniversários hoje</string>
 </resources>
