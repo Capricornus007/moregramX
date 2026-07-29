@@ -1057,6 +1057,9 @@ public class Lang {
     } else {
       result = chatTitle;
     }
+    if (ChatId.isSecret(chatId)) {
+      result = Lang.getCharSequence(R.string.format_notificationTitleSecret, result);
+    }
     return getSilentNotificationTitle(result, true, isSelfChat, isMultiChat, isChannel, areOnlyScheduled, areOnlySilent);
   }
 
@@ -1285,9 +1288,11 @@ public class Lang {
       case TdApi.MessageManagedBotCreated.CONSTRUCTOR:
       case TdApi.MessagePollOptionAdded.CONSTRUCTOR:
       case TdApi.MessagePollOptionDeleted.CONSTRUCTOR:
+      case TdApi.MessageChatAddedToCommunity.CONSTRUCTOR:
+      case TdApi.MessageChatRemovedFromCommunity.CONSTRUCTOR:
         break;
       default:
-        Td.assertMessageContent_bb294b24();
+        Td.assertMessageContent_a80283cf();
         throw Td.unsupported(message.content);
     }
     if (format == null) {

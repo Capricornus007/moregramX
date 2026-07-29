@@ -507,10 +507,12 @@ public final class TGMessageService extends TGMessageServiceImpl {
             case TdApi.MessageManagedBotCreated.CONSTRUCTOR:
             case TdApi.MessagePollOptionAdded.CONSTRUCTOR:
             case TdApi.MessagePollOptionDeleted.CONSTRUCTOR:
+            case TdApi.MessageChatAddedToCommunity.CONSTRUCTOR:
+            case TdApi.MessageChatRemovedFromCommunity.CONSTRUCTOR:
               staticResId = R.string.ActionPinnedNoText;
               break;
             default:
-              Td.assertMessageContent_bb294b24();
+              Td.assertMessageContent_a80283cf();
               throw Td.unsupported(message.content);
           }
           if (format == null) {
@@ -836,6 +838,66 @@ public final class TGMessageService extends TGMessageServiceImpl {
     });
   }
 
+  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageChatHasProtectedContentDisableRequested chatHasProtectedContentDisableRequested) {
+    super(context, msg);
+    setTextCreator(() -> {
+      if (chatHasProtectedContentDisableRequested.isExpired) {
+        return getText(
+          R.string.ActionSharingRequestExpired
+        );
+      } else if (msg.isOutgoing) {
+        return getText(
+          R.string.ActionSharingRequestOut
+        );
+      } else {
+        return getText(
+          R.string.ActionSharingRequest,
+          new SenderArgument(sender)
+        );
+      }
+    });
+  }
+
+  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageChatHasProtectedContentToggled chatHasProtectedContentToggled) {
+    super(context, msg);
+    setTextCreator(() -> {
+      if (chatHasProtectedContentToggled.oldHasProtectedContent != chatHasProtectedContentToggled.newHasProtectedContent) {
+        if (msg.isOutgoing) {
+          return getText(
+            chatHasProtectedContentToggled.newHasProtectedContent ?
+              R.string.ActionSharingDisabledOut :
+              R.string.ActionSharingEnabledOut
+          );
+        } else {
+          return getText(
+            chatHasProtectedContentToggled.newHasProtectedContent ?
+              R.string.ActionSharingDisabled :
+              R.string.ActionSharingEnabled,
+            new SenderArgument(sender)
+          );
+        }
+      } else {
+        return getText(
+          chatHasProtectedContentToggled.newHasProtectedContent ?
+            R.string.ActionSharingStillDisabled :
+            R.string.ActionSharingStillEnabled
+        );
+      }
+    });
+  }
+
+  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageManagedBotCreated botCreated) {
+    super(context, msg);
+    setTextCreator(() -> {
+      TdlibSender targetSender = new TdlibSender(tdlib, msg.chatId, new TdApi.MessageSenderUser(botCreated.botUserId));
+      return getText(
+        R.string.ActionCreatedManagedBot,
+        new SenderArgument(targetSender),
+        new SenderArgument(sender)
+      );
+    });
+  }
+
   public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageBotWriteAccessAllowed botWriteAccessAllowed) {
     super(context, msg);
     switch (botWriteAccessAllowed.reason.getConstructor()) {
@@ -1153,24 +1215,9 @@ public final class TGMessageService extends TGMessageServiceImpl {
     });
   }
 
-  // Forum Topics
+  // Unsupported service message (any)
 
-  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageForumTopicCreated forumTopicCreated) {
-    super(context, msg);
-    setUnsupportedTextCreator();
-  }
-
-  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageForumTopicEdited forumTopicEdited) {
-    super(context, msg);
-    setUnsupportedTextCreator();
-  }
-
-  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageForumTopicIsClosedToggled forumTopicIsClosedToggled) {
-    super(context, msg);
-    setUnsupportedTextCreator();
-  }
-
-  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageForumTopicIsHiddenToggled forumTopicIsHiddenToggled) {
+  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageUnsupported unsupported) {
     super(context, msg);
     setUnsupportedTextCreator();
   }
@@ -1178,6 +1225,441 @@ public final class TGMessageService extends TGMessageServiceImpl {
   private void setUnsupportedTextCreator () {
     setTextCreator(() ->
       getText(R.string.UnsupportedMessage)
+    );
+  }
+
+  // Chat owner changes
+
+  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageChatOwnerChanged chatOwnerChanged) {
+    super(context, msg);
+    setTextCreator(() -> {
+      TdlibSender targetSender = new TdlibSender(tdlib, msg.chatId, new TdApi.MessageSenderUser(chatOwnerChanged.newOwnerUserId));
+      return getText(
+        R.string.ActionChatOwnerChanged,
+        new SenderArgument(targetSender)
+      );
+    });
+  }
+
+  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageChatOwnerLeft chatOwnerLeft) {
+    super(context, msg);
+    setTextCreator(() -> {
+      if (chatOwnerLeft.newOwnerUserId != 0) {
+        TdlibSender targetSender = new TdlibSender(tdlib, msg.chatId, new TdApi.MessageSenderUser(chatOwnerLeft.newOwnerUserId));
+        return getText(
+          R.string.ActionChatOwnerLeftTo,
+          new SenderArgument(targetSender)
+        );
+      } else {
+        return getText(
+          R.string.ActionChatOwnerLeft
+        );
+      }
+    });
+  }
+
+  // Paid messages
+
+  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessagePaidMessagesRefunded paidMessagesRefunded) {
+    super(context, msg);
+    setTextCreator(() -> {
+      if (msg.isOutgoing) {
+        return getPlural(
+          R.string.ActionPaidMessagesRefundedOut,
+          paidMessagesRefunded.messageCount,
+          new BoldArgument(Lang.plural(R.string.format_refundedStars, paidMessagesRefunded.starCount))
+        );
+      } else {
+        return getPlural(
+          R.string.ActionPaidMessagesRefunded,
+          paidMessagesRefunded.messageCount,
+          new SenderArgument(sender),
+          new BoldArgument(Lang.plural(R.string.format_refundedStars, paidMessagesRefunded.starCount))
+        );
+      }
+    });
+  }
+
+  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessagePaidMessagePriceChanged paidMessagePriceChanged) {
+    super(context, msg);
+    setTextCreator(() -> {
+      if (msg.isOutgoing) {
+        return getPlural(
+          R.string.ActionPriceChangedOut,
+          paidMessagePriceChanged.paidMessageStarCount
+        );
+      } else {
+        return getPlural(
+          R.string.ActionPriceChanged,
+          paidMessagePriceChanged.paidMessageStarCount,
+          new SenderArgument(sender)
+        );
+      }
+    });
+  }
+
+  // Forum Topics
+
+  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageForumTopicCreated forumTopicCreated) {
+    super(context, msg);
+    setTextCreator(() -> {
+      boolean needName = !sender.isBot() && sender.isUser();
+      if (forumTopicCreated.icon.customEmojiId != 0) {
+        return getText(
+          needName ? (
+            msg.isOutgoing ?
+              R.string.ActionTopicCreateIconOut :
+              R.string.ActionTopicCreateIcon
+          ) :
+            R.string.ActionTopicCreatedIcon,
+          new CustomEmojiArgument(tdlib, forumTopicCreated.icon.customEmojiId, null),
+          new BoldArgument(forumTopicCreated.name),
+          new SenderArgument(sender)
+        );
+      } else {
+        return getText(
+          needName ? (
+            msg.isOutgoing ?
+              R.string.ActionTopicCreateOut :
+              R.string.ActionTopicCreate
+            ) :
+            R.string.ActionTopicCreated,
+          new BoldArgument(forumTopicCreated.name),
+          new SenderArgument(sender)
+        );
+      }
+    });
+  }
+
+  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageForumTopicEdited forumTopicEdited) {
+    super(context, msg);
+    setTextCreator(() -> {
+      if (forumTopicEdited.editIconCustomEmojiId) {
+        if (StringUtils.isEmpty(forumTopicEdited.name)) {
+          return getText(
+            (msg.isOutgoing ?
+              R.string.ActionTopicChangedIconOut :
+              R.string.ActionTopicChangedIcon
+            ),
+            new CustomEmojiArgument(tdlib, forumTopicEdited.iconCustomEmojiId, null),
+            new SenderArgument(sender)
+          );
+        } else {
+          return getText(
+            (msg.isOutgoing ?
+              R.string.ActionTopicChangedIconNameOut :
+              R.string.ActionTopicChangedIconName
+            ),
+            new CustomEmojiArgument(tdlib, forumTopicEdited.iconCustomEmojiId, null),
+            new BoldArgument(forumTopicEdited.name),
+            new SenderArgument(sender)
+          );
+        }
+      } else {
+        return getText(
+          msg.isOutgoing ?
+            R.string.ActionTopicRenamedOut :
+            R.string.ActionTopicRenamed,
+          new BoldArgument(forumTopicEdited.name),
+          new SenderArgument(sender)
+        );
+      }
+    });
+  }
+
+  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageForumTopicIsClosedToggled forumTopicIsClosedToggled) {
+    super(context, msg);
+    setTextCreator(() ->
+      getText(
+        forumTopicIsClosedToggled.isClosed ?
+          (msg.isOutgoing ? R.string.ActionUnknownTopicClosedOut : R.string.ActionUnknownTopicClosed) :
+          (msg.isOutgoing ? R.string.ActionUnknownTopicReopenedOut : R.string.ActionUnknownTopicReopened),
+        new SenderArgument(sender)
+      )
+    );
+    withTopicInfo(inPlace -> {
+      setTextCreator(() -> {
+        TdApi.ForumTopicInfo topicInfo = topicInfo();
+        if (topicInfo.isGeneral) {
+          return getText(
+            forumTopicIsClosedToggled.isClosed ?
+              (msg.isOutgoing ? R.string.ActionGeneralTopicClosedOut : R.string.ActionGeneralTopicClosed) :
+              (msg.isOutgoing ? R.string.ActionGeneralTopicReopenedOut : R.string.ActionGeneralTopicReopened),
+            new SenderArgument(sender)
+          );
+        } else {
+          return getText(
+            forumTopicIsClosedToggled.isClosed ?
+              (msg.isOutgoing ? R.string.ActionTopicClosedOut : R.string.ActionTopicClosed) :
+              (msg.isOutgoing ? R.string.ActionTopicReopenedOut : R.string.ActionTopicReopened),
+            new CustomEmojiArgument(tdlib, topicInfo.icon.customEmojiId, null),
+            new BoldArgument(topicInfo.name),
+            new SenderArgument(sender)
+          );
+        }
+      });
+      if (!inPlace) {
+        runOnUiThreadOptional(this::updateServiceMessage);
+      }
+    });
+  }
+
+  @Override
+  protected void onTopicInfoUpdated () {
+    if (msg.content.getConstructor() == TdApi.MessageForumTopicIsClosedToggled.CONSTRUCTOR) {
+      runOnUiThreadOptional(this::updateServiceMessage);
+    }
+  }
+
+  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageForumTopicIsHiddenToggled forumTopicIsHiddenToggled) {
+    super(context, msg);
+    setTextCreator(() -> {
+      if (msg.isOutgoing) {
+        return getText(
+          forumTopicIsHiddenToggled.isHidden ?
+            R.string.ActionTopicHiddenOut :
+            R.string.ActionTopicUnhiddenOut
+        );
+      } else {
+        return getText(
+          forumTopicIsHiddenToggled.isHidden ?
+            R.string.ActionTopicHidden :
+            R.string.ActionTopicUnhidden,
+          new SenderArgument(sender)
+        );
+      }
+    });
+  }
+
+  // Poll
+  
+  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessagePollOptionAdded pollOptionAdded) {
+    super(context, msg);
+    setPollOptionAddDeleteTextCreator(false, pollOptionAdded.text, pollOptionAdded.pollMessageId);
+  }
+
+  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessagePollOptionDeleted pollOptionDeleted) {
+    super(context, msg);
+    setPollOptionAddDeleteTextCreator(true, pollOptionDeleted.text, pollOptionDeleted.pollMessageId);
+  }
+
+  private void setPollOptionAddDeleteTextCreator (boolean isDelete, TdApi.FormattedText text, long pollMessageId) {
+    setTextCreator(() -> {
+      if (msg.isOutgoing) {
+        return getText(isDelete ? R.string.ActionDeletedPollOutOption : R.string.ActionAddedPollOutOption,
+          new FormattedTextArgument(text)
+        );
+      } else {
+        return getText(isDelete ? R.string.ActionDeletedPollOption : R.string.ActionAddedPollOption,
+          new SenderArgument(sender),
+          new FormattedTextArgument(text)
+        );
+      }
+    });
+    setDisplayMessage(msg.chatId, pollMessageId, message -> {
+      if (Td.isPoll(message.content)) {
+        return false;
+      }
+      setTextCreator(() -> {
+        if (msg.isOutgoing) {
+          return getText(isDelete ? R.string.ActionDeletedPollOutOptionMsg : R.string.ActionAddedPollOutOptionMsg,
+            new FormattedTextArgument(text),
+            new MessageArgument(message, ((TdApi.MessagePoll) message.content).poll.question)
+          );
+        } else {
+          return getText(isDelete ? R.string.ActionDeletedPollOptionMsg : R.string.ActionAddedPollOptionMsg,
+            new SenderArgument(sender),
+            new FormattedTextArgument(text),
+            new MessageArgument(message, ((TdApi.MessagePoll) message.content).poll.question)
+          );
+        }
+      });
+      return true;
+    });
+  }
+
+  // Checklist
+
+  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageChecklistTasksAdded checklistTasksAdded) {
+    super(context, msg);
+    setTextCreator(() -> {
+      TdApi.FormattedText tasksList = buildChecklistTasksList(checklistTasksAdded.tasks, null);
+      if (msg.isOutgoing) {
+        return getText(
+          R.string.ActionChecklistAdd,
+          new FormattedTextArgument(tasksList)
+        );
+      } else {
+        return getText(
+          R.string.ActionChecklistAdd,
+          new SenderArgument(sender),
+          new FormattedTextArgument(tasksList)
+        );
+      }
+    });
+    setDisplayMessage(msg.chatId, checklistTasksAdded.checklistMessageId, message -> {
+      if (!Td.isChecklist(message.content)) {
+        return false;
+      }
+      setTextCreator(() -> {
+        TdApi.FormattedText tasksList = buildChecklistTasksList(checklistTasksAdded.tasks, null);
+        if (msg.isOutgoing) {
+          return getText(
+            R.string.ActionChecklistAddOutMsg,
+            new FormattedTextArgument(tasksList),
+            new MessageArgument(message, ((TdApi.MessageChecklist) message.content).list.title)
+          );
+        } else {
+          return getText(
+            R.string.ActionChecklistAddMsg,
+            new SenderArgument(sender),
+            new FormattedTextArgument(tasksList),
+            new MessageArgument(message, ((TdApi.MessageChecklist) message.content).list.title)
+          );
+        }
+      });
+      return true;
+    });
+  }
+
+  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageChecklistTasksDone checklistTasksDone) {
+    super(context, msg);
+    setTextCreator(() -> {
+      int doneTasksCount = checklistTasksDone.markedAsDoneTaskIds.length;
+      int notDoneTasksCount = checklistTasksDone.markedAsNotDoneTaskIds.length;
+      if (msg.isOutgoing) {
+        if (doneTasksCount == 0 || notDoneTasksCount == 0) {
+          return getPlural(
+            notDoneTasksCount == 0 ?
+              R.string.ActionChecklistMarkDoneTasksOut :
+              R.string.ActionChecklistMarkNotDoneTasksOut,
+            doneTasksCount
+          );
+        } else {
+          return getText(
+            R.string.format_ActionChecklistMarkTasksOut,
+            new PlainArgument(Lang.plural(R.string.format_ActionChecklistMarkTasksOutDone, doneTasksCount)),
+            new PlainArgument(Lang.plural(R.string.format_ActionChecklistMarkTasksOutNotDone, notDoneTasksCount))
+          );
+        }
+      } else {
+        if (doneTasksCount == 0 || notDoneTasksCount == 0) {
+          return getPlural(
+            notDoneTasksCount == 0 ?
+              R.string.ActionChecklistMarkDoneTasks :
+              R.string.ActionChecklistMarkNotDoneTasks,
+            doneTasksCount,
+            new SenderArgument(sender)
+          );
+        } else {
+          return getText(
+            R.string.format_ActionChecklistMarkTasksOut,
+            new SenderArgument(sender),
+            new PlainArgument(Lang.plural(R.string.format_ActionChecklistMarkTasksDone, doneTasksCount)),
+            new PlainArgument(Lang.plural(R.string.format_ActionChecklistMarkTasksNotDone, notDoneTasksCount))
+          );
+        }
+      }
+    });
+    setDisplayMessage(msg.chatId, checklistTasksDone.checklistMessageId, message -> {
+      if (!Td.isChecklist(message.content)) {
+        return false;
+      }
+      setTextCreator(() -> {
+        TdApi.Checklist checklist = ((TdApi.MessageChecklist) message.content).list;
+        TdApi.FormattedText doneItems = buildChecklistTasksList(checklist.tasks, checklistTasksDone.markedAsDoneTaskIds);
+        TdApi.FormattedText undoneItems = buildChecklistTasksList(checklist.tasks, checklistTasksDone.markedAsNotDoneTaskIds);
+        if (msg.isOutgoing) {
+          if (undoneItems == null || doneItems == null) {
+            return getText(undoneItems == null ?
+                R.string.ActionChecklistMarkDoneOut :
+                R.string.ActionChecklistMarkNotDoneOut,
+              new FormattedTextArgument(undoneItems == null ? doneItems : undoneItems)
+            );
+          } else {
+            return getText(
+              R.string.ActionChecklistMarkOut,
+              new FormattedTextArgument(doneItems),
+              new FormattedTextArgument(undoneItems)
+            );
+          }
+        } else {
+          if (undoneItems == null || doneItems == null) {
+            return getText(undoneItems == null ?
+                R.string.ActionChecklistMarkDone :
+                R.string.ActionChecklistMarkNotDone,
+              new SenderArgument(sender),
+              new FormattedTextArgument(undoneItems == null ? doneItems : undoneItems)
+            );
+          } else {
+            return getText(
+              R.string.ActionChecklistMark,
+              new SenderArgument(sender),
+              new FormattedTextArgument(doneItems),
+              new FormattedTextArgument(undoneItems)
+            );
+          }
+        }
+      });
+      return true;
+    });
+  }
+
+  private static TdApi.FormattedText buildChecklistTasksList (TdApi.ChecklistTask[] tasks, int[] taskIds) {
+    int tasksCount = taskIds != null ? taskIds.length : tasks.length;
+    if (tasksCount == 0) {
+      return null;
+    }
+    TdApi.FormattedText formattedText = Td.emptyFormattedText();
+    for (int i = 0; i < tasksCount; i++) {
+      int taskId = taskIds != null ? taskIds[i] : tasks[i].id;
+      boolean isLast = i + 1 == tasksCount;
+      if (i > 0) {
+        String separator = Lang.getString(
+          isLast ?
+            R.string.format_ActionChecklistItemSeparatorLast :
+            R.string.format_ActionChecklistItemSeparator
+        );
+        formattedText = Td.concat(
+          formattedText,
+          new TdApi.FormattedText(separator, new TdApi.TextEntity[0])
+        );
+      }
+      TdApi.ChecklistTask item = taskIds != null ? TD.findTask(tasks, taskId) : tasks[i];
+      TdApi.FormattedText text = TD.format(
+        Lang.getString(R.string.format_ActionChecklistItem),
+        item != null ? item.text : new TdApi.FormattedText("?", new TdApi.TextEntity[0])
+      );
+      if (Td.isEmpty(formattedText)) {
+        formattedText = text;
+      } else {
+        formattedText = Td.concat(
+          formattedText,
+          text
+        );
+      }
+    }
+    return formattedText;
+  }
+
+  // Community
+
+  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageChatAddedToCommunity chatAddedToCommunity) {
+    super(context, msg);
+    setTextCreator(() -> {
+      TdApi.Community community = tdlib().cache().community(chatAddedToCommunity.communityId);
+      if (community != null) {
+        return getText(R.string.ActionChatAddedToCommunity, new BoldArgument(community.name));
+      } else {
+        return getText(R.string.ActionChatAddedToCommunityUnknown);
+      }
+    });
+  }
+
+  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageChatRemovedFromCommunity chatRemovedFromCommunity) {
+    super(context, msg);
+    setTextCreator(() ->
+      getText(R.string.ActionChatRemovedFromCommunity)
     );
   }
 
