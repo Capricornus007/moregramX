@@ -2452,7 +2452,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
         if (isPinnedError == null) {
           UI.showToast(R.string.AudioAlreadyPinned, Toast.LENGTH_SHORT);
         } else {
-          tdlib.send(new TdApi.AddProfileAudio(new TdApi.InputFileId(fileId), audio.duration, audio.title, audio.performer), addedOk ->
+          tdlib.send(new TdApi.AddProfileAudio(new TdApi.InputAudio(new TdApi.InputFileId(fileId), null, audio.duration, audio.title, audio.performer)), addedOk ->
             UI.showToast(R.string.AudioPinned, Toast.LENGTH_SHORT), UI::showError);
         }
       }));
