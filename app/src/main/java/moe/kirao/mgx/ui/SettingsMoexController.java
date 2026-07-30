@@ -97,7 +97,7 @@ public class SettingsMoexController extends RecyclerViewController<SettingsMoexC
       MoexConfig.instance().toggleEnableFeaturesButton();
       adapter.updateValuedSettingById(viewId);
     } else if (viewId == R.id.btn_showIdProfile) {
-      handleSettingClick(v, adapter);
+      Settings.instance().setExperimentEnabled(Settings.EXPERIMENT_FLAG_SHOW_PEER_IDS, adapter.toggleView(v));
     } else if (viewId == R.id.btn_hideMessagesBadge) {
       MoexConfig.instance().toggleHideMessagesBadge();
       adapter.updateValuedSettingById(viewId);
@@ -294,7 +294,7 @@ public class SettingsMoexController extends RecyclerViewController<SettingsMoexC
         } else if (itemId == R.id.btn_enableFeaturesButton) {
           view.getToggler().setRadioEnabled(MoexConfig.enableTestFeatures, isUpdate);
         } else if (itemId == R.id.btn_showIdProfile) {
-          updateSettingView(view, item, isUpdate);
+          view.getToggler().setRadioEnabled(Settings.instance().isExperimentEnabled(Settings.EXPERIMENT_FLAG_SHOW_PEER_IDS), isUpdate);
         } else if (itemId == R.id.btn_hideMessagesBadge) {
           view.getToggler().setRadioEnabled(MoexConfig.hideMessagesBadge, isUpdate);
         } else if (itemId == R.id.btn_changeSizeLimit) {
@@ -434,7 +434,7 @@ public class SettingsMoexController extends RecyclerViewController<SettingsMoexC
 
         items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.ProfileOptions));
         items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
-        items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_showIdProfile, 0, R.string.showIdProfile).setLongValue(Settings.EXPERIMENT_FLAG_SHOW_PEER_IDS));
+        items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_showIdProfile, 0, R.string.showIdProfile));
         items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
         items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_hidePhone, 0, R.string.hidePhoneNumber));
         items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
