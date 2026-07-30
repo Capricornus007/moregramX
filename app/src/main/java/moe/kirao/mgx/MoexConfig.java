@@ -33,7 +33,6 @@ public class MoexConfig {
   public static final String KEY_HIDE_STICKER_TIMESTAMP = "hide_sticker_timestamp";
   public static final String KEY_ENABLE_FEATURES_BUTTON = "enable_features_button";
   public static final String KEY_HIDE_PHONE_NUMBER = "hide_phone_number";
-  public static final String KEY_SHOW_ID_PROFILE = "show_id_profile";
   public static final String KEY_DISABLE_SEND_AS_BUTTON = "disable_send_as_button";
   public static final String KEY_ROUNDED_STICKERS = "rounded_stickers";
   public static final String KEY_INCREASE_RECENTS_COUNT = "increase_recents_count";
@@ -84,7 +83,6 @@ public class MoexConfig {
   public static boolean hideStickerTimestamp = instance().getBoolean(KEY_HIDE_STICKER_TIMESTAMP, false);
   public static boolean enableTestFeatures = instance().getBoolean(KEY_ENABLE_FEATURES_BUTTON, false);
   public static boolean hidePhoneNumber = instance().getBoolean(KEY_HIDE_PHONE_NUMBER, false);
-  public static boolean showId = instance().getBoolean(KEY_SHOW_ID_PROFILE, false);
   public static boolean roundedStickers = instance().getBoolean(KEY_ROUNDED_STICKERS, false);
   public static boolean increaseRecents = instance().getBoolean(KEY_INCREASE_RECENTS_COUNT, false);
   public static boolean hideMessagesBadge = instance().getBoolean(KEY_HIDE_MESSAGES_BADGE, false);
@@ -263,10 +261,6 @@ public class MoexConfig {
   public void toggleHidePhoneNumber () {
     putBoolean(KEY_HIDE_PHONE_NUMBER, hidePhoneNumber ^= true);
     notifyClientListeners(KEY_HIDE_PHONE_NUMBER, !hidePhoneNumber, hidePhoneNumber);
-  }
-
-  public void toggleShowIdProfile () {
-    putBoolean(KEY_SHOW_ID_PROFILE, showId ^= true);
   }
 
   public void toggleDisableSendAsButton () {
