@@ -62,6 +62,8 @@ public class Config {
   // The only way around for the sender is to transcode video fully even when there's no need at all.
   public static final boolean TRANSCODE_ROTATED_VIDEOS_FOR_IOS_CLIENT = true;
 
+  public static final boolean ENABLE_BASELINE_PROFILE_HOOKS = BuildConfig.FULL_FLAVOR;
+
   private static Boolean hasWebpSupport;
   public static boolean useBundledWebp () {
     if (BuildConfig.WEBP_ENABLED) {
@@ -204,6 +206,7 @@ public class Config {
   public static final boolean EXPLICIT_DICE_AVAILABLE = false;
 
   public static final boolean FOREGROUND_SERVICE_DEMO = false;
+  public static final boolean FOREGROUND_CONTACTS_SYNC_DEMO = false;
   public static final boolean TEST_SYNC_CONTACTS_PROMPT = false;
 
   public static boolean useCloudPlayback (TdApi.Message playPauseFile) {

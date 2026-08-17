@@ -24,6 +24,8 @@ dependencyResolutionManagement {
 
 rootProject.name = "moeGramX"
 include(
+  ":baseline-profile",
+
   ":tdlib",
   ":tgcalls",
 

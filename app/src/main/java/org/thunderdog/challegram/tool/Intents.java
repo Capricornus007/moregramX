@@ -18,6 +18,7 @@ import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -724,6 +725,14 @@ public class Intents {
     }
     // intent.setFlags(32768);
     return intent;
+  }
+
+  public static String getIntentClassName (Intent intent) {
+    ComponentName componentName = intent.getComponent();
+    if (componentName != null) {
+      return componentName.getClassName();
+    }
+    return "";
   }
 
   public static Intent valueOfMain (int accountId) {

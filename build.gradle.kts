@@ -2,4 +2,15 @@
 
 plugins {
   alias(libs.plugins.google.services) apply false
+  alias(libs.plugins.androidx.baselineprofile) apply false
+}
+
+allprojects {
+  plugins.withType<JavaBasePlugin> {
+    extensions.configure<JavaPluginExtension> {
+      toolchain {
+        languageVersion.set(JavaLanguageVersion.of(21))
+      }
+    }
+  }
 }

@@ -9,6 +9,7 @@ import java.util.*
 
 plugins {
   id(libs.plugins.android.application.get().pluginId)
+  id(libs.plugins.androidx.baselineprofile.get().pluginId)
   id("tgx-config")
   id("tgx-module")
 }
@@ -256,11 +257,18 @@ android {
       !(abiVariant.flavor == "universal" && sdkVariant.flavor == "legacy") &&
       (variantBuilder.buildType != "debug" || sdkVariant.flavor == "legacy" || (abiVariant.flavor == "x86" || abiVariant.flavor == "x64" || abiVariant.flavor == "universal" || abiVariant.flavor == "arm64"))
   }
-productFlavors {
+  productFlavors {
     Sdk.VARIANTS.forEach { (sdkIndex, variant) ->
       create(variant.flavor) {
         dimension = "SDK"
         isDefault = sdkIndex == Sdk.LATEST
+
+        if (variant.flavor != "latest") {
+          matchingFallbacks += "latest"
+        }
+        Sdk.VARIANTS.forEach { (subSdkIndex, subVariant) ->
+          buildConfigBool("${subVariant.flavor.uppercase()}_FLAVOR", sdkIndex == subSdkIndex)
+        }
 
         val actualMinSdk = if (config.isHuaweiBuild) {
           maxOf(variant.minSdk, Config.MIN_SDK_VERSION_HUAWEI)
@@ -323,10 +331,6 @@ productFlavors {
           }
         }
 
-        Sdk.VARIANTS.forEach { (subSdkIndex, subVariant) ->
-          buildConfigBool("${subVariant.flavor.uppercase()}_FLAVOR", sdkIndex == subSdkIndex)
-        }
-
         var extraProguardFileCount = 0
 
         arrayOf(
@@ -360,6 +364,14 @@ productFlavors {
       create(variant.flavor) {
         dimension = "ABI"
         isDefault = abiIndex == 0
+
+        if (variant.flavor != "full") {
+          matchingFallbacks += "full"
+        }
+        Abi.VARIANTS.forEach { (subAbiIndex, subVariant) ->
+          buildConfigBool("${subVariant.flavor.uppercase()}_FLAVOR", abiIndex == subAbiIndex)
+        }
+
         ndkVersion = if (variant.is64Bit) {
           config.primaryNdkVersion
         } else {
@@ -428,7 +440,7 @@ productFlavors {
       }
       require(baseVersionCode != null && baseVersionName != null && fileName != null)
 
-      val recaptchaVersion = selectImplementation(
+      val recaptchaVersion = selectFlavor(
         sdkVariant,
         libs.google.recaptcha.legacy,
         libs.google.recaptcha.lollipop,
@@ -555,7 +567,23 @@ gradle.projectsEvaluated {
   }
 }
 
+baselineProfile {
+  mergeIntoMain = true
+  automaticGenerationDuringBuild = false
+  saveInSrc = true
+  warnings {
+    disabledVariants = false
+  }
+}
+
 dependencies {
+  postMarshmallowImplementation(libs.androidx.profileinstaller)
+  baselineProfile(project(":baseline-profile"))
+  flavorImplementation(
+    libs.androidx.tracing.legacy,
+    libs.androidx.tracing.lollipop,
+    libs.androidx.tracing.latest
+  )
   legacyImplementation(libs.androidx.multidex)
   implementation(project(":extension:${config.extension}"))
   // TDLib: https://github.com/tdlib/td/blob/master/CHANGELOG.md
@@ -709,7 +737,7 @@ dependencies {
     libs.androidx.media.exoplayer.hls.lollipop,
     libs.androidx.media.exoplayer.hls.latest
   )
-  postLollipopImplementation(libs.androidx.media.inspector.latest)
+  sinceMarshmallowImplementation(libs.androidx.media.inspector.latest)
   // Play In-App Updates: https://developer.android.com/reference/com/google/android/play/core/release-notes-in_app_updates
   implementation(libs.google.play.app.update)
   // Google Play Billing: https://developer.android.com/google/play/billing/release-notes
