@@ -77,6 +77,7 @@ open class ConfigurationPlugin : Plugin<Project> {
       else -> keystore == null
     }
     val doNotObfuscate = isExampleBuild || properties.getProperty("app.dontobfuscate", "false") == "true"
+    val generateBaselineProfile = project.providers.gradleProperty("generateBaselineProfile").isPresent
     val forceOptimize = properties.getProperty("app.forceoptimize") == "true"
     val appExtension = getOrSample("tgx.extension")
     if (appExtension != "none" && appExtension != "hms") {
@@ -138,6 +139,7 @@ open class ConfigurationPlugin : Plugin<Project> {
       isHuaweiBuild,
       forceOptimize,
       doNotObfuscate,
+      generateBaselineProfile,
       compileSdkVersion,
       targetSdkVersion,
       buildToolsVersion,

@@ -1,10 +1,19 @@
 plugins {
+  id("java-toolchain-convention")
   id(libs.plugins.android.library.get().pluginId)
   id("tgx-module")
 }
 
 dependencies {
   implementation(libs.androidx.annotation)
+}
+
+tasks.withType(JavaCompile::class.java).configureEach {
+  options.compilerArgs.addAll(listOf(
+    "-Xlint:-rawtypes",
+    "-Xlint:-cast",
+    "-Xlint:-deprecation"
+  ))
 }
 
 android {
@@ -14,16 +23,6 @@ android {
 
   defaultConfig {
     consumerProguardFiles("consumer-rules.pro")
-  }
-
-  project.afterEvaluate {
-    tasks.withType(JavaCompile::class.java).configureEach {
-      options.compilerArgs.addAll(listOf(
-        "-Xlint:-rawtypes",
-        "-Xlint:-cast",
-        "-Xlint:-deprecation"
-      ))
-    }
   }
 
   sourceSets.named<com.android.build.api.dsl.AndroidSourceSet>("main") {
