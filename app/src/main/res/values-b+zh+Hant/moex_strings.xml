@@ -44,7 +44,7 @@
   <string name="MoexBlurDrawer">模糊頭像</string>
   <string name="MoexChatsHeader">聊天清單</string>
   <string name="TypingInstead">傳送「正在選擇貼圖」狀態</string>
-  <string name="TypingInsteadInfo" formatted="true">這將會傳送 **「正在輸入」** 狀態，而非 **「正在選擇」** 貼圖</string>
+  <string name="TypingInsteadInfo" formatted="true">這會傳送 **「正在選擇貼圖」** 狀態，而非 **「正在輸入」** 狀態。</string>
   <string name="DisableReactions">隱藏表情符號</string>
   <string name="HideMessagePanelButtons">隱藏訊息面板按鈕</string>
   <string name="ProfileOptions">個人資料</string>
@@ -75,6 +75,7 @@
   <string name="RearCamera">後置鏡頭</string>
   <string name="Ask">每次詢問</string>
   <string name="Platform">平台</string>
+  <string name="AddToProfile">新增至個人檔案</string>
   <string name="SaveMusicToProfile">新增到個人檔案</string>
   <string name="AudioPinned">音訊已新增至個人檔案</string>
   <string name="AudioAlreadyPinned">音訊已釘選至個人檔案</string>
@@ -91,4 +92,5 @@
   <string name="ProxyAlertCheck">檢查</string>
   <string name="moex_birthdayBarSubtitle">今天過生日</string>
   <string name="moex_birthdaysTodayTitle">今天有 %1$d 人過生日</string>
+  <string name="ProfileChannel">個人頻道</string>
 </resources>

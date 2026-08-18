@@ -55,15 +55,15 @@
   <string name="FileRes">Жазба сапасы</string>
   <string name="FileSongName">Ән атауы</string>
   <string name="Document">Құжат</string>
-  <string name="Chat">Ча</string>
+  <string name="Chat">Чат</string>
   <string name="Edited">Өңделді</string>
   <string name="MoexDarkenDrawer">Бейінді түндірейту</string>
   <string name="SilentMessage">Хаттарды үнсіз жіберу</string>
   <string name="ProfileNote">Ескертпе</string>
   <string name="Edit">Өңдеу</string>
   <string name="ProfileNoteHint">Ескертпелер тек Сізге көрінеді.</string>
-  <string name="frontCamera">Артқы камера</string>
-  <string name="RearCamera">Алғы камера</string>
+  <string name="frontCamera">Алдыңғы камера</string>
+  <string name="RearCamera">Артқы камера</string>
   <string name="Ask">Сұрау</string>
   <string name="Platform">Платформа\'сы</string>
 </resources>

@@ -12,7 +12,7 @@
   <string name="MoexHideButtons">Панель повідомлень</string>
   <string name="DisableCommandsButton">Приховати кнопку команд</string>
   <string name="DisableCameraButton">Приховати кнопку камери</string>
-  <string name="DisableRecordButton">Приховати кнопку камери</string>
+  <string name="DisableRecordButton">Приховати кнопку медіа</string>
   <string name="MoexChatsSettings">Налаштування чатів</string>
   <string name="MoexStickersCount">Стікери</string>
   <string name="DisableStickerTimestamp">Приховати час на наліпках</string>
@@ -44,7 +44,7 @@
   <string name="MoexBlurDrawer">Розмити аватар</string>
   <string name="MoexChatsHeader">Список чатів</string>
   <string name="TypingInstead">Надсилати статус вибору наліпки</string>
-  <string name="TypingInsteadInfo" formatted="true">Це відправить статус **пише** замість **вибору** наліпки</string>
+  <string name="TypingInsteadInfo" formatted="true">Це надсилатиме статус **вибирає наліпку** замість **пише**.</string>
   <string name="DisableReactions">Приховати реакції</string>
   <string name="HideMessagePanelButtons">Приховати кнопки панелі повідомлень</string>
   <string name="ProfileOptions">Профіль</string>
@@ -75,9 +75,12 @@
   <string name="RearCamera">Основна</string>
   <string name="Ask">Запитувати</string>
   <string name="Platform">Платформа</string>
+  <string name="AddToProfile">Додати до профілю</string>
+  <string name="SaveMusicToProfile">Додати до профілю</string>
   <string name="AudioPinned">Аудіо додано до Профілю</string>
   <string name="AudioAlreadyPinned">Аудіо вже додано до Профілю</string>
   <string name="RemoveProfileAudioConfirm">Прибрати %1$s з вашого Профілю?</string>
+  <string name="RemoveProfileAudio">Видалити з профілю</string>
   <string name="AudioUnpinned">Аудіо прибрано з профілю</string>
   <string name="ProxyDisableOnVpn">Відключати при активному VPN</string>
   <string name="ProxyDisableOnVpnHint">При підключенні системного VPN трафік Telegram проходитиме через нього, оминаючи проксі. Проксі відновлюється автоматично після вимкнення VPN.</string>
@@ -86,7 +89,8 @@
   <string name="AutoPauseMediaResume">Продовжити після відтворення</string>
   <string name="ProxyAlertType">Тип проксі</string>
   <string name="ProxyAlertStatus">Стан</string>
-  <string name="ProxyAlertCheck">перевірити</string>
+  <string name="ProxyAlertCheck">Перевірити</string>
   <string name="moex_birthdayBarSubtitle">День народження сьогодні</string>
   <string name="moex_birthdaysTodayTitle">%1$d дні народження сьогодні</string>
+  <string name="ProfileChannel">Канал профілю</string>
 </resources>

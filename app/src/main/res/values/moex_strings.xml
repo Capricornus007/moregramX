@@ -31,10 +31,10 @@
   <string name="showIdProfile">Show User ID in profiles</string>
   <string name="DisableSendAsButton">Channels</string>
   <string name="MoexAbout">About</string>
-  <string name="MoexAboutText" formatted="true">**moeGramX** — is a cute features rich a bit experimental client based on the official sources and TDlib. Feel free to suggest some features, report problems or just chat in our Discuss group!</string>
+  <string name="MoexAboutText" formatted="true">**moeGramX** is a cute, feature-rich, slightly experimental client based on the official source code and TDLib. Feel free to suggest features, report problems, or just chat in our discussion group!</string>
   <string name="MoexVer" translatable="false">Telegram X v0.28.9.1800-debug</string>
-  <string name="HideCameraButtonInfo">Hide camera button option also adds a camera button to the buttom of the attach menu</string>
-  <string name="IncreaseRecents">Increase recent stickers</string>
+  <string name="HideCameraButtonInfo">The option to hide the camera button also adds a camera button to the bottom of the attachment menu.</string>
+  <string name="IncreaseRecents">Increase the number of recent stickers</string>
   <string name="hideMessagesBadge">Hide unread messages badge</string>
   <string name="moexChannel" translatable="false">\@moeGramX</string>
   <string name="moexChat" translatable="false">\@moe_chat</string>
@@ -45,21 +45,21 @@
   <string name="px2560" translatable="false">2560px</string>
   <string name="changeSizeLimit">Photo resolution</string>
   <string name="changeSizeLimitInfo">Change the resolution of sent photos</string>
-  <string name="SizeLimitDesc">This feature is unstable and can cause a bit of minor interface bugs. Change to **1280px** and clear cache via storage settings if you see any visual bugs with sent photos.</string>
+  <string name="SizeLimitDesc">This feature is unstable and can cause minor interface bugs. Change to **1280px** and clear the cache in storage settings if you see visual problems with sent photos.</string>
   <string name="CopiedPhoto">Photo has been copied to the clipboard</string>
   <string name="CopyPhoto">Copy photo</string>
   <string name="Repeat">Repeat</string>
   <string name="moexHeaderClient" translatable="false">Telegram X</string>
   <string name="changeHeaderText">Header text</string>
   <string name="RememberOptions">Remember send options</string>
-  <string name="RememberOptionsInfo">Remember previously selected send option and set it by default</string>
+  <string name="RememberOptionsInfo">Remember the previously selected send option and use it by default.</string>
   <string name="SquareAvatar">Square avatar corners</string>
   <string name="MoexBlurDrawer">Blur avatar</string>
   <string name="MoexChatsHeader">Chats list</string>
   <string name="AppNameAndVersionOverride" translatable="false">Telegram X %1$s</string>
   <string name="AppSignatureOverride" translatable="false">**Telegram X** `%1$s`</string>
-  <string name="TypingInstead">Send choosing sticker status</string>
-  <string name="TypingInsteadInfo" formatted="true">This will send **typing** status instead of **choosing** sticker</string>
+  <string name="TypingInstead">Send the “choosing a sticker” status</string>
+  <string name="TypingInsteadInfo" formatted="true">This sends the **choosing a sticker** status instead of **typing**.</string>
   <string name="cuteToast" translatable="false">Moe moe, kyun!</string>
   <string name="DisableReactions">Hide reactions</string>
   <string name="HideMessagePanelButtons">Hide message panel buttons</string>
@@ -75,18 +75,18 @@
   <string name="MimeType">Mime</string>
   <string name="FileRes">Resolution</string>
   <string name="FilePerformer">Performer</string>
-  <string name="FileSongName">Song Name</string>
+  <string name="FileSongName">Song name</string>
   <string name="Document">Document</string>
   <string name="Chat">Chat</string>
   <string name="Bitrate">Bitrate</string>
   <string name="StoryId">Count</string>
   <string name="Edited">Edited</string>
   <string name="MoexDarkenDrawer">Darken avatar</string>
-  <string name="SilentMessage">Send silent messsages</string>
+  <string name="SilentMessage">Send silent messages</string>
   <string name="Edit">Edit</string>
-  <string name="ProfileNoteHint">Notes are only visible for you.</string>
+  <string name="ProfileNoteHint">Notes are visible only to you.</string>
   <string name="SelectRoundVideos">Camera in round videos</string>
-  <string name="frontCamera">Frontal</string>
+  <string name="frontCamera">Front</string>
   <string name="RearCamera">Rear</string>
   <string name="Ask">Ask</string>
   <string name="Platform">Platform</string>
@@ -106,7 +106,7 @@
   <string name="AutoPauseMediaResume">Resume after playback</string>
   <string name="ProxyAlertType">Proxy type</string>
   <string name="ProxyAlertStatus">Status</string>
-  <string name="ProxyAlertCheck">check</string>
+  <string name="ProxyAlertCheck">Check</string>
   <string name="ProxyMtprotoFakeTls" translatable="false">(FakeTLS)</string>
   <string name="ProxyMtprotoSecure" translatable="false">(secure)</string>
   <string name="ProxyMtprotoPlain" translatable="false">(plain)</string>

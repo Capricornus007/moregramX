@@ -146,8 +146,8 @@
     <string name="YouGiftedPremiumTo_other">Вы подарили %3$s %1$s месяцев Telegram Premium за %2$s</string>
     <string name="GiftedPremiumCode_one">%2$s отправил вам подарочный код на %1$s месяц Telegram Premium</string>
     <string name="GiftedPremiumCode_other">%2$s отправил вам подарочный код на %1$s месяцев Telegram Premium</string>
-    <string name="AnonymousGiftedPremium_one">Кто-то подарил вам %1$s месяц Telegram Premium за %2</string>
-    <string name="AnonymousGiftedPremium_other">Кто-то подарил вам %1$s месяцев Telegram Premium за %2</string>
+    <string name="AnonymousGiftedPremium_one">Кто-то подарил вам %1$s месяц Telegram Premium за %2$s</string>
+    <string name="AnonymousGiftedPremium_other">Кто-то подарил вам %1$s месяцев Telegram Premium за %2$s</string>
     <string name="YouGiftedPremium_one">Вы подарили %1$s месяц Telegram Premium за %2$s</string>
     <string name="YouGiftedPremium_other">Вы подарили %1$s месяцев Telegram Premium за %2$s</string>
     <string name="GiftedPremium_one">%2$s подарил вам %1$s месяц Telegram Premium за %3$s</string>

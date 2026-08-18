@@ -44,7 +44,7 @@
   <string name="MoexBlurDrawer">Desenfocar avatar</string>
   <string name="MoexChatsHeader">Lista de chats</string>
   <string name="TypingInstead">Enviar estado de \"Eligiendo sticker\"</string>
-  <string name="TypingInsteadInfo" formatted="true">Esto enviará un estado de **escribiendo** en lugar de **eligiendo* sticker</string>
+  <string name="TypingInsteadInfo" formatted="true">Esto enviará el estado **eligiendo un sticker** en lugar de **escribiendo**.</string>
   <string name="DisableReactions">Ocultar reacciones</string>
   <string name="HideMessagePanelButtons">Ocultar botones del panel de mensajes</string>
   <string name="ProfileOptions">Perfil</string>
@@ -59,11 +59,37 @@
   <string name="MimeType">Mime</string>
   <string name="FileRes">Resolución</string>
   <string name="FilePerformer">Intérprete</string>
-  <string name="FileSongName">Nombre de la cancion</string>
+  <string name="FileSongName">Nombre de la canción</string>
   <string name="Document">Documento</string>
   <string name="Chat">Chat</string>
   <string name="Bitrate">Tasa de bits</string>
   <string name="StoryId">Contador</string>
   <string name="Edited">Editado</string>
   <string name="MoexDarkenDrawer">Avatar oscuro</string>
+  <string name="SilentMessage">Enviar mensajes silenciosos</string>
+  <string name="Edit">Editar</string>
+  <string name="ProfileNoteHint">Las notas solo son visibles para ti.</string>
+  <string name="SelectRoundVideos">Cámara en vídeos circulares</string>
+  <string name="frontCamera">Frontal</string>
+  <string name="RearCamera">Trasera</string>
+  <string name="Ask">Preguntar</string>
+  <string name="Platform">Plataforma</string>
+  <string name="AddToProfile">Añadir al perfil</string>
+  <string name="SaveMusicToProfile">Añadir al perfil</string>
+  <string name="AudioPinned">Audio añadido al perfil</string>
+  <string name="AudioAlreadyPinned">El audio ya está fijado en el perfil</string>
+  <string name="RemoveProfileAudio">Eliminar del perfil</string>
+  <string name="RemoveProfileAudioConfirm">¿Eliminar %1$s del audio de tu perfil?</string>
+  <string name="AudioUnpinned">Audio eliminado del perfil</string>
+  <string name="ProxyDisableOnVpn">Desactivar mientras la VPN del sistema esté activa</string>
+  <string name="ProxyDisableOnVpnHint">Cuando hay una VPN del sistema conectada, el tráfico de Telegram pasa por ella en lugar de por el proxy. El proxy se restaura automáticamente al desconectar la VPN.</string>
+  <string name="AutoPauseMedia">Pausar los medios del sistema</string>
+  <string name="AutoPauseMediaHint">Pausa la música u otro audio de otras aplicaciones mientras se reproduce un mensaje de voz, un vídeo circular o un vídeo en moeGramX.</string>
+  <string name="AutoPauseMediaResume">Reanudar después de la reproducción</string>
+  <string name="ProxyAlertType">Tipo de proxy</string>
+  <string name="ProxyAlertStatus">Estado</string>
+  <string name="ProxyAlertCheck">Comprobar</string>
+  <string name="moex_birthdayBarSubtitle">Cumpleaños de hoy</string>
+  <string name="moex_birthdaysTodayTitle">%1$d cumpleaños hoy</string>
+  <string name="ProfileChannel">Canal del perfil</string>
 </resources>

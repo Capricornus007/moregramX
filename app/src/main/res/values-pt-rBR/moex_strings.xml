@@ -26,11 +26,11 @@
   <string name="showIdProfile">Mostrar o ID do usuário nos perfis</string>
   <string name="DisableSendAsButton">Canais</string>
   <string name="MoexAbout">Sobre</string>
-  <string name="MoexAboutText" formatted="true">**moeGramX** — é um recurso bonito rico em um pouco experimental com base nas fontes oficiais e TDlib. Sinta-se à vontade para sugerir alguns recursos, relatar problemas ou apenas conversar no nosso grupo de discussões!</string>
+  <string name="MoexAboutText" formatted="true">**moeGramX** é um cliente bonito, rico em recursos e levemente experimental, baseado no código-fonte oficial e na TDLib. Fique à vontade para sugerir recursos, relatar problemas ou simplesmente conversar no nosso grupo de discussão!</string>
   <string name="HideCameraButtonInfo">Ocultar a opção do botão da câmera também adiciona um botão da câmera ao menu de anexo</string>
   <string name="IncreaseRecents">Aumentar stickers recentes</string>
   <string name="hideMessagesBadge">Ocultar emblema de mensagens não lidas</string>
-  <string name="MoexCuteSettings">Uma lua vai de um longo caminho ~</string>
+  <string name="MoexCuteSettings">Um pouco de moe faz toda a diferença ~</string>
   <string name="changeSizeLimit">Resolução da foto</string>
   <string name="changeSizeLimitInfo">Alterar a resolução das fotos enviadas</string>
   <string name="SizeLimitDesc">Esse recurso é instável e pode causar pequenos bugs na interface. Mude para **1280px** e limpe o cache através das configurações de armazenamento se você ver quaisquer erros visuais com fotos enviadas.</string>
@@ -75,9 +75,12 @@
   <string name="RearCamera">Traseira</string>
   <string name="Ask">Perguntar</string>
   <string name="Platform">Plataforma</string>
+  <string name="AddToProfile">Adicionar ao perfil</string>
+  <string name="SaveMusicToProfile">Adicionar ao perfil</string>
   <string name="AudioPinned">Áudio adicionado ao perfil</string>
   <string name="AudioAlreadyPinned">O áudio já está fixado no perfil</string>
   <string name="RemoveProfileAudioConfirm">Remover %1$s do áudio do seu perfil?</string>
+  <string name="RemoveProfileAudio">Remover do perfil</string>
   <string name="AudioUnpinned">Áudio removido do Perfil</string>
   <string name="ProxyDisableOnVpn">Desabilitar enquanto a VPN do sistema estiver ativa</string>
   <string name="ProxyDisableOnVpnHint">Quando uma VPN do sistema está conectada, roteie o tráfego do Telegram através dele ao invés do proxy. O proxy é restaurado automaticamente quando a VPN é desconectada.</string>
@@ -86,7 +89,8 @@
   <string name="AutoPauseMediaResume">Retomar após a reprodução</string>
   <string name="ProxyAlertType">Tipo de Proxy</string>
   <string name="ProxyAlertStatus">Status</string>
-  <string name="ProxyAlertCheck">verificar</string>
+  <string name="ProxyAlertCheck">Verificar</string>
   <string name="moex_birthdayBarSubtitle">Aniversário hoje</string>
   <string name="moex_birthdaysTodayTitle">%1$d aniversários hoje</string>
+  <string name="ProfileChannel">Canal do perfil</string>
 </resources>
