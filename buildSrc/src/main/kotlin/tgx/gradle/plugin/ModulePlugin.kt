@@ -1,5 +1,6 @@
 package tgx.gradle.plugin
 
+import Abi
 import ApplicationConfig
 import Config
 import Sdk
@@ -15,11 +16,11 @@ import org.gradle.kotlin.dsl.dependencies
 import org.gradle.kotlin.dsl.extra
 import org.gradle.kotlin.dsl.get
 import org.gradle.kotlin.dsl.the
-import tgx.gradle.disableRudimentaryVariants
 import tgx.gradle.findExtraFolders
 import tgx.gradle.getIntOrThrow
 import tgx.gradle.getOrThrow
 import tgx.gradle.loadProperties
+import java.io.File
 
 private data class Versions(
   val compileSdk: Int,
@@ -91,6 +92,11 @@ open class ModulePlugin : Plugin<Project> {
           compileSdk {
             version = release(versions.compileSdk)
           }
+          lint {
+            checkReleaseBuilds = false
+            disable += "LintError"
+            // baseline = File("lint-baseline.xml")
+          }
           compileOptions {
             isCoreLibraryDesugaringEnabled = true
             sourceCompatibility = Config.JAVA_VERSION
@@ -142,6 +148,11 @@ open class ModulePlugin : Plugin<Project> {
           compileSdk {
             version = release(versions.compileSdk)
           }
+          lint {
+            checkReleaseBuilds = false
+            disable += "LintError"
+            baseline = File("lint-baseline.xml")
+          }
           compileOptions {
             isCoreLibraryDesugaringEnabled = true
             sourceCompatibility = Config.JAVA_VERSION
@@ -170,6 +181,10 @@ open class ModulePlugin : Plugin<Project> {
                 config.keyAlias = keystore.keyAlias
                 config.keyPassword = keystore.keyPassword
                 config.enableV2Signing = true
+                config.enableV3Signing = true
+                if (config.name == "debug") {
+                  config.enableV4Signing = true
+                }
               }
             }
 

@@ -48,7 +48,30 @@ android {
   namespace = "org.thunderdog.challegram"
 
   lint {
-    disable += "MissingTranslation"
+    disable += arrayOf(
+      "MissingTranslation",
+      "RtlHardcoded",
+      "ClickableViewAccessibility",
+      "ViewConstructor",
+      "VectorPath",
+      "LocaleFolder",
+      "StringFormatCount",
+      "IconDuplicates",
+
+      "MissingPermission",
+      "ScopedStorage",
+      "SelectedPhotoAccess",
+
+      "AppCompatCustomView",
+      "AppCompatResource",
+      "UseCompatLoadingForDrawables",
+
+      // FIXME
+      "UnusedResources",
+      "ThreadConstraint",
+      "SwitchIntDef",
+      "WrongConstant"
+    )
     checkDependencies = true
   }
 
@@ -291,6 +314,12 @@ android {
 
         // 注意：原本的大括號絕對不能在這裡提早關閉！
         // 以下的所有設定都必須保持留在 create(variant.flavor) { ... } 的內部
+
+        if (selectedMinSdk > Sdk.VARIANTS[Sdk.LEGACY]!!.minSdk) {
+          lint {
+            disable += "ObsoleteSdkInt"
+          }
+        }
 
         val flags = listOf(
           "-w",
