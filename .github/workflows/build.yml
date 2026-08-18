@@ -85,9 +85,19 @@ jobs:
             echo "::warning:: KEYSTORE_B64 or KEYSTORE_PASS secret not set, skipping release signing"
           fi
 
+      # gradle.properties pins kotlin.compiler.execution.strategy=in-process purely to dodge a
+      # Windows-only Kotlin daemon file-lock bug. On Linux that setting makes concurrent Kotlin
+      # compilations share one JVM's IntelliJ-platform statics and crash at teardown with
+      # "Write access is allowed inside write-action only". Use the default daemon strategy here, and
+      # turn off the silent daemon->in-process fallback so a daemon problem fails loudly instead of
+      # quietly reintroducing that race.
       - name: Build with Gradle
         run: |
-          ./gradlew :app:assembleLatestArm64Release --stacktrace --no-daemon --max-workers=2 -Dorg.gradle.jvmargs="-Xmx3g -XX:+UseG1GC"
+          ./gradlew :app:assembleLatestArm64Release \
+            --stacktrace --no-daemon --max-workers=2 \
+            -Dorg.gradle.jvmargs="-Xmx3g -XX:+UseG1GC" \
+            -Pkotlin.compiler.execution.strategy=daemon \
+            -Pkotlin.daemon.useFallbackStrategy=false
 
       - name: Upload APK as Artifact
         uses: actions/upload-artifact@v4
