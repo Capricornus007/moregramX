@@ -14,9 +14,9 @@
   <string name="DisableCameraButton">Câmera</string>
   <string name="DisableRecordButton">Mídia</string>
   <string name="MoexChatsSettings">Opções de conversas</string>
-  <string name="MoexStickersCount">Stickers</string>
-  <string name="DisableStickerTimestamp">Ocultar horário nos Stickers</string>
-  <string name="RoundedStickers">Stickers arredondados</string>
+  <string name="MoexStickersCount">Figurinhas</string>
+  <string name="DisableStickerTimestamp">Ocultar horário nas figurinhas</string>
+  <string name="RoundedStickers">Figurinhas arredondadas</string>
   <string name="DrawerOptions">Opções do menu lateral</string>
   <string name="hidePhoneNumber">Ocultar número do telefone</string>
   <string name="EnableFeatures">Permitir opções de depuração</string>
@@ -28,7 +28,7 @@
   <string name="MoexAbout">Sobre</string>
   <string name="MoexAboutText" formatted="true">**moeGramX** é um cliente bonito, rico em recursos e levemente experimental, baseado no código-fonte oficial e na TDLib. Fique à vontade para sugerir recursos, relatar problemas ou simplesmente conversar no nosso grupo de discussão!</string>
   <string name="HideCameraButtonInfo">Ocultar a opção do botão da câmera também adiciona um botão da câmera ao menu de anexo</string>
-  <string name="IncreaseRecents">Aumentar stickers recentes</string>
+  <string name="IncreaseRecents">Aumentar o número de figurinhas recentes</string>
   <string name="hideMessagesBadge">Ocultar emblema de mensagens não lidas</string>
   <string name="MoexCuteSettings">Um pouco de moe faz toda a diferença ~</string>
   <string name="changeSizeLimit">Resolução da foto</string>
@@ -43,8 +43,8 @@
   <string name="SquareAvatar">Bordas quadradas em avatares</string>
   <string name="MoexBlurDrawer">Desfocar o avatar</string>
   <string name="MoexChatsHeader">Lista de conversas</string>
-  <string name="TypingInstead">Enviar status de escolhendo um sticker</string>
-  <string name="TypingInsteadInfo" formatted="true">Ative para trazer o status **Escolhendo sticker** para seu antigo lugar</string>
+  <string name="TypingInstead">Enviar o status “escolhendo uma figurinha”</string>
+  <string name="TypingInsteadInfo" formatted="true">Envia o status **escolhendo uma figurinha** em vez de **digitando**.</string>
   <string name="DisableReactions">Ocultar reações</string>
   <string name="HideMessagePanelButtons">Ocultar botões do painel de mensagem</string>
   <string name="ProfileOptions">Perfil</string>
@@ -56,9 +56,9 @@
   <string name="FilePath">Caminho</string>
   <string name="FileSize">Tamanho</string>
   <string name="SenderId">Remetente</string>
-  <string name="MimeType">Mime</string>
+  <string name="MimeType">Tipo MIME</string>
   <string name="FileRes">Resolução</string>
-  <string name="FilePerformer">Performance</string>
+  <string name="FilePerformer">Artista</string>
   <string name="FileSongName">Nome da música</string>
   <string name="Document">Documento</string>
   <string name="Chat">Chat</string>
@@ -83,7 +83,7 @@
   <string name="RemoveProfileAudio">Remover do perfil</string>
   <string name="AudioUnpinned">Áudio removido do Perfil</string>
   <string name="ProxyDisableOnVpn">Desabilitar enquanto a VPN do sistema estiver ativa</string>
-  <string name="ProxyDisableOnVpnHint">Quando uma VPN do sistema está conectada, roteie o tráfego do Telegram através dele ao invés do proxy. O proxy é restaurado automaticamente quando a VPN é desconectada.</string>
+  <string name="ProxyDisableOnVpnHint">Quando uma VPN do sistema está conectada, o tráfego do Telegram passa por ela em vez do proxy. O proxy é restaurado automaticamente quando a VPN é desconectada.</string>
   <string name="AutoPauseMedia">Pausar mídia do sistema</string>
   <string name="AutoPauseMediaHint">Pausa a música ou outro áudio de outros aplicativos enquanto uma mensagem de voz, vídeo redondo ou vídeo toca em moeGramX.</string>
   <string name="AutoPauseMediaResume">Retomar após a reprodução</string>

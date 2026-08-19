@@ -16,7 +16,7 @@
   <string name="MoexChatsSettings">聊天选项</string>
   <string name="MoexStickersCount">贴纸</string>
   <string name="DisableStickerTimestamp">隐藏贴纸发送时间</string>
-  <string name="RoundedStickers">圆形贴纸</string>
+  <string name="RoundedStickers">圆角贴纸</string>
   <string name="DrawerOptions">界面选项</string>
   <string name="hidePhoneNumber">隐藏我的电话号码</string>
   <string name="EnableFeatures">启用测试特性开关</string>
@@ -36,7 +36,7 @@
   <string name="SizeLimitDesc">此功能不稳定，可能会导致轻微的界面问题。如果已发送的图片显示异常，请切换到 **1280px**，并在存储设置中清除缓存。</string>
   <string name="CopiedPhoto">图片已复制到剪贴板</string>
   <string name="CopyPhoto">复制图片</string>
-  <string name="Repeat">复读</string>
+  <string name="Repeat">重复发送</string>
   <string name="changeHeaderText">自定义标题</string>
   <string name="RememberOptions">记住发送选项</string>
   <string name="RememberOptionsInfo">记住上次选择的发送选项，并将其设为默认选项。</string>
@@ -56,7 +56,7 @@
   <string name="FilePath">路径</string>
   <string name="FileSize">大小</string>
   <string name="SenderId">发送者</string>
-  <string name="MimeType">媒体类型</string>
+  <string name="MimeType">MIME 类型</string>
   <string name="FileRes">分辨率</string>
   <string name="FilePerformer">艺术家</string>
   <string name="FileSongName">歌曲名称</string>
