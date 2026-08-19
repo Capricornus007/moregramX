@@ -91,13 +91,24 @@ jobs:
       # "Write access is allowed inside write-action only". Use the default daemon strategy here, and
       # turn off the silent daemon->in-process fallback so a daemon problem fails loudly instead of
       # quietly reintroducing that race.
+      #
+      # The same invocation also bypasses the Gradle build cache. Which Kotlin compiler actually
+      # does the work depends on the execution strategy -- in-process picks up the compiler on the
+      # Gradle build classpath (emits metadata 2.4.0), the daemon uses the one AGP's built-in Kotlin
+      # declares (2.2.0) -- yet the strategy is not a task input, so entries written under one
+      # strategy are treated as valid under the other. That is precisely how 45f83e9e broke:
+      # :vkryl:core, :vkryl:td, :extension:bridge and :extension:none came back FROM-CACHE carrying
+      # metadata 2.4.0 (written by the previous in-process run, whose cache setup-java restores)
+      # while :app compiled fresh at 2.2.0. Every error in that build was a downstream
+      # "Unresolved reference" for a class the app could no longer read.
       - name: Build with Gradle
         run: |
           ./gradlew :app:assembleLatestArm64Release \
             --stacktrace --no-daemon --max-workers=2 \
             -Dorg.gradle.jvmargs="-Xmx3g -XX:+UseG1GC" \
             -Pkotlin.compiler.execution.strategy=daemon \
-            -Pkotlin.daemon.useFallbackStrategy=false
+            -Pkotlin.daemon.useFallbackStrategy=false \
+            --no-build-cache
 
       - name: Upload APK as Artifact
         uses: actions/upload-artifact@v4
