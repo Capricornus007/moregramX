@@ -28,13 +28,13 @@ jobs:
           docker image prune -a -f
 
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           submodules: recursive
           lfs: true
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'zulu'
           java-version: '21'
@@ -111,7 +111,7 @@ jobs:
             --no-build-cache
 
       - name: Upload APK as Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: telegram-x-release-artifacts
           path: app/build/outputs/apk/**/*.apk
@@ -127,7 +127,7 @@ jobs:
           sleep 3
 
       - name: Upload APK to Latest Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         if: github.event_name == 'push'
         with:
           tag_name: latest
