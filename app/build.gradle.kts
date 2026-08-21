@@ -351,7 +351,7 @@ android {
             java.directories += "../thirdparty/androidx-media/${variant.flavor}/libraries/${extension}/src/main/java"
           }
 
-          val extraFolders = findExtraFolders(variant)
+          val extraFolders = findExtraFolders(variant.copy(minSdk = effectiveMinSdk))
           extraFolders.forEach { folderName ->
             kotlin.directories += "src/$folderName/kotlin"
             java.directories += "src/$folderName/java"
@@ -538,7 +538,7 @@ android {
         ))
       }
 
-      val extraFolders = findExtraFolders(sdkVariant)
+      val extraFolders = findExtraFolders(sdkVariant.copy(minSdk = maxOf(sdkVariant.minSdk, 21)))
       extraFolders.forEach { folderName ->
         variant.sources.manifests.addStaticManifestFile(
           "src/$folderName/AndroidManifest.xml"
