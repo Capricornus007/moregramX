@@ -351,15 +351,21 @@ android {
             java.directories += "../thirdparty/androidx-media/${variant.flavor}/libraries/${extension}/src/main/java"
           }
 
-          val extraFolders = findExtraFolders(variant.copy(minSdk = effectiveMinSdk))
+          val extraFolders = findExtraFolders(variant)
           extraFolders.forEach { folderName ->
             kotlin.directories += "src/$folderName/kotlin"
             java.directories += "src/$folderName/java"
-            res.directories += "src/$folderName/res"
 
             // TODO: Exclude in FOSS variant
             kotlin.directories += "src/google/$folderName/kotlin"
             java.directories += "src/google/$folderName/java"
+          }
+
+          // The fork raises every variant's effective minSdk to 21 for native linking,
+          // but legacy must keep its own Kotlin/Java implementations. Only resources
+          // should follow the effective API level.
+          findExtraFolders(variant.copy(minSdk = effectiveMinSdk)).forEach { folderName ->
+            res.directories += "src/$folderName/res"
           }
         }
 
