@@ -1,100 +1,196 @@
-<div align="center">
-<a href="https://moegramx.t.me/">
-        <picture>
-          <source media="(prefers-color-scheme: dark)" srcset="https://files.kiri.su/moeGramX_dark.svg">
-          <img src="https://files.kiri.su/moeGramX.svg">
-        </picture>
-    </a>
+# moregramX (MGX)
 
-the **moest** client based on [Telegram-X](https://github.com/TGX-Android/Telegram-X) and [TDLib](https://core.telegram.org/tdlib) ~
+[![Android CI](https://github.com/Capricornus007/moreGramX/actions/workflows/build.yml/badge.svg)](https://github.com/Capricornus007/moreGramX/actions/workflows/build.yml)
+[![Java Compile Check](https://github.com/Capricornus007/moreGramX/actions/workflows/java-check.yml/badge.svg)](https://github.com/Capricornus007/moreGramX/actions/workflows/java-check.yml)
+[![License: GPLv3](https://img.shields.io/badge/license-GPLv3-blue.svg)](LICENSE)
 
-[![Issues](https://img.shields.io/github/issues/moeCrafters/moeGramX?style=flat-square&color=red)](https://github.com/moeCrafters/moeGramX/issues)
-[![Forks](https://img.shields.io/github/forks/moeCrafters/moeGramX?style=flat-square&color=blue)](https://github.com/moeCrafters/moeGramX/network/members)
-[![Stars](https://img.shields.io/github/stars/moeCrafters/moeGramX?style=flat-square&color=yellow)](https://github.com/moeCrafters/moeGramX/stargazers)
+moregramX is an independent Telegram client for Android based on
+[Telegram X](https://github.com/TGX-Android/Telegram-X) and
+[TDLib](https://github.com/tdlib/td). It combines Telegram X with selected
+features and fixes from [moeGramX](https://github.com/moeCrafters/moeGramX),
+[reX](https://github.com/logopek/reX), and this repository's own work.
 
-[![Channel](https://img.shields.io/badge/Channel-%40moeGramX-blue?style=flat-square&logo=telegram&label=Channel)](https://t.me/moegramx)
-[![Chat](https://img.shields.io/badge/Chat-%40moex__log-blue?style=flat-square&logo=telegram&label=Updates)](https://t.me/moe_chat)
-[![Updates](https://img.shields.io/badge/Release-%40moe__chat-blue?style=flat-square&logo=telegram&label=Discussion)](https://t.me/moe_log)
-</div>
+The current application version is **1826**, based on Telegram X **1805**.
 
-## Features
+> This is an unofficial project. It is not affiliated with, maintained by, or
+> endorsed by Telegram, Telegram X, moeGramX, or reX.
 
-- Message details
-- Ability to replace mobile number<sup>(with username/userid/hidden label)</sub></sup>
-- Hide reactions
-- Hide new messages counter<sup><sup>(in the drawer burger)</sup></sup>
-- Sent photos with high resolution <sup>(800px/1280px/2560px)</sup>
-- Blur drawer background
-- Square avatars
-- Message panel buttons hiding
-- Remember message options <sup>(copy/silent/sound)
-- Do not send **choosing** sticker status<sup>typing status will be sent instead</sup>
-- Copy photo or document<sup><sup>(with photo)</sup></sup> option
-- and a bit more...
----
-## Installation
+## Highlights
 
-### Prerequisites
+### reX integration
 
-* At least **5,34GB** of free disk space: **487,10MB** for source codes and around **4,85GB** for files generated after building all variants
-* **4GB** of RAM
-* **macOS** or **Linux**-based operating system. **Windows** platform is supported by using [MSYS](https://www.msys2.org/) (e.g., [Git Bash](https://gitforwindows.org/)).
+- Forum-topic layouts, saved forum style, topic icons, per-topic
+  notifications, and forum stability fixes.
+- Quote or reply to a message in another chat.
+- Profile channel, profile audio/music, and profile-note support.
+- Configurable reX settings and input-panel buttons.
+- Additional topic, reaction, and attachment-button controls.
+- On-device voice-message transcription using
+  [whisper.cpp](https://github.com/ggml-org/whisper.cpp), with model selection
+  and download, automatic language detection, local transcription cache,
+  copyable results, and no mandatory cloud transcription service.
+- Simplified Chinese, Traditional Chinese, and Japanese resources for the reX
+  transcription interface.
 
-#### macOS
+### moeGramX-derived features
 
-* [Homebrew](https://brew.sh)
-* git with LFS, wget and sed: `$ brew install git git-lfs wget gsed && git lfs install`
+- Detailed message and media information: sender/chat IDs, data center, MIME
+  type, file path, dimensions, duration, bitrate, and file size.
+- Optional user ID/username display in place of a phone number, plus mutual
+  contact and chat data-center information.
+- Personal/profile channel selection and privacy controls.
+- Hide reactions, unread counters, selected chat controls, input-panel
+  buttons, the bottom bar, or the main chat-list section.
+- High-resolution photo sending, square avatars, drawer blur/darkening, and
+  further interface customization.
+- Remembered message options and send-silently-by-default.
+- Reduced typing-status leakage when choosing stickers.
+- Save or copy photos and documents, save audio/video notes, download
+  stickers, and retain FLAC cover art.
 
-#### Linux
+### Telegram X and repository work
 
-* git with LFS: Install with your package manager, e.g. `# apt install git git-lfs` for any Debian-based distribution
-* Run `$ git lfs install` for the current user, if you didn't have `git-lfs` previously installed
+- Synced with Telegram X main commit e7000d73 (version 1805).
+- Current TDLib/media/build updates, baseline profiles, signing support, and
+  legacy/latest Android source separation.
+- API 16 through current Android releases covered by separate SDK flavors.
+- Compatibility fixes for legacy variants and native Whisper builds.
+- CI produces a latestArm64Release APK and publishes the rolling latest
+  prerelease when signing secrets are available.
+- A separate Java check covers latest ARM64 and legacy ARM32 variants.
 
-#### Windows
+## Integration provenance
 
-* **moeGramX** does not provide official build instructions for Windows platform. It is recommended to rely on Linux distributions via [WSL](https://learn.microsoft.com/en-us/windows/wsl/install) instead.
+These are the upstream points inspected for this README. Included means the
+reference is an ancestor of this repository's main; feature-equivalent means
+the feature was integrated through separate commits and later compatibility
+fixes.
 
-## Build
+| Source | Reference | Status |
+| --- | --- | --- |
+| Telegram X | e7000d73, version 1805 | Included baseline |
+| moeGramX moe | fda7f8bc | Included with later fixes |
+| reX main | 4ac597ca | Included |
+| reX musicProfile | 308d6220 | Included |
+| reX split-forums | e6d439d3 | Included |
+| reX split-quote | 3515c7ba | Included |
+| reX topics | 16c7399f | Included |
+| reX whisper | cbfa5bd9 | Included |
+| reX split-music-profile | c1036cb4 | Feature-equivalent integration |
+| reX split-notes | f54f712e | Feature-equivalent integration |
 
--  **moeGramX** can be built with **Android Studio** <a href="#"><img src="https://i.imgur.com/cPvvFDP.png" align="center" width="20" height="23"/></a> or from the command line with **Gradle**:
-1. `$ git clone --recursive --depth=1 --shallow-submodules https://github.com/moeCrafters/moeGramX mgx` — clone **moeGramX** with submodules
-2. In case you forgot the `--recursive` flag, `cd` into `mgx` directory and: `$ git submodule init && git submodule update --init --recursive --depth=1`
-3. Create `keystore.properties` file outside of source tree with the following properties:<br/>`keystore.file`: absolute path to the keystore file<br/>`keystore.password`: password for the keystore<br/>`key.alias`: key alias that will be used to sign the app<br/>`key.password`: key password.<br/>**Warning**: keep this file safe and make sure nobody, except you, has access to it. For production builds one could use a separate user with home folder encryption to avoid harm from physical theft
-4. `$ cd mgx`
-5. Run `$ scripts/./setup.sh` and follow up the instructions
-6. If you plan to use GCM push messages, [setup Firebase](https://firebase.google.com/docs/android/setup) and replace `google-services.json` with the one that's suitable for the `app.id` you need
-7. Now you can open the project using **[Android Studio](https://developer.android.com/studio/)** <a href="#"><img src="https://i.imgur.com/cPvvFDP.png" align="center" width="20" height="23"/></a> or build manually from the command line: `./gradlew assembleUniversalRelease`.
+Notable local integration commits:
 
-#### Available flavors <img src="https://developer.android.com/static/images/logos/android.svg" align="center" width="20" height="20"/>
+- 47a34d7e: fixes after the reX multi-branch merge.
+- 5612169e: restored push configuration and repaired reX defects.
+- 48cce072: local Whisper voice-message transcription.
+- f8a8fd0a: profile-channel support.
+- 7b5268b1: profile-note support.
+- 33d6261e: Telegram X and moeGramX synchronization.
+- 74ac4c50: Telegram X 1805 synchronization while preserving fork changes.
 
-* `arm64`: **arm64-v8a** build with `minSdkVersion` set to `21` (**Lollipop**)
-* `arm32`: **armeabi-v7a** build
-* `x64`: **x86_64** build with `minSdkVersion` set to `21` (**Lollipop**)
-* `x86`: **x86** build
-* `universal`: universal build that includes native bundles for all platforms.
----
+## Download
+
+APK files are published in the rolling
+[Latest Release](https://github.com/Capricornus007/moreGramX/releases/tag/latest)
+and as artifacts of successful [Android CI runs](https://github.com/Capricornus007/moreGramX/actions/workflows/build.yml).
+Only install builds from a source and signing key you trust. A build signed
+with another key cannot update an existing installation.
+
+## Building
+
+### Requirements
+
+- Linux or macOS; Windows users should use WSL.
+- Git with Git LFS.
+- JDK 21.
+- Android SDK/NDK components selected by scripts/setup.sh.
+- At least 6 GB of free disk space and 4 GB of RAM.
+
+Clone all submodules:
+
+~~~sh
+git clone --recursive https://github.com/Capricornus007/moreGramX.git
+cd moreGramX
+git lfs install
+~~~
+
+If submodules were omitted:
+
+~~~sh
+git submodule update --init --recursive
+~~~
+
+Run project setup:
+
+~~~sh
+./scripts/setup.sh
+~~~
+
+Build the CI release variant without retaining a Gradle daemon:
+
+~~~sh
+./gradlew :app:assembleLatestArm64Release \
+  --stacktrace --no-daemon --max-workers=2 --no-build-cache
+~~~
+
+Fast Java compatibility check:
+
+~~~sh
+./gradlew \
+  :app:compileLatestArm64DebugJavaWithJavac \
+  :app:compileLegacyArm32DebugJavaWithJavac \
+  --stacktrace --no-daemon --max-workers=2 --no-build-cache
+~~~
+
+### SDK flavors
+
+| Flavor | Android API range |
+| --- | --- |
+| legacy | 16–20 |
+| lollipop | 21–22 |
+| marshmallow | 23 |
+| latest | 24 and newer |
+
+### ABI flavors
+
+arm64, arm32, x64, x86, universal, and lab are available. The primary CI
+release is latestArm64.
+
+### Signing
+
+Local release signing uses the keystore properties expected by the build
+scripts. Never commit a keystore, passwords, API hashes, Firebase
+configuration belonging to another application, or other secrets.
+
+## Updating upstreams
+
+The conventional remotes are:
+
+- tgx: official Telegram X main.
+- moegramx: moeGramX moe.
+- rex: reX and its feature branches.
+- origin: this repository.
+
+Because this project combines several long-lived forks, upstream changes must
+be reviewed deliberately. Build variants, resources, TDLib APIs, native
+dependencies, translations, and existing fork behavior all require checking.
 
 ## Contributing
 
-This is a thing you can do without any special skills!
+Bug reports and focused pull requests are welcome. Include the exact version
+and APK flavor, Android version and device, reproducible steps, and sanitized
+logs. Preserve both current and legacy variants. Before submitting code, run
+the Java checks and ARM64 release build above.
 
-Here are a few things you can do:
+## Credits and license
 
-- [Test and report issues](https://github.com/moeCrafters/moeGramX/issues/new/choose)
-- [Translate the moegram strings into your language](https://crowdin.com/project/moex) -
-  **moeGramX** is a fork of **Telegram-X** and most of the localizations follow the translations of **Telegram-X**, check it out [here](https://translations.telegram.org/en/android_x/). As for specialized strings for **moeGramX**, we use **Crowdin** to translate client.
----
+- [Telegram X](https://github.com/TGX-Android/Telegram-X)
+- [TDLib](https://github.com/tdlib/td)
+- [moeGramX](https://github.com/moeCrafters/moeGramX)
+- [reX](https://github.com/logopek/reX)
+- [whisper.cpp](https://github.com/ggml-org/whisper.cpp)
 
-## Third-party dependencies
-
-List of third-party components used in **moeGramX** can be found [here](/docs/THIRDPARTY.md). Additionally, you can check the specific commit of the third-party component used, for example, [here](/app/jni/thirdparty) and [here](/thirdparty).
-
----
-
-## License
-
-`moeGramX` is licensed under the terms of the GNU General Public License v3.0.
-
-License of components and third-party dependencies it relies on might differ, check `LICENSE` file in the corresponding folder.
-
-[![License: GPLv3](https://img.shields.io/badge/License-GPL%20v3-red.svg?style=for-the-badge&color=E87777)](https://github.com/moeCrafters/moeGramX/blob/main/LICENSE)
+moregramX is distributed under the
+[GNU General Public License v3.0](LICENSE). See docs/THIRDPARTY.md and the
+individual dependency license files for third-party terms.
