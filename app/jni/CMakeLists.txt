@@ -157,6 +157,9 @@ foreach(FFMPEG_LIB IN LISTS FFMPEG_LIBS)
   )
 endforeach()
 
+# whisper.cpp local voice-message transcription
+include("${PROJECT_SOURCE_DIR}/BuildWhisper.cmake")
+
 # tgcalls
 if (${ENABLE_TGVOIP})
   add_subdirectory(
@@ -190,6 +193,7 @@ add_library(${NATIVE_LIB} SHARED
   "${THIRDPARTY_DIR}/androidx-media/${TGX_FLAVOR}/vpx_jni.cc"
 
   bridge.cpp
+  whisper_jni.cpp
 )
 target_include_directories(${NATIVE_LIB} PRIVATE
   "${THIRDPARTY_DIR}/telegram_intro"
@@ -197,6 +201,10 @@ target_include_directories(${NATIVE_LIB} PRIVATE
 
   "${THIRDPARTY_DIR}"
   .
+
+  "${TGX_ROOT_DIR}/thirdparty/whispercpp/include"
+  "${TGX_ROOT_DIR}/thirdparty/whispercpp/ggml/include"
+  "${THIRDPARTY_DIR}/opusfile/include"
 )
 
 target_compile_definitions(${NATIVE_LIB} PUBLIC
@@ -236,6 +244,7 @@ target_link_libraries(${NATIVE_LIB}
   opus
   rlottie
   lz4
+  whisper
 )
 if (${USE_WEBP})
   target_link_libraries(${NATIVE_LIB} webpdecoder_static)

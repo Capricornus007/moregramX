@@ -5,6 +5,7 @@
 #include <cmath>
 #include <cstring>
 #include <algorithm>
+#include <limits>
 #include "whisper.h"
 #include "opusfile.h"
 
@@ -32,7 +33,16 @@ JNIEXPORT jlong JNICALL
 Java_ni_shikatu_rex_Whisper_initContext(JNIEnv *env, jclass clazz, jstring model_path_str, jboolean use_gpu) {
     whisper_log_set(whisper_log_callback, nullptr);
 
+    if (model_path_str == nullptr) {
+        LOGE("Cannot initialize Whisper with a null model path");
+        return 0;
+    }
     const char *model_path = env->GetStringUTFChars(model_path_str, nullptr);
+    if (model_path == nullptr) {
+        LOGE("Cannot read Whisper model path");
+        return 0;
+    }
+    const std::string model_path_copy(model_path);
 
     struct whisper_context *ctx = nullptr;
 
@@ -50,7 +60,7 @@ Java_ni_shikatu_rex_Whisper_initContext(JNIEnv *env, jclass clazz, jstring model
     env->ReleaseStringUTFChars(model_path_str, model_path);
 
     if (ctx == nullptr) {
-        LOGE("Failed to initialize Whisper context from: %s", model_path);
+        LOGE("Failed to initialize Whisper context from: %s", model_path_copy.c_str());
         return 0;
     }
 
@@ -62,7 +72,15 @@ JNIEXPORT jlong JNICALL
 Java_ni_shikatu_rex_Whisper_initContextFromBuffer(JNIEnv *env, jclass clazz, jbyteArray model_data, jboolean use_gpu) {
     whisper_log_set(whisper_log_callback, nullptr);
 
+    if (model_data == nullptr) {
+        LOGE("Cannot initialize Whisper from a null model buffer");
+        return 0;
+    }
     jsize len = env->GetArrayLength(model_data);
+    if (len <= 0) {
+        LOGE("Cannot initialize Whisper from an empty model buffer");
+        return 0;
+    }
     void *buffer = env->GetPrimitiveArrayCritical(model_data, nullptr);
     if (!buffer) return 0;
 
@@ -101,10 +119,15 @@ Java_ni_shikatu_rex_Whisper_transcribe(
         jstring language,
         jboolean translate
 ) {
-    if (context_ptr == 0) return nullptr;
+    if (context_ptr == 0 || samples == nullptr) return nullptr;
     auto *ctx = reinterpret_cast<struct whisper_context *>(context_ptr);
 
     jsize n_samples_input = env->GetArrayLength(samples);
+    constexpr jsize kMaxSamples = 16000 * 60 * 60;
+    if (n_samples_input <= 0 || n_samples_input > kMaxSamples) {
+        LOGE("Invalid audio sample count: %d", n_samples_input);
+        return nullptr;
+    }
     jfloat *audio_raw = env->GetFloatArrayElements(samples, nullptr);
     if (!audio_raw) return nullptr;
 
@@ -126,7 +149,7 @@ Java_ni_shikatu_rex_Whisper_transcribe(
     params.print_timestamps = false;
     params.print_special    = false;
     params.translate        = (bool)translate;
-    params.n_threads        = num_threads;
+    params.n_threads        = std::max(1, std::min(static_cast<int>(num_threads), 8));
     params.offset_ms        = 0;
     params.no_context       = true;
     params.single_segment   = false;
@@ -142,7 +165,7 @@ Java_ni_shikatu_rex_Whisper_transcribe(
                 need_auto_detect = false;
             }
         }
-        env->ReleaseStringUTFChars(language, l);
+        if (l) env->ReleaseStringUTFChars(language, l);
     }
 
     if (need_auto_detect) {
@@ -348,6 +371,7 @@ static void apply_lowpass_filter(std::vector<float>& data, int kernel_size = 5) 
 
 JNIEXPORT jfloatArray JNICALL
 Java_ni_shikatu_rex_Whisper_convertOggOpusToSamples(JNIEnv *env, jclass clazz, jstring file_path) {
+    if (file_path == nullptr) return nullptr;
     const char *path = env->GetStringUTFChars(file_path, nullptr);
     if (!path) return nullptr;
 
@@ -362,19 +386,36 @@ Java_ni_shikatu_rex_Whisper_convertOggOpusToSamples(JNIEnv *env, jclass clazz, j
         return nullptr;
     }
 
-    ogg_int64_t totalSamples48k = op_pcm_total(opusFile, -1);
-    LOGD("Total samples at 48kHz: %lld", (long long)totalSamples48k);
-
     const OpusHead *head = op_head(opusFile, -1);
     int channels = head ? head->channel_count : 1;
-    LOGD("Channels: %d", channels);
+    if (channels < 1 || channels > 8) {
+        LOGE("Unsupported Opus channel count: %d", channels);
+        op_free(opusFile);
+        return nullptr;
+    }
 
-    std::vector<opus_int16> pcm48k(totalSamples48k * channels);
+    // op_pcm_total() may return -1 for a stream or damaged metadata. Never
+    // convert that value to size_t; decode in bounded chunks instead.
+    const ogg_int64_t reportedSamples = op_pcm_total(opusFile, -1);
+    const size_t maxSamples48k = static_cast<size_t>(48000) * 60 * 60;
+    std::vector<opus_int16> pcm48k;
+    if (reportedSamples > 0 && reportedSamples <= static_cast<ogg_int64_t>(maxSamples48k)) {
+        pcm48k.reserve(static_cast<size_t>(reportedSamples) * channels);
+    }
+
+    constexpr int kReadFrames = 5760;
+    std::vector<opus_int16> chunk(static_cast<size_t>(kReadFrames) * channels);
     int samplesRead = 0;
-    while (samplesRead < totalSamples48k) {
-        int remaining = (totalSamples48k - samplesRead) * channels;
-        int n = op_read(opusFile, pcm48k.data() + samplesRead * channels, remaining, nullptr);
+    for (;;) {
+        const int n = op_read(opusFile, chunk.data(), static_cast<int>(chunk.size()), nullptr);
         if (n <= 0) break;
+        if (static_cast<size_t>(samplesRead) + static_cast<size_t>(n) > maxSamples48k) {
+            LOGE("Opus file exceeds the one-hour transcription limit");
+            op_free(opusFile);
+            return nullptr;
+        }
+        pcm48k.insert(pcm48k.end(), chunk.begin(),
+                      chunk.begin() + static_cast<size_t>(n) * channels);
         samplesRead += n;
     }
     op_free(opusFile);
@@ -386,7 +427,7 @@ Java_ni_shikatu_rex_Whisper_convertOggOpusToSamples(JNIEnv *env, jclass clazz, j
         return nullptr;
     }
 
-    std::vector<float> mono48k(samplesRead);
+    std::vector<float> mono48k(static_cast<size_t>(samplesRead));
     for (int i = 0; i < samplesRead; ++i) {
         float sum = 0.0f;
         for (int c = 0; c < channels; ++c) {
@@ -397,7 +438,7 @@ Java_ni_shikatu_rex_Whisper_convertOggOpusToSamples(JNIEnv *env, jclass clazz, j
 
     apply_lowpass_filter(mono48k, 5);
 
-    size_t frames16 = samplesRead / 3;
+    size_t frames16 = static_cast<size_t>(samplesRead) / 3;
     std::vector<float> pcm16k(frames16);
 
     for (size_t i = 0; i < frames16; ++i) {
@@ -422,12 +463,18 @@ Java_ni_shikatu_rex_Whisper_convertOggOpusToSamples(JNIEnv *env, jclass clazz, j
         if (abs_val > max_val) max_val = abs_val;
         sum_sq += pcm16k[i] * pcm16k[i];
     }
-    float rms = std::sqrt(sum_sq / pcm16k.size());
+    float rms = pcm16k.empty() ? 0.0f : std::sqrt(sum_sq / pcm16k.size());
     LOGD("Audio stats: samples=%zu, duration=%.2fs, max=%.4f, RMS=%.4f",
          pcm16k.size(), (float)pcm16k.size() / 16000.0f, max_val, rms);
 
-    jfloatArray result = env->NewFloatArray(pcm16k.size());
-    env->SetFloatArrayRegion(result, 0, pcm16k.size(), pcm16k.data());
+    if (pcm16k.size() > static_cast<size_t>(std::numeric_limits<jsize>::max())) {
+        LOGE("Decoded audio is too large for a Java float array");
+        return nullptr;
+    }
+    const jsize outputSize = static_cast<jsize>(pcm16k.size());
+    jfloatArray result = env->NewFloatArray(outputSize);
+    if (result == nullptr) return nullptr;
+    env->SetFloatArrayRegion(result, 0, outputSize, pcm16k.data());
     return result;
 }
 
