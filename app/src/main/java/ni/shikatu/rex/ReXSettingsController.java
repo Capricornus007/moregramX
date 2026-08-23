@@ -222,8 +222,10 @@ public class ReXSettingsController extends RecyclerViewController<Void> implemen
                 URL url = new URL(urlStr);
                 HttpURLConnection connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestMethod("GET");
-                connection.setConnectTimeout(30000);
-                connection.setReadTimeout(30000);
+                // Model files can be several gigabytes and Hugging Face may
+                // take longer than 30 seconds to start or resume a transfer.
+                connection.setConnectTimeout(120000);
+                connection.setReadTimeout(120000);
                 connection.connect();
 
                 int responseCode = connection.getResponseCode();

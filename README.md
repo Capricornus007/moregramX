@@ -32,6 +32,41 @@ The current application version is **1826**, based on Telegram X **1805**.
 - Simplified Chinese, Traditional Chinese, and Japanese resources for the reX
   transcription interface.
 
+#### Whisper model recommendations
+
+Models are downloaded on demand and are not bundled in the APK. The picker
+includes all 33 `ggml-*.bin` files currently published by the official
+whisper.cpp model repository, including multilingual, English-only, Q5/Q8,
+large-v3, and large-v3-turbo variants. Names ending in `.en` recognize English
+only. Quantized Q5/Q8 models use less storage and memory and are generally the
+better choice on a phone.
+
+The current Android build runs Whisper primarily through CPU/NEON. It does not
+automatically use a phone's advertised NPU TOPS, so sustained big-core CPU
+performance, cooling, and available RAM matter more than the marketing AI
+number.
+
+| Android processor class | Recommended model | Notes |
+| --- | --- | --- |
+| Current entry-level (Snapdragon 4 Gen 2, 6 Gen 1; Dimensity 6100+/6300; comparable Exynos/Unisoc) | `tiny-q5_1` or `tiny-q8_0` | Lowest memory and heat. Use full `tiny` only if the extra latency is acceptable. |
+| Current mainstream (Snapdragon 6 Gen 3, 7s Gen 2/3; Dimensity 7300/7400/8300 class) | `tiny`, `base-q5_1` | `base-q5_1` is the accuracy-oriented choice; `tiny` is better for long recordings. |
+| Upper-mid-range and older flagships (Snapdragon 7+ Gen 3/7+ Gen 4, 8s Gen 3/4, 855–870; Dimensity 8400/9000 class) | `base-q5_1`, `base-q8_0`, or `base` | Best general multilingual tier. `small-q5_1` is optional for short, difficult audio but will be much slower. |
+| Current flagships (Snapdragon 8 Gen 3, 8 Elite/8 Elite Gen 5; Dimensity 9300/9400/9500 class) | `base`, `small-q5_1`, or `small-q8_0` | Prefer `base` for routine use. Try quantized `small` when accuracy matters more than latency and heat. |
+| High-memory tablets, Android PCs, or actively cooled devices | `small`, `medium-q5_0`, or larger | `medium` and `large` remain workstation-class choices; Android may terminate them despite a flagship processor. |
+
+For Chinese and other non-English speech, do not select an `.en` model. On a
+Snapdragon 870, start with `base-q5_1`; switch to `tiny` for faster processing,
+or to `base-q8_0` when a modest speed and memory cost is acceptable. `small`
+and larger models are exposed for capable devices, but are not recommended as
+phone defaults. A model being downloadable does not guarantee that a device
+has enough RAM to load it.
+
+Whisper runs entirely on-device and does not use Telegram's cloud speech
+recognition trial, so Telegram server retry quotas do not apply. Model download
+network timeouts are separate from transcription time. Native text returned by
+whisper.cpp is validated before crossing JNI so a malformed or truncated UTF-8
+token cannot abort the Android process.
+
 ### moeGramX-derived features
 
 - Detailed message and media information: sender/chat IDs, data center, MIME

@@ -6,6 +6,7 @@
 #include <cstring>
 #include <algorithm>
 #include <limits>
+#include <cstdint>
 #include "whisper.h"
 #include "opusfile.h"
 
@@ -23,6 +24,84 @@ void whisper_log_callback(ggml_log_level level, const char * text, void * user_d
     } else {
         __android_log_print(ANDROID_LOG_INFO, "WhisperInternal", "%s", text);
     }
+}
+
+// Android's NewStringUTF accepts Modified UTF-8 and aborts the process when
+// given a truncated or otherwise malformed UTF-8 token. Whisper can expose
+// malformed byte sequences for a rare decoding result, so validate explicitly
+// and replace invalid code points before constructing a Java string.
+static jstring new_jstring_utf8(JNIEnv *env, const char *text) {
+    if (text == nullptr) return env->NewString(nullptr, 0);
+
+    constexpr uint32_t kReplacement = 0xFFFD;
+    std::vector<jchar> utf16;
+    const auto *bytes = reinterpret_cast<const uint8_t *>(text);
+    const size_t length = std::strlen(text);
+    utf16.reserve(length);
+
+    auto append_codepoint = [&utf16](uint32_t codepoint) {
+        if (codepoint <= 0xFFFF) {
+            utf16.push_back(static_cast<jchar>(codepoint));
+        } else if (codepoint <= 0x10FFFF) {
+            codepoint -= 0x10000;
+            utf16.push_back(static_cast<jchar>(0xD800 + (codepoint >> 10)));
+            utf16.push_back(static_cast<jchar>(0xDC00 + (codepoint & 0x3FF)));
+        } else {
+            utf16.push_back(static_cast<jchar>(kReplacement));
+        }
+    };
+
+    for (size_t i = 0; i < length;) {
+        const uint8_t first = bytes[i];
+        uint32_t codepoint = kReplacement;
+        size_t width = 1;
+        bool valid = false;
+
+        if (first < 0x80) {
+            codepoint = first;
+            valid = true;
+        } else if (first >= 0xC2 && first <= 0xDF && i + 1 < length) {
+            const uint8_t b1 = bytes[i + 1];
+            if ((b1 & 0xC0) == 0x80) {
+                codepoint = ((first & 0x1F) << 6) | (b1 & 0x3F);
+                width = 2;
+                valid = true;
+            }
+        } else if (first >= 0xE0 && first <= 0xEF && i + 2 < length) {
+            const uint8_t b1 = bytes[i + 1];
+            const uint8_t b2 = bytes[i + 2];
+            const bool continuation = (b1 & 0xC0) == 0x80 && (b2 & 0xC0) == 0x80;
+            const bool valid_range = first != 0xE0 || b1 >= 0xA0;
+            const bool not_surrogate = first != 0xED || b1 <= 0x9F;
+            if (continuation && valid_range && not_surrogate) {
+                codepoint = ((first & 0x0F) << 12) | ((b1 & 0x3F) << 6) | (b2 & 0x3F);
+                width = 3;
+                valid = true;
+            }
+        } else if (first >= 0xF0 && first <= 0xF4 && i + 3 < length) {
+            const uint8_t b1 = bytes[i + 1];
+            const uint8_t b2 = bytes[i + 2];
+            const uint8_t b3 = bytes[i + 3];
+            const bool continuation = (b1 & 0xC0) == 0x80 && (b2 & 0xC0) == 0x80 && (b3 & 0xC0) == 0x80;
+            const bool valid_range = first != 0xF0 || b1 >= 0x90;
+            const bool max_range = first != 0xF4 || b1 <= 0x8F;
+            if (continuation && valid_range && max_range) {
+                codepoint = ((first & 0x07) << 18) | ((b1 & 0x3F) << 12) |
+                            ((b2 & 0x3F) << 6) | (b3 & 0x3F);
+                width = 4;
+                valid = true;
+            }
+        }
+
+        append_codepoint(valid ? codepoint : kReplacement);
+        i += width;
+    }
+
+    if (utf16.size() > static_cast<size_t>(std::numeric_limits<jsize>::max())) {
+        LOGE("Whisper text is too long for a Java string");
+        return nullptr;
+    }
+    return env->NewString(utf16.empty() ? nullptr : utf16.data(), static_cast<jsize>(utf16.size()));
 }
 
 extern "C" {
@@ -217,7 +296,7 @@ Java_ni_shikatu_rex_Whisper_transcribe(
     }
 
     LOGD("Transcription complete: %d segments, %zu chars", n_segments, full_text.length());
-    return env->NewStringUTF(full_text.c_str());
+    return new_jstring_utf8(env, full_text.c_str());
 }
 
 
@@ -230,7 +309,7 @@ JNIEXPORT jstring JNICALL Java_ni_shikatu_rex_Whisper_getFullText(JNIEnv *env, j
     for (int i = 0; i < n; ++i) {
         text += whisper_full_get_segment_text(wctx, i);
     }
-    return env->NewStringUTF(text.c_str());
+    return new_jstring_utf8(env, text.c_str());
 }
 
 JNIEXPORT jint JNICALL Java_ni_shikatu_rex_Whisper_getSegmentCount(JNIEnv *, jclass, jlong ctx) {
@@ -239,7 +318,7 @@ JNIEXPORT jint JNICALL Java_ni_shikatu_rex_Whisper_getSegmentCount(JNIEnv *, jcl
 
 JNIEXPORT jstring JNICALL Java_ni_shikatu_rex_Whisper_getSegmentText(JNIEnv *env, jclass, jlong ctx, jint i) {
     const char* txt = whisper_full_get_segment_text((struct whisper_context *)ctx, i);
-    return env->NewStringUTF(txt ? txt : "");
+    return new_jstring_utf8(env, txt ? txt : "");
 }
 
 JNIEXPORT jlong JNICALL Java_ni_shikatu_rex_Whisper_getSegmentStartTime(JNIEnv *, jclass, jlong ctx, jint i) {
@@ -252,7 +331,7 @@ JNIEXPORT jlong JNICALL Java_ni_shikatu_rex_Whisper_getSegmentEndTime(JNIEnv *, 
 
 JNIEXPORT jstring JNICALL Java_ni_shikatu_rex_Whisper_getDetectedLanguage(JNIEnv *env, jclass, jlong ctx) {
     const char* lang = whisper_lang_str(whisper_full_lang_id((struct whisper_context *)ctx));
-    return env->NewStringUTF(lang ? lang : "");
+    return new_jstring_utf8(env, lang ? lang : "");
 }
 
 JNIEXPORT jboolean JNICALL Java_ni_shikatu_rex_Whisper_isMultilingual(JNIEnv *, jclass, jlong ctx) {
@@ -265,7 +344,7 @@ JNIEXPORT jint JNICALL Java_ni_shikatu_rex_Whisper_getSegmentTokenCount(JNIEnv *
 
 JNIEXPORT jstring JNICALL Java_ni_shikatu_rex_Whisper_getTokenText(JNIEnv *env, jclass, jlong ctx, jint i, jint j) {
     const char* txt = whisper_full_get_token_text((struct whisper_context *)ctx, i, j);
-    return env->NewStringUTF(txt ? txt : "");
+    return new_jstring_utf8(env, txt ? txt : "");
 }
 
 JNIEXPORT jfloat JNICALL Java_ni_shikatu_rex_Whisper_getTokenProbability(JNIEnv *, jclass, jlong ctx, jint i, jint j) {
@@ -277,11 +356,11 @@ JNIEXPORT jint JNICALL Java_ni_shikatu_rex_Whisper_getSampleRate(JNIEnv *, jclas
 }
 
 JNIEXPORT jstring JNICALL Java_ni_shikatu_rex_Whisper_getVersion(JNIEnv *env, jclass) {
-    return env->NewStringUTF(whisper_print_system_info());
+    return new_jstring_utf8(env, whisper_print_system_info());
 }
 
 JNIEXPORT jstring JNICALL Java_ni_shikatu_rex_Whisper_getSystemInfo(JNIEnv *env, jclass) {
-    return env->NewStringUTF(whisper_print_system_info());
+    return new_jstring_utf8(env, whisper_print_system_info());
 }
 
 
