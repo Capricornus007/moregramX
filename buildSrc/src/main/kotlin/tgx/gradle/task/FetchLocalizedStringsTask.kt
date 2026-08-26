@@ -166,6 +166,8 @@ abstract class FetchLocalizedStringsTask : DefaultTask() {
     val defaultStrings = mutableMapOf<String, String>()
     val threeDotFixKeysList = mutableListOf<Pair<String, List<String>>>()
 
+    val allFolders = mutableListOf<String>()
+
     val latch = CountDownLatch(languageCodes.size)
 
     logger.lifecycle("Fetching ${languageCodes.size} languages...")
@@ -221,6 +223,8 @@ abstract class FetchLocalizedStringsTask : DefaultTask() {
                 !languageCode.matches(Regex("^[a-z]+$")) -> fatal("Unsupported language code: $languageCode")
                 else -> arrayOf(languageCode)
               }
+
+              allFolders.addAll(outputFolders)
 
               for (outputFolder in outputFolders) {
                 writeToFile(
@@ -279,13 +283,6 @@ abstract class FetchLocalizedStringsTask : DefaultTask() {
     }
 
     latch.await()
-
-    val time = measureTimeMillis {
-      writeToFile("app/src/main/res/.gitignore") { gitignore ->
-        gitignore.append("values-*/strings.xml")
-      }
-    }
-    logger.lifecycle("Updated .gitignore in ${time}ms")
 
     if (threeDotFixKeysList.isNotEmpty()) {
       val message = StringBuilder("In ${threeDotFixKeysList.size} language(s) \"...\" could be replaced with \"…\" in these keys:")
