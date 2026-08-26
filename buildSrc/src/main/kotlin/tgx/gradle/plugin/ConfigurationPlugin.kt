@@ -13,6 +13,7 @@
 package tgx.gradle.plugin
 
 import ApplicationConfig
+import BuildVersions
 import PullRequest
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -158,7 +159,7 @@ open class ConfigurationPlugin : Plugin<Project> {
       outputFileNamePrefix,
       creationDateMillis,
 
-      keystore
+      keystoreFilePath
     )
     project.extra.set("config", config)
   }
