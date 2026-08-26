@@ -1,12 +1,3 @@
-/jniLibs
-/arm
-/arm64
-/x86
-/x86_64
-/universal
-/latestFull
-/src/main/java/org/thunderdog/challegram/core/LangUtils.kt
-/src/main/java/org/drinkmore/ClientException.java
 /src/main/res/values/generated.xml
 /src/main/res/values-zh-rCN/moex_strings.xml
 /src/main/res/values-zh-rTW/moex_strings.xml
