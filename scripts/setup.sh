@@ -28,10 +28,10 @@ patch-opus-impl.sh
 patch-androidx-media-impl.sh
 
 # Build and configure libvpx
-build-vpx-impl.sh
+scripts/build-vpx.sh
 
 # Build and configure ffmpeg
-build-ffmpeg-impl.sh
+scripts/build-ffmpeg.sh
 
 # == Copy local.properties ===
 

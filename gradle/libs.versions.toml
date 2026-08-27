@@ -17,6 +17,7 @@ androidx-interpolator = "1.0.0"
 google-zxing = "3.5.4"
 google-play-app-update = "2.1.0"
 google-play-billing = "7.1.1"
+google-gson = "2.10.1"
 
 google-services-plugin = "4.5.0"
 
@@ -220,6 +221,7 @@ google-firebase-messaging-lollipop = { module = "com.google.firebase:firebase-me
 google-firebase-messaging-latest = { module = "com.google.firebase:firebase-messaging", version.ref = "firebase-messaging-latest" }
 
 google-zxing-core = { module = "com.google.zxing:core", version.ref = "google-zxing" }
+google-gson = { module = "com.google.code.gson:gson", version.ref = "google-gson" }
 google-play-app-update = { module = "com.google.android.play:app-update", version.ref = "google-play-app-update" }
 google-play-billing = { module = "com.android.billingclient:billing", version.ref = "google-play-billing" }
 google-play-billing-ktx = { module = "com.android.billingclient:billing-ktx", version.ref = "google-play-billing" }
@@ -289,6 +291,6 @@ android-test = { id = "com.android.test", version.ref = "android-gradle-plugin" 
 
 google-services = { id = "com.google.gms.google-services", version.ref = "google-services-plugin" }
 
-kotlin-ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+androidx-baselineprofile = { id = "androidx.baselineprofile", version.ref = "androidx-baselineprofile" }
 
-google-gson = "2.10.1"
+kotlin-ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
