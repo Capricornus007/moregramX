@@ -14,3 +14,4 @@
 drafts
 /google-services.json
 /src/main/java/org/thunderdog/challegram/core/LangUtils.kt
+/src/main/java/org/drinkmore/ClientException.java
