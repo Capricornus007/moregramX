@@ -838,6 +838,7 @@ dependencies {
 
   // ZXing: https://github.com/zxing/zxing/blob/master/CHANGES
   implementation(libs.google.zxing.core)
+  implementation(libs.google.gson)
 
   // subsampling-scale-image-view: https://github.com/davemorrissey/subsampling-scale-image-view
   implementation(libs.subsamplingScaleImageView)

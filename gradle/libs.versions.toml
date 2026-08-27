@@ -291,4 +291,4 @@ google-services = { id = "com.google.gms.google-services", version.ref = "google
 
 kotlin-ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 
-androidx-baselineprofile = { id = "androidx.baselineprofile", version.ref = "androidx-baselineprofile" }
+google-gson = "2.10.1"
