@@ -6,7 +6,7 @@ import com.android.build.api.variant.BuildConfigField
 import com.android.build.api.variant.impl.VariantOutputImpl
 import org.gradle.kotlin.dsl.support.uppercaseFirstChar
 import tgx.gradle.*
-import tgx.gradle.source.*
+import tgx.gradle.source.GitVersionSource
 import tgx.gradle.task.*
 import java.util.*
 
@@ -106,10 +106,155 @@ val validateApiTokens = tasks.register<ValidateApiTokensTask>("validateApiTokens
 val fetchLocalizedStrings = tasks.register<FetchLocalizedStringsTask>("fetchLocalizedStrings") {
   group = "Setup"
   description = "Generates and updates all strings.xml resources based on translations.telegram.org"
-
   resOutputDir.set(layout.buildDirectory.dir(
     "generated/tgx/locales/res"
   ))
+}
+
+val patchJetpackMediaTasks = Sdk.VARIANTS.values.filter { !it.isMarshmallow }.associateBy({ it.flavor }) { variant ->
+  tasks.register<PatchJetpackMediaTask>(
+    "patchJetpackMedia${variant.flavor.uppercaseFirstChar()}"
+  ) {
+    group = "Setup"
+    description = "Copies patched androidx-media extensions for ${variant.flavor} flavor"
+    inputDirs.from(Config.ANDROIDX_MEDIA_EXTENSIONS.map { extension ->
+      layout.projectDirectory.dir(
+        "thirdparty/androidx-media/${variant.flavor}/libraries/$extension/src/main/jni"
+      )
+    })
+    outputDir.set(layout.buildDirectory.dir(
+      "generated/tgx/androidx-media/${variant.flavor}"
+    ))
+  }
+}
+
+val patchJetpackMedia = tasks.register("patchJetpackMedia") {
+  group = "Setup"
+  description = "Copies patched androidx-media extensions for all flavors"
+  dependsOn(patchJetpackMediaTasks.values)
+}
+
+val patchOpusTask = tasks.register<PatchOpusTask>(
+  "patchOpus"
+) {
+  group = "Setup"
+  description = "Creates a patched copy of opus"
+  inputDir.set(layout.projectDirectory.dir(
+    "jni/third_party/opus"
+  ))
+  inputSources.from(inputDir.asFileTree.matching {
+    exclude(
+      ".git",
+      ".github",
+      "doc",
+      "tests",
+      "**/*.md"
+    )
+  })
+  outputDir.set(layout.buildDirectory.dir(
+    "generated/tgx/opus"
+  ))
+}
+
+val buildLibvpxTasks = Sdk.VARIANTS.values.flatMap { sdkVariant ->
+  val abiVariants = if (sdkVariant.minSdk >= 21) {
+    arrayOf("arm64", "arm32", "x86", "x64")
+  } else {
+    arrayOf("arm32", "x86")
+  }
+  abiVariants.map { abiVariant ->
+    Pair(Pair(sdkVariant.flavor, abiVariant), tasks.register<BuildLibvpxTask>(
+      "buildLibvpx${sdkVariant.flavor.uppercaseFirstChar()}${abiVariant.uppercaseFirstChar()}"
+    ) {
+      group = "Setup"
+      description = "Builds libvpx for ${sdkVariant.flavor}, $abiVariant flavor"
+      // System
+      sdkDir.set(File(config.sdkDir))
+      // sdkDir.fileValue(File(config.sdkDir))
+      ndkVersion.set(android.ndkVersion)
+      hostTag.set(findHostTag())
+      // Input
+      inputDir.set(layout.projectDirectory.dir(
+        "jni/third_party/libvpx"
+      ))
+      inputSources.from(inputDir.asFileTree.matching {
+        exclude(
+          ".git",
+          "test",
+          "third_party",
+          "tools",
+          "examples",
+          "*.md"
+        )
+      })
+      sdkFlavor.set(sdkVariant.flavor)
+      abi.set(abiVariant.toAbiFilter())
+      // Output
+      buildDir.set(layout.buildDirectory.dir(
+        "generated/tgx/libvpx-build/${sdkVariant.flavor}/${abiVariant.toAbiFilter()}"
+      ))
+      outputDir.set(layout.buildDirectory.dir(
+        "generated/tgx/libvpx/${sdkVariant.flavor}/${abiVariant.toAbiFilter()}"
+      ))
+    })
+  }
+}.toMap()
+val buildLibvpxTask = tasks.register("buildLibvpx") {
+  group = "Setup"
+  description = "Builds libvpx for all flavors"
+  dependsOn(buildLibvpxTasks.values)
+}
+
+val buildFfmpegTasks = Sdk.VARIANTS.values.flatMap { sdkVariant ->
+  val abiVariants = if (sdkVariant.minSdk >= 21) {
+    arrayOf("arm64", "arm32", "x86", "x64")
+  } else {
+    arrayOf("arm32", "x86")
+  }
+  abiVariants.map { abiVariant ->
+    val key = Pair(sdkVariant.flavor, abiVariant)
+    val task = tasks.register<BuildFfmpegTask>(
+      "buildFfmpeg${sdkVariant.flavor.uppercaseFirstChar()}${abiVariant.uppercaseFirstChar()}"
+    ) {
+      group = "Setup"
+      description = "Builds FFmpeg for ${sdkVariant.flavor}, $abiVariant flavor"
+      // System
+      sdkDir.fileValue(File(config.sdkDir))
+      ndkVersion.set(android.ndkVersion)
+      hostTag.set(findHostTag())
+      // Input
+      inputDir.set(layout.projectDirectory.dir(
+        "jni/third_party/ffmpeg"
+      ))
+      inputSources.from(inputDir.asFileTree.matching {
+        exclude(
+          ".git",
+          "doc",
+          "tests",
+          "*.md"
+        )
+      })
+      sdkFlavor.set(sdkVariant.flavor)
+      abi.set(abiVariant.toAbiFilter())
+      libvpxDir.set(layout.buildDirectory.dir(
+        "generated/tgx/libvpx/${sdkVariant.flavor}/${abiVariant.toAbiFilter()}"
+      ))
+      // Output
+      buildDir.set(layout.buildDirectory.dir(
+        "generated/tgx/ffmpeg-build/${sdkVariant.flavor}/${abiVariant.toAbiFilter()}"
+      ))
+      outputDir.set(layout.buildDirectory.dir(
+        "generated/tgx/ffmpeg/${sdkVariant.flavor}/${abiVariant.toAbiFilter()}"
+      ))
+      dependsOn(buildLibvpxTasks[key] ?: error("libvpx task not found for $key"))
+    }
+    Pair(key, task)
+  }
+}.toMap()
+val buildFfmpegTask = tasks.register("buildFfmpeg") {
+  group = "Setup"
+  description = "Builds FFmpeg for all flavors"
+  dependsOn(buildFfmpegTasks.values)
 }
 
 //noinspection WrongGradleMethod
@@ -328,7 +473,7 @@ android {
         dimension = "SDK"
         isDefault = sdkIndex == Sdk.LATEST
 
-        if (generateBaselineProfile && variant.flavor != "latest") {
+        if (generateBaselineProfile && !variant.isLatest) {
           matchingFallbacks += "latest"
         }
         Sdk.VARIANTS.forEach { (subSdkIndex, subVariant) ->
@@ -365,7 +510,6 @@ android {
           targets += arrayOf("tgxjni", "tgcallsjni")
           arguments(
             "-DANDROID_PLATFORM=android-${selectedMinSdk}",
-            "-DTGX_FLAVOR=${variant.flavor}",
             "-DANDROID_STL=${if (Config.SHARED_STL) "c++_shared" else "c++_static"}",
             "-DCMAKE_BUILD_WITH_INSTALL_RPATH=ON",
             "-DCMAKE_SKIP_RPATH=ON",
@@ -373,13 +517,28 @@ android {
             "-DCMAKE_CXX_VISIBILITY_PRESET=hidden",
             "-DCMAKE_SHARED_LINKER_FLAGS=-Wl,--gc-sections,--icf=safe -Wl,--build-id=sha1",
             "-DCMAKE_C_FLAGS=-D_LARGEFILE_SOURCE=1 ${flags.joinToString(" ")}",
-            "-DCMAKE_CXX_FLAGS=-std=c++17 ${flags.joinToString(" ")}"
+            "-DCMAKE_CXX_FLAGS=-std=c++17 ${flags.joinToString(" ")}",
+            "-DTGX_FLAVOR=${variant.flavor}"
           )
+
+          val dirs = mapOf(
+            "ANDROIDX_MEDIA_DIR" to layout.buildDirectory.dir("generated/tgx/androidx-media/${
+              (variant.takeIf { !it.isMarshmallow } ?: Sdk.VARIANTS[Sdk.LATEST]!!).flavor
+            }"),
+            "OPUS_DIR" to layout.buildDirectory.dir("generated/tgx/opus"),
+            "LIBVPX_DIR" to layout.buildDirectory.dir("generated/tgx/libvpx/${variant.flavor}"),
+            "FFMPEG_DIR" to layout.buildDirectory.dir("generated/tgx/ffmpeg/${variant.flavor}")
+          ).map {
+            "-D${it.key}=${it.value.get().asFile.absolutePath}"
+          }.toTypedArray()
+          arguments(*dirs)
         }
 
         sourceSets.getByName(variant.flavor) {
           Config.ANDROIDX_MEDIA_EXTENSIONS.forEach { extension ->
-            java.directories += "../thirdparty/androidx-media/${variant.flavor}/libraries/${extension}/src/main/java"
+            java.directories += "thirdparty/androidx-media/${
+              (variant.takeIf { !it.isMarshmallow } ?: Sdk.VARIANTS[Sdk.LATEST]!!).flavor
+            }/libraries/${extension}/src/main/java"
           }
           val extraFolders = findExtraFolders(variant)
           extraFolders.forEach { folderName ->
@@ -407,9 +566,9 @@ android {
           "database",
           "effect"
         ).plus(Config.ANDROIDX_MEDIA_EXTENSIONS).forEach { extension ->
-          val proguardFile = file(
-            "../thirdparty/androidx-media/${variant.flavor}/libraries/${extension}/proguard-rules.txt"
-          )
+          val proguardFile = project.layout.projectDirectory.file(
+            "thirdparty/androidx-media/${variant.flavor}/libraries/${extension}/proguard-rules.txt"
+          ).asFile
           if (proguardFile.exists()) {
             extraProguardFileCount++
             proguardFile(proguardFile)
@@ -422,7 +581,9 @@ android {
       }
     }
 
-    Abi.VARIANTS.forEach { (abiIndex, variant) ->
+    Abi.VARIANTS.filter { (abiIndex, variant) ->
+      generateBaselineProfile || !variant.isTestingLab
+    }.forEach { (abiIndex, variant) ->
       create(variant.flavor) {
         dimension = "ABI"
         isDefault = abiIndex == 0
@@ -462,6 +623,31 @@ android {
     }
 
     onVariants { variant ->
+      val abiFlavor = variant.productFlavors.first { it.first == "ABI" }.second
+      val sdkFlavor = variant.productFlavors.first { it.first == "SDK" }.second
+
+      val (abi, abiVariant) = Abi.VARIANTS.entries.first { it.value.flavor == abiFlavor }
+      val (sdk, sdkVariant) = Sdk.VARIANTS.entries.first { it.value.flavor == sdkFlavor }
+
+      val patchJetpackMediaTask = (
+        sdkVariant.takeIf {
+          !it.isMarshmallow
+        } ?: Sdk.VARIANTS[Sdk.LATEST]!!
+      ).let {
+        patchJetpackMediaTasks[it.flavor]!!
+      }
+      variant.lifecycleTasks.registerPreBuild(patchJetpackMediaTask, patchOpusTask)
+
+      abiVariant.filters.filter {
+        sdkVariant.minSdk >= 21 || it == "armeabi-v7a" || it == "x86"
+      }.map {
+        Pair(sdkVariant.flavor, it.toAbiVariant())
+      }.forEach { key ->
+        val buildLibvpxTask = buildLibvpxTasks[key] ?: error("libvpx task not found for $key")
+        val buildFfmpegTask = buildFfmpegTasks[key] ?: error("ffmpeg task not found for $key")
+        variant.lifecycleTasks.registerPreBuild(buildLibvpxTask, buildFfmpegTask)
+      }
+
       variant.sources.res?.apply {
         addGeneratedSourceDirectory(
           generateThemes, GenerateThemesTask::resOutputDir

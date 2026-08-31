@@ -75,6 +75,8 @@ data class BuildVersions(
 }
 
 data class ApplicationConfig(
+  val sdkDir: String,
+
   val applicationName: String,
   val applicationId: String,
   val extension: String,
@@ -186,6 +188,12 @@ data class SdkVariant(
 ) {
   val isLatest: Boolean =
     flavor == "latest"
+  val isMarshmallow: Boolean =
+    flavor == "marshmallow"
+  val isLollipop: Boolean =
+    flavor == "lollipop"
+  val isLegacy: Boolean =
+    flavor == "legacy"
 }
 
 object Sdk {
