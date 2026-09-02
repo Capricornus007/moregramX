@@ -75,20 +75,36 @@ add_compile_options(
 
 # tdjni
 
+# tdlib ships per-NDK OpenSSL prebuilds: openssl/<ndk>/<abi>/ (upstream changed
+# the flat openssl/<abi>/ layout when 64-bit moved to primary NDK 27.3).
+# Derive the NDK layer from the toolchain in use (ANDROID_NDK/source.properties
+# Pkg.Revision), falling back to the flat layout when it is absent.
+set(TGX_OPENSSL_DIR "${TDLIB_DIR}/openssl/${ANDROID_ABI}")
+if(DEFINED ANDROID_NDK AND EXISTS "${ANDROID_NDK}/source.properties")
+  file(STRINGS "${ANDROID_NDK}/source.properties" _tgx_ndk_rev REGEX "^Pkg.Revision =")
+  string(REGEX REPLACE "^Pkg.Revision = (.*)$" "\\1" _tgx_ndk_ver "${_tgx_ndk_rev}")
+  string(STRIP "${_tgx_ndk_ver}" _tgx_ndk_ver)
+  if(EXISTS "${TDLIB_DIR}/openssl/${_tgx_ndk_ver}/${ANDROID_ABI}")
+    set(TGX_OPENSSL_DIR "${TDLIB_DIR}/openssl/${_tgx_ndk_ver}/${ANDROID_ABI}")
+  endif()
+  unset(_tgx_ndk_rev)
+  unset(_tgx_ndk_ver)
+endif()
+
 add_library(crypto SHARED IMPORTED)
 set_target_properties(crypto PROPERTIES IMPORTED_LOCATION
-  ${TDLIB_DIR}/openssl/${ANDROID_ABI}/lib/libcryptox.so
+  ${TGX_OPENSSL_DIR}/lib/libcryptox.so
 )
 add_library(ssl SHARED IMPORTED)
 set_target_properties(ssl PROPERTIES IMPORTED_LOCATION
-  ${TDLIB_DIR}/openssl/${ANDROID_ABI}/lib/libsslx.so
+  ${TGX_OPENSSL_DIR}/lib/libsslx.so
 )
 if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.11.0")
   target_include_directories(crypto INTERFACE
-    ${TDLIB_DIR}/openssl/${ANDROID_ABI}/include
+    ${TGX_OPENSSL_DIR}/include
   )
   target_include_directories(ssl INTERFACE
-    ${TDLIB_DIR}/openssl/${ANDROID_ABI}/include
+    ${TGX_OPENSSL_DIR}/include
   )
 endif()
 
