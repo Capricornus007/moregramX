@@ -72,9 +72,23 @@ abstract class BuildFfmpegTask : BuildNativeLibraryTask() {
       "-fPIC",
       "-flto=full"
     )
-    val clangLibs = requireDir(
-      prebuilt.resolve("lib64/clang/12.0.9/lib/linux")
-    )
+    // clang compiler-rt builtins 的安裝目錄隨 NDK 版本變化（r23 是
+    // lib64/clang/12.0.9/lib/linux，r27 起 clang 版本與佈局都不同），
+    // 按各自 abi 的 .a 檔案動態定位，不再寫死路徑。64 位 abi 不需要
+    // builtins，惰性求值不會觸發搜尋。
+    fun clangRuntimeDir(libName: String): File {
+      sequenceOf("lib64", "lib").forEach { root ->
+        val start = prebuilt.resolve(root)
+        if (!start.isDirectory) return@forEach
+        start.walkTopDown()
+          .filter { it.isFile && it.name == libName }
+          .firstOrNull()
+          ?.let { return it.parentFile }
+      }
+      error("clang runtime library not found under $prebuilt: $libName")
+    }
+    val clangLibsArm by lazy { clangRuntimeDir("libclang_rt.builtins-arm-android.a") }
+    val clangLibsX86 by lazy { clangRuntimeDir("libclang_rt.builtins-i686-android.a") }
     val extraLibs = mutableListOf<String>()
     val ndkAbi: String
     when (abi) {
@@ -102,7 +116,7 @@ abstract class BuildFfmpegTask : BuildNativeLibraryTask() {
           "-I${cpuFeatures.absolutePath}"
         ))
         ldFlags.addAll(listOf(
-          "-L${clangLibs.absolutePath}",
+          "-L${clangLibsArm.absolutePath}",
           "-Wl,--fix-cortex-a8"
         ))
         extraLibs.addAll(listOf(
@@ -137,7 +151,7 @@ abstract class BuildFfmpegTask : BuildNativeLibraryTask() {
           "-mfpmath=sse",
           "-fPIC"
         ))
-        ldFlags += "-L${clangLibs.absolutePath}"
+        ldFlags += "-L${clangLibsX86.absolutePath}"
         extraLibs += "-lclang_rt.builtins-i686-android"
         extraParams.addAll(arrayOf(
           "--disable-asm",
