@@ -751,8 +751,13 @@ android {
         var openSslReleaseDate = ""
         // tdlib ships per-NDK OpenSSL prebuilds: openssl/<ndk>/<abi>/ (upstream changed
         // the flat openssl/<abi>/ layout when it moved 64-bit to primary NDK 27.3).
-        val openSslNdkVersion = if (abiVariant.is64Bit) config.build.primaryNdkVersion else config.build.legacyNdkVersion
-        val openSslVersionFile = File(project.rootDir.absoluteFile, "tdlib/openssl/$openSslNdkVersion/${abiVariant.filters.first()}/include/openssl/opensslv.h")
+        // Pick per-ABI, not per-variant: universal/lab variants mix 32+64-bit filters
+        // (is64Bit == false) while their first filter can still be arm64-v8a, which
+        // only exists under the primary NDK tree.
+        val openSslAbi = abiVariant.filters.first()
+        val primaryOpenSsl = File(project.rootDir.absoluteFile, "tdlib/openssl/${config.build.primaryNdkVersion}/$openSslAbi/include/openssl/opensslv.h")
+        val openSslNdkVersion = if (primaryOpenSsl.isFile) config.build.primaryNdkVersion else config.build.legacyNdkVersion
+        val openSslVersionFile = File(project.rootDir.absoluteFile, "tdlib/openssl/$openSslNdkVersion/$openSslAbi/include/openssl/opensslv.h")
         openSslVersionFile.bufferedReader().use { reader ->
           val regex = Regex("^# define (OPENSSL_FULL_VERSION_STR|OPENSSL_RELEASE_DATE)\\s*\"([^\"]+)\"$")
           while (true) {
