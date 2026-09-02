@@ -764,9 +764,19 @@ android {
         // (is64Bit == false) while their first filter can still be arm64-v8a, which
         // only exists under the primary NDK tree.
         val openSslAbi = abiVariant.filters.first()
-        val primaryOpenSsl = File(project.rootDir.absoluteFile, "tdlib/openssl/${config.build.primaryNdkVersion}/$openSslAbi/include/openssl/opensslv.h")
-        val openSslNdkVersion = if (primaryOpenSsl.isFile) config.build.primaryNdkVersion else config.build.legacyNdkVersion
-        val openSslVersionFile = File(project.rootDir.absoluteFile, "tdlib/openssl/$openSslNdkVersion/$openSslAbi/include/openssl/opensslv.h")
+        // Layouts across tdlib versions, in probe order:
+        // 1. openssl/<abi>/include/...            (flat, pre-NDK-split)
+        // 2. openssl/<ndk>/<abi>/include/...      (per-NDK prebuilds, current)
+        val root = project.rootDir.absoluteFile
+        val flatCandidate = File(root, "tdlib/openssl/$openSslAbi/include/openssl/opensslv.h")
+        val primaryCandidate = File(root, "tdlib/openssl/${config.build.primaryNdkVersion}/$openSslAbi/include/openssl/opensslv.h")
+        val legacyCandidate = File(root, "tdlib/openssl/${config.build.legacyNdkVersion}/$openSslAbi/include/openssl/opensslv.h")
+        val openSslVersionFile = when {
+          flatCandidate.isFile -> flatCandidate
+          primaryCandidate.isFile -> primaryCandidate
+          legacyCandidate.isFile -> legacyCandidate
+          else -> flatCandidate // let the reader produce a diagnosable error
+        }
         openSslVersionFile.bufferedReader().use { reader ->
           val regex = Regex("^# define (OPENSSL_FULL_VERSION_STR|OPENSSL_RELEASE_DATE)\\s*\"([^\"]+)\"$")
           while (true) {

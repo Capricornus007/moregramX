@@ -62,14 +62,24 @@ if (${ANDROID_ABI} STREQUAL "armeabi-v7a")
   target_sources(rlottie PRIVATE
     "${RLOTTIE_DIR}/src/vector/pixman/pixman-arm-neon-asm.S")
 elseif(${ANDROID_ABI} STREQUAL "arm64-v8a")
-  target_compile_options(rlottie PUBLIC
-    -fno-integrated-as
-  )
-  target_compile_definitions(rlottie PRIVATE
-    USE_ARM_NEON
-    __ARM64_NEON__
-  )
-  target_sources(rlottie PRIVATE
-    "${RLOTTIE_DIR}/src/vector/pixman/pixman-arma64-neon-asm.S"
-  )
+  # NDK 27 removed the bundled GNU assembler that -fno-integrated-as relied
+  # on; the system `as` fallback rejects -EL, and vdrawhelper_neon.cpp
+  # references the asm symbols, so the whole NEON fast path is off on modern
+  # NDKs; the portable C path covers arm64.
+  set(_rl_modern_ndk FALSE)
+  if(DEFINED ANDROID_NDK AND EXISTS "${ANDROID_NDK}/source.properties")
+    file(STRINGS "${ANDROID_NDK}/source.properties" _rl_rev REGEX "^Pkg.Revision =")
+    string(REGEX REPLACE "^Pkg.Revision = (.*)$" "\\1" _rl_ver "${_rl_rev}")
+    string(STRIP "${_rl_ver}" _rl_ver)
+    if(_rl_ver VERSION_GREATER_EQUAL "27")
+      set(_rl_modern_ndk TRUE)
+    endif()
+  endif()
+  if(NOT _rl_modern_ndk)
+    target_compile_options(rlottie PUBLIC -fno-integrated-as)
+    target_compile_definitions(rlottie PRIVATE USE_ARM_NEON __ARM64_NEON__)
+    target_sources(rlottie PRIVATE
+      "${RLOTTIE_DIR}/src/vector/pixman/pixman-arma64-neon-asm.S"
+    )
+  endif()
 endif()

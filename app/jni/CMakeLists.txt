@@ -117,9 +117,24 @@ if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.11.0")
   )
 endif()
 
+# tdlib's libtdjni.so ships under src/main/libs/<ndk>/<abi>/ (same per-NDK
+# layout as the openssl prebuilds); derive the layer with the same logic.
+set(TGX_TDJNI_DIR "${TDLIB_DIR}/src/main/libs/${ANDROID_ABI}")
+if(DEFINED ANDROID_NDK AND EXISTS "${TDLIB_DIR}/src/main/libs/${_tgx_ossl_ver}/${ANDROID_ABI}/libtdjni.so")
+  set(TGX_TDJNI_DIR "${TDLIB_DIR}/src/main/libs/${_tgx_ossl_ver}/${ANDROID_ABI}")
+elseif(NOT EXISTS "${TGX_TDJNI_DIR}/libtdjni.so")
+  file(GLOB _tgx_tdjni_layers "${TDLIB_DIR}/src/main/libs/*/${ANDROID_ABI}/libtdjni.so")
+  if(_tgx_tdjni_layers)
+    list(GET _tgx_tdjni_layers 0 _tgx_tdjni_found)
+    get_filename_component(TGX_TDJNI_DIR "${_tgx_tdjni_found}" DIRECTORY)
+    unset(_tgx_tdjni_layers)
+    unset(_tgx_tdjni_found)
+  endif()
+endif()
+
 add_library(tdjni SHARED IMPORTED)
 set_target_properties(tdjni PROPERTIES IMPORTED_LOCATION
-  ${TDLIB_DIR}/src/main/libs/${ANDROID_ABI}/libtdjni.so
+  ${TGX_TDJNI_DIR}/libtdjni.so
 )
 target_link_libraries(tdjni INTERFACE crypto ssl)
 

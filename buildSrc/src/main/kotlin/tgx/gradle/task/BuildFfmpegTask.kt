@@ -305,6 +305,10 @@ abstract class BuildFfmpegTask : BuildNativeLibraryTask() {
         ).map {
           "--enable-demuxer=$it"
         }.toTypedArray(),
+        // ffmpeg master builds av1dec.o unconditionally while its
+        // ff_av1_framerate helper lives behind the av1 parser objects;
+        // enabling the parser keeps the symbol set closed.
+        "--enable-parser=av1",
         *extraParams.toTypedArray()
       ),
       "make" to arrayOf(
