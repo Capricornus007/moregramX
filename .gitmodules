@@ -138,5 +138,3 @@
 [submodule "thirdparty/whispercpp"]
 	path = thirdparty/whispercpp
 	url = https://github.com/ggml-org/whisper.cpp.git
-[submodule "app/jni/tgvoip/third_party/tgcalls"]
-	branch = development
