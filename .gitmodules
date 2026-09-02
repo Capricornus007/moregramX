@@ -50,7 +50,6 @@
 	path = tdlib
 	url = https://github.com/TGX-Android/tdlib
 	shallow = true
-	branch = main
 [submodule "jni-utils"]
 	path = app/jni/third_party/jni-utils
 	url = https://github.com/TGX-Android/jni-utils
