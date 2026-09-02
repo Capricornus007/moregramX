@@ -749,7 +749,10 @@ android {
 
         var openSslVersionFull = ""
         var openSslReleaseDate = ""
-        val openSslVersionFile = File(project.rootDir.absoluteFile, "tdlib/openssl/${abiVariant.filters.first()}/include/openssl/opensslv.h")
+        // tdlib ships per-NDK OpenSSL prebuilds: openssl/<ndk>/<abi>/ (upstream changed
+        // the flat openssl/<abi>/ layout when it moved 64-bit to primary NDK 27.3).
+        val openSslNdkVersion = if (abiVariant.is64Bit) config.build.primaryNdkVersion else config.build.legacyNdkVersion
+        val openSslVersionFile = File(project.rootDir.absoluteFile, "tdlib/openssl/$openSslNdkVersion/${abiVariant.filters.first()}/include/openssl/opensslv.h")
         openSslVersionFile.bufferedReader().use { reader ->
           val regex = Regex("^# define (OPENSSL_FULL_VERSION_STR|OPENSSL_RELEASE_DATE)\\s*\"([^\"]+)\"$")
           while (true) {
