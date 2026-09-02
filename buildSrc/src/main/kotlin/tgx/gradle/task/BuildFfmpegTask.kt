@@ -76,7 +76,7 @@ abstract class BuildFfmpegTask : BuildNativeLibraryTask() {
     // lib64/clang/12.0.9/lib/linux，r27 起 clang 版本與佈局都不同），
     // 按各自 abi 的 .a 檔案動態定位，不再寫死路徑。64 位 abi 不需要
     // builtins，惰性求值不會觸發搜尋。
-    fun clangRuntimeDir(libName: String): File {
+    fun clangRuntimeDir(libName: String): java.io.File {
       sequenceOf("lib64", "lib").forEach { root ->
         val start = prebuilt.resolve(root)
         if (!start.isDirectory) return@forEach
