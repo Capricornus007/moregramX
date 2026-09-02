@@ -171,7 +171,10 @@ val buildLibvpxTasks = Sdk.VARIANTS.values.flatMap { sdkVariant ->
       // System
       sdkDir.set(File(config.sdkDir))
       // sdkDir.fileValue(File(config.sdkDir))
-      ndkVersion.set(android.ndkVersion)
+      ndkVersion.set(
+        if (sdkVariant.minSdk >= 21) config.build.primaryNdkVersion
+        else config.build.legacyNdkVersion
+      )
       hostTag.set(findHostTag())
       // Input
       inputDir.set(layout.projectDirectory.dir(
@@ -220,7 +223,10 @@ val buildFfmpegTasks = Sdk.VARIANTS.values.flatMap { sdkVariant ->
       description = "Builds FFmpeg for ${sdkVariant.flavor}, $abiVariant flavor"
       // System
       sdkDir.fileValue(File(config.sdkDir))
-      ndkVersion.set(android.ndkVersion)
+      ndkVersion.set(
+        if (sdkVariant.minSdk >= 21) config.build.primaryNdkVersion
+        else config.build.legacyNdkVersion
+      )
       hostTag.set(findHostTag())
       // Input
       inputDir.set(layout.projectDirectory.dir(
@@ -487,6 +493,14 @@ android {
         }
         val selectedMinSdk = maxOf(variant.minSdk, actualMinSdk)
         minSdk = selectedMinSdk
+        // NDK by SDK flavor (not ABI): the legacy line needs the legacy NDK on
+        // every ABI (NDK 27 dropped API<21 wrappers), while API 21+ flavors can
+        // use the primary NDK for all ABIs (27.3 ships prebuilds for all four).
+        ndkVersion = if (selectedMinSdk >= 21) {
+          config.build.primaryNdkVersion
+        } else {
+          config.build.legacyNdkVersion
+        }
         if (selectedMinSdk < 21) {
           proguardFile("proguard-r8-bug-android-4.x-workaround.pro")
         }
@@ -595,11 +609,6 @@ android {
           buildConfigBool("${subVariant.flavor.uppercase()}_FLAVOR", abiIndex == subAbiIndex)
         }
 
-        ndkVersion = if (variant.is64Bit) {
-          config.build.primaryNdkVersion
-        } else {
-          config.build.legacyNdkVersion
-        }
         // ndkPath = File(sdkDirectory, "ndk/$ndkVersion").absolutePath
         buildConfigString("NDK_VERSION", ndkVersion)
         buildConfigBool("WEBP_ENABLED", true) // variant.minSdk < 19

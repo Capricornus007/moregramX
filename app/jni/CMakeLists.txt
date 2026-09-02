@@ -90,6 +90,15 @@ if(DEFINED ANDROID_NDK AND EXISTS "${ANDROID_NDK}/source.properties")
   unset(_tgx_ndk_rev)
   unset(_tgx_ndk_ver)
 endif()
+if(NOT EXISTS "${TGX_OPENSSL_DIR}")
+  # Last resort: any NDK layer carrying this ABI (e.g. legacy x 64-bit combos
+  # build with the legacy NDK while only the primary layer ships arm64 prebuilds).
+  file(GLOB _tgx_ossl_layers "${TDLIB_DIR}/openssl/*/${ANDROID_ABI}")
+  if(_tgx_ossl_layers)
+    list(GET _tgx_ossl_layers 0 TGX_OPENSSL_DIR)
+  endif()
+  unset(_tgx_ossl_layers)
+endif()
 
 add_library(crypto SHARED IMPORTED)
 set_target_properties(crypto PROPERTIES IMPORTED_LOCATION
