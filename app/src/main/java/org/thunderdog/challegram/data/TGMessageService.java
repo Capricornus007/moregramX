@@ -74,32 +74,34 @@ public final class TGMessageService extends TGMessageServiceImpl {
     super(context, msg);
     String amount = CurrencyUtils.buildAmount(giftedPremium.currency, giftedPremium.amount);
     setTextCreator(() -> {
+      boolean months = giftedPremium.monthCount != 0;
+      int monthsOrDays = months ? giftedPremium.monthCount : giftedPremium.dayCount;
       if (giftedPremium.receiverUserId != 0) {
         if (msg.chatId == ChatId.fromUserId(giftedPremium.receiverUserId)) {
           return getPlural(
-            R.string.YouGiftedPremium,
-            giftedPremium.monthCount,
+            months ? R.string.YouGiftedPremium : R.string.YouGiftedPremiumDays,
+            monthsOrDays,
             new BoldArgument(amount)
           );
         } else {
           return getPlural(
-            R.string.YouGiftedPremiumTo,
-            giftedPremium.monthCount,
+            months ? R.string.YouGiftedPremiumTo : R.string.YouGiftedPremiumDaysTo,
+            monthsOrDays,
             new BoldArgument(amount),
             new SenderArgument(new TdlibSender(tdlib, msg.chatId, new TdApi.MessageSenderUser(giftedPremium.receiverUserId)))
           );
         }
       } else if (giftedPremium.gifterUserId != 0) {
         return getPlural(
-          R.string.GiftedPremium,
-          giftedPremium.monthCount,
+          months ? R.string.GiftedPremium : R.string.GiftedPremiumDays,
+          monthsOrDays,
           new SenderArgument(new TdlibSender(tdlib, msg.chatId, new TdApi.MessageSenderUser(giftedPremium.gifterUserId)), isUserChat()),
           new BoldArgument(amount)
         );
       } else {
         return getPlural(
-          R.string.AnonymousGiftedPremium,
-          giftedPremium.monthCount,
+          months ? R.string.AnonymousGiftedPremium : R.string.AnonymousGiftedPremiumDays,
+          monthsOrDays,
           new BoldArgument(amount)
         );
       }
@@ -109,21 +111,23 @@ public final class TGMessageService extends TGMessageServiceImpl {
   public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessagePremiumGiftCode premiumGiftCode) {
     super(context, msg);
     setTextCreator(() -> {
+      boolean months = premiumGiftCode.monthCount != 0;
+      int monthsOrDays = months ? premiumGiftCode.monthCount : premiumGiftCode.dayCount;
       if (msg.isOutgoing) {
         return getPlural(
-          R.string.YouGiftedPremiumCode,
-          premiumGiftCode.monthCount
+          months ? R.string.YouGiftedPremiumCode : R.string.YouGiftedPremiumCodeDays,
+          monthsOrDays
         );
       } else if (premiumGiftCode.creatorId != null) {
         return getPlural(
-          R.string.GiftedPremiumCode,
-          premiumGiftCode.monthCount,
+          months ? R.string.GiftedPremiumCode : R.string.GiftedPremiumCodeDays,
+          monthsOrDays,
           new SenderArgument(new TdlibSender(tdlib, msg.chatId, premiumGiftCode.creatorId), isUserChat())
         );
       } else {
         return getPlural(
-          R.string.AnonymousGiftedPremiumCode,
-          premiumGiftCode.monthCount
+          months ? R.string.AnonymousGiftedPremiumCode : R.string.AnonymousGiftedPremiumCodeDays,
+          monthsOrDays
         );
       }
     });
@@ -441,6 +445,7 @@ public final class TGMessageService extends TGMessageServiceImpl {
             case TdApi.MessageChatDeleteMember.CONSTRUCTOR:
             case TdApi.MessageChatDeletePhoto.CONSTRUCTOR:
             case TdApi.MessageChatJoinByLink.CONSTRUCTOR:
+            case TdApi.MessageChatJoinFromCommunity.CONSTRUCTOR:
             case TdApi.MessageChatJoinByRequest.CONSTRUCTOR:
             case TdApi.MessageChatSetTheme.CONSTRUCTOR:
             case TdApi.MessageChatSetBackground.CONSTRUCTOR:
@@ -451,7 +456,7 @@ public final class TGMessageService extends TGMessageServiceImpl {
             case TdApi.MessageGameScore.CONSTRUCTOR:
             case TdApi.MessageGiftedPremium.CONSTRUCTOR:
             case TdApi.MessageGiftedStars.CONSTRUCTOR:
-            case TdApi.MessageGiftedTon.CONSTRUCTOR:
+            case TdApi.MessageGiftedGrams.CONSTRUCTOR:
             case TdApi.MessagePremiumGiftCode.CONSTRUCTOR:
             case TdApi.MessageGiveawayCreated.CONSTRUCTOR:
             case TdApi.MessageGiveawayCompleted.CONSTRUCTOR:
@@ -512,7 +517,7 @@ public final class TGMessageService extends TGMessageServiceImpl {
               staticResId = R.string.ActionPinnedNoText;
               break;
             default:
-              Td.assertMessageContent_a80283cf();
+              Td.assertMessageContent_af730a78();
               throw Td.unsupported(message.content);
           }
           if (format == null) {
@@ -728,6 +733,39 @@ public final class TGMessageService extends TGMessageServiceImpl {
     });
   }
 
+  public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageChatJoinFromCommunity joinFromCommunity) {
+    super(context, msg);
+    TdApi.Community community = tdlib.cache().community(joinFromCommunity.communityId);
+    if (community != null) {
+      setTextCreator(() -> {
+        if (msg.isOutgoing) {
+          return getText(
+            R.string.group_user_join_from_community_name_self
+          );
+        } else {
+          return getText(
+            R.string.group_user_join_from_community_name,
+            new SenderArgument(sender),
+            new BoldArgument(community.name)
+          );
+        }
+      });
+    } else {
+      setTextCreator(() -> {
+        if (msg.isOutgoing) {
+          return getText(
+            R.string.group_user_join_from_community_self
+          );
+        } else {
+          return getText(
+            R.string.group_user_join_from_community,
+            new SenderArgument(sender)
+          );
+        }
+      });
+    }
+  }
+
   public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageChatJoinByRequest joinByRequest) {
     super(context, msg);
     setTextCreator(() -> {
@@ -889,11 +927,12 @@ public final class TGMessageService extends TGMessageServiceImpl {
   public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessageManagedBotCreated botCreated) {
     super(context, msg);
     setTextCreator(() -> {
-      TdlibSender targetSender = new TdlibSender(tdlib, msg.chatId, new TdApi.MessageSenderUser(botCreated.botUserId));
+      TdlibSender createdId = new TdlibSender(tdlib, msg.chatId, new TdApi.MessageSenderUser(botCreated.botUserId));
+      TdlibSender ownerId = new TdlibSender(tdlib, msg.chatId, getChatSenderId());
       return getText(
         R.string.ActionCreatedManagedBot,
-        new SenderArgument(targetSender),
-        new SenderArgument(sender)
+        new SenderArgument(createdId),
+        new SenderArgument(ownerId)
       );
     });
   }

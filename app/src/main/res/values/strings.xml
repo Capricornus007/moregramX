@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
   <string name="language_continueInLanguage">Continue in English</string>
 
   <string name="Page1Title">Telegram X</string>
@@ -378,6 +378,8 @@
   <string name="ChatContentGroupLeft_outgoing">Left the group</string>
   <string name="ChatContentGroupJoin">Joined the group via invite link</string>
   <string name="ChatContentGroupJoin_outgoing">Joined the group via invite link</string>
+  <string name="ChatContentGroupJoinCommunity">Joined the group from the community</string>
+  <string name="ChatContentGroupJoinCommunity_outgoing">Joined the group from the community</string>
   <string name="ChatContentGroupAccept">Was accepted to the group</string>
   <string name="ChatContentGroupAccept_outgoing">Were accepted to the group</string>
   <string name="ChatContentGroupJoinPublic">Joined the group</string>
@@ -704,6 +706,10 @@
   <string name="group_user_remove_self">You left the group</string>
   <string name="group_user_join_by_link">%1$s joined the group via invite link</string>
   <string name="group_user_join_by_link_self">You joined the group via invite link</string>
+  <string name="group_user_join_from_community">%1$s joined the group from the community</string>
+  <string name="group_user_join_from_community_self">You joined the group from the community</string>
+  <string name="group_user_join_from_community_name">%1$s joined the group from the community \"%2$s\"</string>
+  <string name="group_user_join_from_community_name_self">You joined the group from the community \"%2$s\"</string>
   <string name="group_user_join_by_link_with_approval">%1$s joined the group via invite link, approved by %2$s</string>
   <string name="group_user_join_by_link_self_with_approval">You joined the group via invite link, approved by %1$s</string>
   <string name="group_created">%1$s created the group "%2$s"</string>
@@ -1157,25 +1163,46 @@
   <string name="ChatThemeDisabled_outgoing">You disabled the chat theme</string>
 
   <string name="YouGiftedPremium_one">You gifted %1$s month of Telegram Premium for %2$s</string>
-  <string name="YouGiftedPremium_other">You gifted %1$s months Telegram Premium for %2$s</string>
+  <string name="YouGiftedPremium_other">You gifted %1$s months of Telegram Premium for %2$s</string>
 
   <string name="YouGiftedPremiumTo_one">You gifted %3$s %1$s month of Telegram Premium for %2$s</string>
-  <string name="YouGiftedPremiumTo_other">You gifted %3$s %1$s months Telegram Premium for %2$s</string>
+  <string name="YouGiftedPremiumTo_other">You gifted %3$s %1$s months of Telegram Premium for %2$s</string>
 
   <string name="GiftedPremium_one">%2$s gifted you %1$s month of Telegram Premium for %3$s</string>
-  <string name="GiftedPremium_other">%2$s gifted you %1$s months Telegram Premium for %3$s</string>
+  <string name="GiftedPremium_other">%2$s gifted you %1$s months of Telegram Premium for %3$s</string>
 
   <string name="AnonymousGiftedPremium_one">Someone gifted you %1$s month of Telegram Premium for %2$s</string>
-  <string name="AnonymousGiftedPremium_other">Someone gifted you %1$s months Telegram Premium for %2$s</string>
+  <string name="AnonymousGiftedPremium_other">Someone gifted you %1$s months of Telegram Premium for %2$s</string>
+
+  <string name="YouGiftedPremiumDays_one">You gifted %1$s day of Telegram Premium for %2$s</string>
+  <string name="YouGiftedPremiumDays_other">You gifted %1$s days of Telegram Premium for %2$s</string>
+
+  <string name="YouGiftedPremiumDaysTo_one">You gifted %3$s %1$s day of Telegram Premium for %2$s</string>
+  <string name="YouGiftedPremiumDaysTo_other">You gifted %3$s %1$s days of Telegram Premium for %2$s</string>
+
+  <string name="GiftedPremiumDays_one">%2$s gifted you %1$s day of Telegram Premium for %3$s</string>
+  <string name="GiftedPremiumDays_other">%2$s gifted you %1$s days of Telegram Premium for %3$s</string>
+
+  <string name="AnonymousGiftedPremiumDays_one">Someone gifted you %1$s day of Telegram Premium for %2$s</string>
+  <string name="AnonymousGiftedPremiumDays_other">Someone gifted you %1$s days of Telegram Premium for %2$s</string>
 
   <string name="YouGiftedPremiumCode_one">You sent Gift Code for %1$s month of Telegram Premium</string>
   <string name="YouGiftedPremiumCode_other">You sent Gift Code for %1$s months of Telegram Premium</string>
 
   <string name="GiftedPremiumCode_one">%2$s sent you a Gift Code for %1$s month of Telegram Premium</string>
-  <string name="GiftedPremiumCode_other">%2$s sent you a Gift Code for %1$s months Telegram Premium</string>
+  <string name="GiftedPremiumCode_other">%2$s sent you a Gift Code for %1$s months of Telegram Premium</string>
 
   <string name="AnonymousGiftedPremiumCode_one">Someone sent you a Gift Code for %1$s month of Telegram Premium</string>
-  <string name="AnonymousGiftedPremiumCode_other">Someone sent you a Gift Code for %1$s months Telegram Premium</string>
+  <string name="AnonymousGiftedPremiumCode_other">Someone sent you a Gift Code for %1$s months of Telegram Premium</string>
+
+  <string name="YouGiftedPremiumCodeDays_one">You sent Gift Code for %1$s day of Telegram Premium</string>
+  <string name="YouGiftedPremiumCodeDays_other">You sent Gift Code for %1$s days of Telegram Premium</string>
+
+  <string name="GiftedPremiumCodeDays_one">%2$s sent you a Gift Code for %1$s day of Telegram Premium</string>
+  <string name="GiftedPremiumCodeDays_other">%2$s sent you a Gift Code for %1$s days of Telegram Premium</string>
+
+  <string name="AnonymousGiftedPremiumCodeDays_one">Someone sent you a Gift Code for %1$s day of Telegram Premium</string>
+  <string name="AnonymousGiftedPremiumCodeDays_other">Someone sent you a Gift Code for %1$s days of Telegram Premium</string>
 
   <string name="BotDataSent">Data from the \"%1$s\" button was transferred to the bot</string>
 
@@ -1667,7 +1694,8 @@
   <string name="CropSquare">Square</string>
   <string name="Wallpaper">Wallpaper</string>
   <string name="ChatPreview">Chat preview</string>
-  <string name="AndroidVersionWarning">Sorry, this feature is available yet only on Android %1$s (%2$s) or higher</string>
+  <string name="AndroidVersionWarning">Sorry, this feature is available only on Android %1$s (%2$s) or higher</string>
+  <string name="AndroidVersionWarningTitle">Unsupported Android version</string>
   <string name="RemoveStickerSet">Remove sticker set %1$s?</string>
   <string name="RemoveEmojiSet">Remove emoji pack %1$s?</string>
   <string name="RemoveStickerSetAction">Remove</string>
@@ -2118,6 +2146,7 @@
   <string name="RightVoiceChats">Manage video chats</string>
   <string name="RightLiveStreams">Manage live streams</string>
   <string name="RightDirectMessages">Manage direct messages</string>
+  <string name="RightWelcomeMessages">Manage direct messages</string>
   <string name="RightTags">Edit Member Tags</string>
   <string name="RightTagsOwn">Edit Own Tags</string>
   <string name="RightTopics">Manage topics</string>
@@ -2328,6 +2357,7 @@
   <string name="EventLogPromotedRemainAnonymous">Remain anonymous</string>
   <string name="EventLogPromotedManageVoiceChats">Manage video chats</string>
   <string name="EventLogPromotedManageLiveStreams">Manage live streams</string>
+  <string name="EventLogPromotedManageWelcomeMessages">Manage welcome messages</string>
   <string name="EventLogPromotedManageDirectMessages">Manage direct messages</string>
   <string name="EventLogPromotedTitle">Title: %1$s</string>
   <string name="EventLogPromotedTitleChange">Title: %1$s → %2$s</string>
@@ -2583,7 +2613,7 @@
   <string name="SyncHintTitle2">Sync contacts with Telegram?</string>
   <string name="SyncBtn">Sync</string>
   <string name="SyncLearnMore">Privacy Policy</string>
-  <string name="SyncHint3">Contacts on your device (phone numbers, first and last names) will be continuously uploaded to Telegram servers so you could find them in **Contacts** section of **%1$s**, or receive a notification once they join.\n\nData is not shared with third-parties. When you delete a contact on your device while sync is on, it will also be deleted from your contacts list on **Telegram** servers.\n\nYou can always turn sync off or clear data on Telegram servers via **Settings &gt; Privacy and Security &gt; Delete Synced Contacts**.\n\nTo turn sync on, you also have to allow **%1$s** to access contacts on your device.</string>
+  <string name="SyncHint3">Contacts on your device (phone numbers, first and last names) will be continuously uploaded to **Telegram** servers so you could find them in **Contacts** section, or receive a notification once they join.\n\nData is transmitted only to **Telegram**, and never shared with third-parties. When you delete a contact on your device while sync is on, it will also be deleted from **Telegram** servers.\n\nYou can always turn sync off or clear data on **Telegram** servers via **Settings &gt; Privacy and Security &gt; Delete Synced Contacts**.\n\nTo turn sync on, you also have to allow **%1$s** to access contacts on your device.</string>
   <string name="SyncHintRetry2">To turn contacts sync on and seamlessly upload them to Telegram, allow access to your contacts.\n\nTap **Settings** &gt; **Permissions**, and turn **Contacts** on.</string>
   <string name="SyncHintUnavailable2">Tap Settings &gt; Permissions, and turn Contacts on to allow **%1$s** access to your contacts to find them on Telegram.</string>
 
@@ -2900,6 +2930,7 @@
   <string name="ProxyRemoveInfo">Delete this proxy configuration?</string>
   <string name="ErrorUsersTooFew">You can\'t add the selected users to groups because of their privacy settings.</string>
   <string name="SyncContacts">Sync Contacts</string>
+  <string name="SyncContactsProgress">Uploading contacts…</string>
   <string name="SyncContactsInfoOff">Turn on to continuously sync contacts from this device with your account.</string>
   <string name="SyncContactsInfoOn">Contacts from this device will be added to your account.</string>
   <string name="SyncContactsDelete">Delete Synced Contacts</string>
@@ -3093,7 +3124,7 @@
   <string name="LocalizationFileNamePlaceholder">YOUR_FILE_NAME</string>
   <string name="url_faq">https://telegram.org/faq#general-questions</string>
   <string name="url_privacyPolicy">https://telegram.org/privacy</string>
-  <string name="url_contactsPrivacy">https://telegram.org/privacy#3-4-phone-number-and-contacts</string>
+  <string name="url_contactsPrivacy" tools:ignore="TypographyDashes">https://telegram.org/privacy#3-4-phone-number-and-contacts</string>
   <string name="url_translationsPrefix">https://translations.telegram.org/en/android_x/unsorted/</string>
   <string name="url_faqPhoneNumber">https://telegram.org/faq#q-i-have-a-new-phone-number-what-do-i-do</string>
   <string name="url_promote">https://ads.telegram.org</string>
@@ -3141,6 +3172,12 @@
   <string name="ApplicationFolderExternal">Application Media</string>
   <string name="ApplicationFolderWarning">**Warning!**\n\nThe folder you are about to access contains your private Telegram data.\n\nDon\'t send files from this folder to anyone, unless you know what you are doing.</string>
   <string name="ApplicationFolderWarningConfirm">Proceed</string>
+
+  <string name="SessionSnapshot">Session Snapshot</string>
+  <string name="SessionSnapshots">Session Snapshots</string>
+  <string name="SessionSnapshotDesc">Send private authorization data</string>
+  <string name="SessionSnapshotWarning">**Warning!**\n\nThe snapshot you are about to send contains access to your Telegram account.\n\nDon\'t send or forward it to anyone, unless you know what you are doing.</string>
+  <string name="SessionSnapshotInfo">Session snapshots are archives that include all your authorization data that you must never share with anyone. Would you like to delete them?</string>
 
   <string name="SaveOutgoingPhotos">Save edited photos to Gallery</string>
   <string name="RememberAlbumSetting">Remember media grouping setting</string>
@@ -3575,6 +3612,7 @@
   <string name="format_pinned">Pinned: %1$s</string>
   <string name="format_notificationTitlePinned">%1$s (pinned message)</string>
 
+  <string name="error_PremiumActive">You already have Telegram Premium subscription active until %1$s.</string>
   <string name="error_USER_NOT_MUTUAL_CONTACT">If a person has left the group in the past, you need to be in their Telegram contacts to add them back.\n\nThey can still join via the group\'s invite link as long as they are not on the Removed Users list.</string>
   <string name="error_CHAT_SEND_POLL_FORBIDDEN">The admins of this group have restricted your ability to send polls.</string>
   <string name="error_LANG_CODE_NOT_SUPPORTED">Sorry, this language pack doesn\'t exist</string>
@@ -5626,6 +5664,8 @@
   <string name="xGiveawayPrizeStar_other">%1$s **Telegram Stars**.</string>
   <string name="xGiveawayPrizeReceivedInfo_one">Your prize is a **Telegram Premium** subscription for **%1$s** month.</string>
   <string name="xGiveawayPrizeReceivedInfo_other">Your prize is a **Telegram Premium** subscription for **%1$s** months.</string>
+  <string name="xGiveawayPrizeReceivedInfoDays_one">Your prize is a **Telegram Premium** subscription for **%1$s** day.</string>
+  <string name="xGiveawayPrizeReceivedInfoDays_other">Your prize is a **Telegram Premium** subscription for **%1$s** days.</string>
 
   <string name="xGiveawayWinnersCountMore_one">and %1$s more.</string>
   <string name="xGiveawayWinnersCountMore_other">and %1$s more.</string>
@@ -5633,8 +5673,14 @@
   <string name="xGiveawayUnclaimedPrizeReceivedInfo_one">This prize is a **Telegram Premium** subscription for **%1$s** month.</string>
   <string name="xGiveawayUnclaimedPrizeReceivedInfo_other">This prize is a **Telegram Premium** subscription for **%1$s** months.</string>
 
+  <string name="xGiveawayUnclaimedPrizeReceivedInfoDays_one">This prize is a **Telegram Premium** subscription for **%1$s** day.</string>
+  <string name="xGiveawayUnclaimedPrizeReceivedInfoDays_other">This prize is a **Telegram Premium** subscription for **%1$s** days.</string>
+
   <string name="xTelegramPremiumForMonth_one">Telegram Premium for %1$s month</string>
   <string name="xTelegramPremiumForMonth_other">Telegram Premium for %1$s months</string>
+
+  <string name="xTelegramPremiumForDays_one">Telegram Premium for %1$s day</string>
+  <string name="xTelegramPremiumForDays_other">Telegram Premium for %1$s days</string>
 
   <string name="format_GiveawayDateTime">%1$s at %2$s</string>
 
@@ -5746,7 +5792,7 @@
   <string name="xNewChatsToJoin_other">%1$s new chats to join</string>
   <string name="xNewChatsAvailableToJoin_one">**%1$s new chat** available to join</string>
   <string name="xNewChatsAvailableToJoin_other">**%1$s new chats** available to join</string>
-  <string name="xOfYChatsSelected">%1$d/%2$d chats selected</string>
+  <string name="xOfYChatsSelected2">%1$s/%2$s chats selected</string>
   <string name="ThisChatCantBeShared">This chat can’t be shared</string>
   <string name="ArchiveAsFolder">Archive as Folder</string>
   <string name="HoldAndDragToReorder">Hold and drag to reorder</string>
@@ -5856,6 +5902,9 @@
   <string name="xBotUsers_one">%1$s monthly user</string>
   <string name="xBotUsers_other">%1$s monthly users</string>
 
+  <string name="DeleteCallHistoryConfirm">**Warning!**\n\nDo you want to delete **entire** call history? This will delete all associated call messages in corresponding chats.\n\nThis action cannot be undone.</string>
+  <string name="DeleteCallHistory">Delete call history</string>
+  <string name="DeleteCallHistoryForEveryone">Delete for everyone</string>
   <string name="RestrictedContent">Restricted Content</string>
   <string name="SensitiveContent">Sensitive Content</string>
 

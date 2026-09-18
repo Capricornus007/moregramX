@@ -1828,7 +1828,13 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
 
   public void runOnTdlibThread (@NonNull Runnable runnable, double timeoutSeconds, boolean acquireReference) {
     if (acquireReference) {
-      incrementJobReferenceCount(JOB_ID_RUNNABLE + "_" + Log.toString(Log.generateException(1)));
+      String id;
+      if (Config.DEBUG_TDLIB_REFERENCES) {
+        id = JOB_ID_RUNNABLE + "_" + Log.toString(Log.generateException(2));
+      } else {
+        id = JOB_ID_RUNNABLE;
+      }
+      incrementJobReferenceCount(id);
     }
     clientHolder().runOnTdlibThread(() -> {
       runnable.run();
@@ -4832,7 +4838,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
       case TdApi.MessageAnimation.CONSTRUCTOR:
         return !photoVideoOnly;
       default:
-        Td.assertMessageContent_a80283cf();
+        Td.assertMessageContent_af730a78();
         break;
     }
 
@@ -4916,7 +4922,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
         case TdApi.MessageAnimatedEmoji.CONSTRUCTOR:
           return Td.textOrCaption(messageText);
       }
-      Td.assertMessageContent_a80283cf();
+      Td.assertMessageContent_af730a78();
       throw Td.unsupported(messageText);
     }
     MessageEditMediaPending pendingEditMedia = getPendingMessageMedia(chatId, messageId);
@@ -6022,14 +6028,14 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
       String error = context().getTokenError();
       switch (state) {
         case TdlibManager.TokenState.ERROR: {
-          params.put("device_token", tokenProvider.toUpperCase() + "_ERROR");
+          params.put("device_token", tokenProvider.toUpperCase(Locale.ROOT) + "_ERROR");
           if (!StringUtils.isEmpty(error)) {
             params.put(tokenProvider + "_error", error);
           }
           break;
         }
         case TdlibManager.TokenState.INITIALIZING: {
-          params.put("device_token", tokenProvider.toUpperCase() + "_INITIALIZING");
+          params.put("device_token", tokenProvider.toUpperCase(Locale.ROOT) + "_INITIALIZING");
           break;
         }
         case TdlibManager.TokenState.OK: {
@@ -7002,7 +7008,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
     if (uri == null) {
       return false;
     }
-    host = uri.getHost().toLowerCase();
+    host = uri.getHost().toLowerCase(Locale.ROOT);
     for (String knownHost : TdConstants.TELEGRAM_HOSTS) {
       if (StringUtils.equalsOrBothEmpty(host, knownHost) || (allowSubdomains && host.endsWith("." + knownHost))) {
         return true;
@@ -7019,7 +7025,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
     if (uri == null) {
       return false;
     }
-    host = uri.getHost().toLowerCase();
+    host = uri.getHost().toLowerCase(Locale.ROOT);
     if (!StringUtils.isEmpty(options.tMeUrl)) {
       String tMeHost = StringUtils.urlWithoutProtocol(options.tMeUrl);
       if (StringUtils.equalsOrBothEmpty(host, tMeHost) || host.endsWith("." + tMeHost)) {
@@ -7539,6 +7545,10 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
     }
   }
 
+  private void updateChatWelcomeMessages (TdApi.UpdateChatWelcomeMessages update) {
+    // TODO?
+  }
+
   private void updateMessageSendSucceeded (TdApi.UpdateMessageSendSucceeded update) {
     synchronized (dataLock) {
       Settings.instance().updateScrollMessageId(accountId, update.message.chatId, update.oldMessageId, update.message.id);
@@ -7580,15 +7590,13 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
   }
 
   @TdlibThread
-  private void updateMessageContent (TdApi.UpdateMessageContent update) {
-    final TdApi.Chat chat;
-    synchronized (dataLock) {
-      chat = chats.get(update.chatId);
-      if (TdlibUtils.assertChat(update.chatId, chat, update)) {
-        return;
-      }
-    }
+  private void updateMessageEphemeralContent (TdApi.UpdateMessageEphemeralContent update) {
+    listeners.updateMessageEphemeralContent(update);
+    context.global().notifyUpdateEphemeralMessageContent(this, update);
+  }
 
+  @TdlibThread
+  private void updateMessageContent (TdApi.UpdateMessageContent update) {
     listeners.updateMessageContent(update);
     context.global().notifyUpdateMessageContent(this, update);
 
@@ -7603,7 +7611,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
         break;
       }
       default: {
-        Td.assertMessageContent_a80283cf();
+        Td.assertMessageContent_af730a78();
         break;
       }
     }
@@ -8277,6 +8285,19 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
     }
 
     listeners.updateChatHasScheduledMessages(update);
+  }
+
+  @TdlibThread
+  private void updateChatHasWelcomeMessages (TdApi.UpdateChatHasWelcomeMessages update) {
+    synchronized (dataLock) {
+      final TdApi.Chat chat = chats.get(update.chatId);
+      if (TdlibUtils.assertChat(update.chatId, chat, update)) {
+        return;
+      }
+      chat.hasWelcomeMessages = update.hasWelcomeMessages;
+    }
+
+    listeners.updateChatHasWelcomeMessages(update);
   }
 
   @TdlibThread
@@ -9181,13 +9202,13 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
         if (str.length() > 0) str += " ";
         str += e.getMessage();
       }
-      return str.toUpperCase().replaceAll(" ", "_");
+      return str.toUpperCase(Locale.ROOT).replaceAll(" ", "_");
     }
 
     public static String formatReCaptchaMessage (Exception e) {
       if (e == null) return "NULL";
       if (e.getMessage() == null) return "MSG_NULL";
-      return e.getMessage().replaceAll(" ", "_").toUpperCase();
+      return e.getMessage().replaceAll(" ", "_").toUpperCase(Locale.ROOT);
     }
   }
 
@@ -9859,6 +9880,10 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
         updateNewMessage((TdApi.UpdateNewMessage) update, true);
         break;
       }
+      case TdApi.UpdateChatWelcomeMessages.CONSTRUCTOR: {
+        updateChatWelcomeMessages((TdApi.UpdateChatWelcomeMessages) update);
+        break;
+      }
       case TdApi.UpdateMessageSendSucceeded.CONSTRUCTOR: {
         updateMessageSendSucceeded((TdApi.UpdateMessageSendSucceeded) update);
         break;
@@ -9877,6 +9902,10 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
       }
       case TdApi.UpdateMessageContent.CONSTRUCTOR: {
         updateMessageContent((TdApi.UpdateMessageContent) update);
+        break;
+      }
+      case TdApi.UpdateMessageEphemeralContent.CONSTRUCTOR: {
+        updateMessageEphemeralContent((TdApi.UpdateMessageEphemeralContent) update);
         break;
       }
       case TdApi.UpdateMessageEdited.CONSTRUCTOR: {
@@ -10123,6 +10152,10 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
         updateChatHasScheduledMessages((TdApi.UpdateChatHasScheduledMessages) update);
         break;
       }
+      case TdApi.UpdateChatHasWelcomeMessages.CONSTRUCTOR: {
+        updateChatHasWelcomeMessages((TdApi.UpdateChatHasWelcomeMessages) update);
+        break;
+      }
       case TdApi.UpdateChatHasProtectedContent.CONSTRUCTOR: {
         updateChatHasProtectedContent((TdApi.UpdateChatHasProtectedContent) update);
         break;
@@ -10149,6 +10182,10 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
       }
       case TdApi.UpdateChatAction.CONSTRUCTOR: {
         updateChatUserAction((TdApi.UpdateChatAction) update);
+        break;
+      }
+      case TdApi.UpdateStopMessageDraft.CONSTRUCTOR: {
+        // TODO?
         break;
       }
 
@@ -10250,6 +10287,10 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
       // Communities
       case TdApi.UpdateCommunity.CONSTRUCTOR: {
         cache.onUpdateCommunity((TdApi.UpdateCommunity) update);
+        break;
+      }
+      case TdApi.UpdateCommunityFullInfo.CONSTRUCTOR: {
+        cache.onUpdateCommunityFull((TdApi.UpdateCommunityFullInfo) update);
         break;
       }
 
@@ -10544,7 +10585,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
         throw Td.unsupported(update);
       }
       default: {
-        Td.assertUpdate_d96eca42();
+        Td.assertUpdate_a21b1e40();
         throw Td.unsupported(update);
       }
     }
@@ -11127,6 +11168,10 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
     return false;
   }
 
+  public void clearCallsHistory (boolean revoke, @Nullable Runnable after) {
+    send(new TdApi.DeleteAllCallMessages(revoke), typedOkHandler(after));
+  }
+
   public boolean isBroadcastGroup (long chatId) {
     TdApi.Supergroup supergroup = chatToSupergroup(chatId);
     return supergroup != null && supergroup.isBroadcastGroup;
@@ -11501,6 +11546,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
         case TdApi.MessageChatDeleteMember.CONSTRUCTOR:
         case TdApi.MessageChatDeletePhoto.CONSTRUCTOR:
         case TdApi.MessageChatJoinByLink.CONSTRUCTOR:
+        case TdApi.MessageChatJoinFromCommunity.CONSTRUCTOR:
         case TdApi.MessageChatJoinByRequest.CONSTRUCTOR:
         case TdApi.MessageChatSetMessageAutoDeleteTime.CONSTRUCTOR:
         case TdApi.MessageChatSetTheme.CONSTRUCTOR:
@@ -11516,7 +11562,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
         case TdApi.MessageForumTopicIsHiddenToggled.CONSTRUCTOR:
         case TdApi.MessageGiftedPremium.CONSTRUCTOR:
         case TdApi.MessageGiftedStars.CONSTRUCTOR:
-        case TdApi.MessageGiftedTon.CONSTRUCTOR:
+        case TdApi.MessageGiftedGrams.CONSTRUCTOR:
         case TdApi.MessageGift.CONSTRUCTOR:
         case TdApi.MessageUpgradedGift.CONSTRUCTOR:
         case TdApi.MessageUpgradedGiftPurchaseOffer.CONSTRUCTOR:
@@ -11568,7 +11614,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
           // assuming we want to check RightId.SEND_BASIC_MESSAGES
           return getBasicMessageRestrictionText(chat);
         default:
-          Td.assertMessageContent_a80283cf();
+          Td.assertMessageContent_af730a78();
           throw Td.unsupported(message.content);
       }
     }

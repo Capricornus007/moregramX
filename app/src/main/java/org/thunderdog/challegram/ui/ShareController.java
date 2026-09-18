@@ -796,7 +796,7 @@ public class ShareController extends TelegramViewController<ShareController.Args
               textRes = R.string.ShareTextPlain;
               break;
             default:
-              Td.assertMessageContent_a80283cf();
+              Td.assertMessageContent_af730a78();
               title1Res = R.string.ShareTitleMedia;
               title2Res = R.string.ShareTitleMediaX;
               textRes = R.string.ShareTextMedia;
@@ -2620,13 +2620,13 @@ public class ShareController extends TelegramViewController<ShareController.Args
     private float copyWidth;
 
     public void setShareText (@NonNull String text) {
-      this.copyText = text.toUpperCase();
+      this.copyText = Lang.uppercase(text);
       this.copyTextFake = Text.needFakeBold(copyText);
       this.copyWidth = U.measureText(copyText, Paints.getTitleBigPaint(copyTextFake));
     }
 
     public void setSendText (@NonNull String text) {
-      sendText = text.toUpperCase();
+      sendText = Lang.uppercase(text);
       sendTextFake = Text.needFakeBold(sendText);
       sendWidth = U.measureText(sendText, Paints.getTitleBigPaint(sendTextFake));
     }

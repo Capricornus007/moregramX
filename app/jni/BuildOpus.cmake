@@ -1,6 +1,11 @@
 # opus
 
-set(OPUS_DIR "${THIRDPARTY_DIR}/opus")
-add_subdirectory("${OPUS_DIR}"
-  EXCLUDE_FROM_ALL
-)
+if(EXISTS "${OPUS_DIR}/CMakeLists.txt")
+  add_subdirectory(
+    "${OPUS_DIR}"
+    "${CMAKE_BINARY_DIR}/third_party/opus"
+    EXCLUDE_FROM_ALL
+  )
+else()
+  message(WARNING "./gradlew patchOpus was not run yet")
+endif()
