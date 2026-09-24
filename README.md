@@ -35,9 +35,12 @@ The current application version is **1826**, based on Telegram X **1805**.
 #### Whisper model recommendations
 
 Models are downloaded on demand and are not bundled in the APK. The picker
-includes all 33 `ggml-*.bin` files currently published by the official
-whisper.cpp model repository, including multilingual, English-only, Q5/Q8,
-large-v3, and large-v3-turbo variants. Names ending in `.en` recognize English
+includes 33 of the 34 `ggml-*.bin` files listed by the official whisper.cpp
+download script, covering multilingual, English-only, Q5/Q8, large-v3, and
+large-v3-turbo variants. The one exception is `small.en-tdrz`: its official
+download source is a third-party repository (akashmjn/tinydiarize-whisper.cpp)
+rather than ggerganov/whisper.cpp, so it cannot be served through the URL
+template this picker uses. Names ending in `.en` recognize English
 only. Quantized Q5/Q8 models use less storage and memory and are generally the
 better choice on a phone.
 
