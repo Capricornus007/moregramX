@@ -58,6 +58,12 @@ val generateLangFunctions = tasks.register<GenerateLangFunctions>("generateLangF
   stringsXml.set(layout.projectDirectory.file(
     "src/main/res/values/strings.xml"
   ))
+  simplifiedChineseStrings.set(layout.projectDirectory.file(
+    "src/main/res/values-b+zh+Hans/moex_strings.xml"
+  ))
+  traditionalChineseStrings.set(layout.projectDirectory.file(
+    "src/main/res/values-b+zh+Hant/moex_strings.xml"
+  ))
   colorIdJava.set(generateThemes.flatMap {
     it.javaOutputDir.file(
       "org/thunderdog/challegram/theme/ColorId.java"

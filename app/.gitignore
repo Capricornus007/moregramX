@@ -15,3 +15,10 @@ drafts
 /google-services.json
 /src/main/java/org/thunderdog/challegram/core/LangUtils.kt
 /src/main/java/org/drinkmore/ClientException.java
+/jniLibs
+/arm
+/arm64
+/x86
+/x86_64
+/universal
+/latestFull

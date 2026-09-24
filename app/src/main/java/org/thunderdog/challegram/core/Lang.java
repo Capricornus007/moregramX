@@ -351,11 +351,11 @@ public class Lang {
       Resources localeResources = appResources;
       try {
         String languageCode = packId.startsWith("X") ? normalizeLanguageCode(packId) : packId;
-        Locale locale = switch (languageCode) {
-          case "zh-Hant" -> Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
+        Locale locale = switch (languageCode.toLowerCase(Locale.ROOT)) {
+          case "zh-hant" -> Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
             ? Locale.forLanguageTag("zh-Hant")
             : obtainLocale("zh-TW");
-          case "zh-Hans" -> Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
+          case "zh-hans" -> Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
             ? Locale.forLanguageTag("zh-Hans")
             : obtainLocale("zh-CN");
           default -> obtainLocale(languageCode);
