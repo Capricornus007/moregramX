@@ -487,6 +487,36 @@ android {
     resValues = true
   }
 
+  // No keystore is checked in: CI writes these four properties into gradle.properties
+  // from secrets. Absent (local builds, PR builds) the release variant stays unsigned,
+  // which build.yml's "Verify APK is signed" step rejects on push builds -- this block
+  // was silently lost once by a wholesale restore of this file from upstream.
+  signingConfigs {
+    val releaseStoreFile = project.findProperty("RELEASE_STORE_FILE") as? String
+    val releaseStorePassword = project.findProperty("RELEASE_STORE_PASSWORD") as? String
+    val releaseKeyAlias = project.findProperty("RELEASE_KEY_ALIAS") as? String
+    val releaseKeyPassword = project.findProperty("RELEASE_KEY_PASSWORD") as? String
+    if (releaseStoreFile != null && releaseStorePassword != null && releaseKeyAlias != null && releaseKeyPassword != null) {
+      create("release") {
+        storeFile = file(releaseStoreFile)
+        storePassword = releaseStorePassword
+        keyAlias = releaseKeyAlias
+        keyPassword = releaseKeyPassword
+        // AGP turns v1 off by itself once minSdk reaches 24, which is the shipped
+        // flavor -- but tools that only read JAR signatures then see an unsigned app.
+        enableV1Signing = true
+        enableV2Signing = true
+        enableV3Signing = true
+      }
+    }
+  }
+
+  buildTypes {
+    getByName("release") {
+      signingConfigs.findByName("release")?.let { signingConfig = it }
+    }
+  }
+
   flavorDimensions += arrayOf("SDK", "ABI")
   androidComponents.disableRudimentaryVariants { sdkVariant, abiVariant ->
     maxOf(sdkVariant.minSdk, abiVariant.minSdk) >= ndkMinSdkVersion &&

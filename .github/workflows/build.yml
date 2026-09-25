@@ -110,6 +110,23 @@ jobs:
             -Pkotlin.daemon.useFallbackStrategy=false \
             --no-build-cache
 
+      # app/build.gradle.kts only attaches the signing config when all four RELEASE_*
+      # properties are present, so a lost keystore secret or an overwritten gradle file
+      # quietly publishes an APK that no phone will install. Fail loudly instead.
+      # Mirrors the keystore step's condition: PR builds are unsigned by design.
+      - name: Verify APK is signed
+        if: github.event_name == 'push'
+        run: |
+          apksigner="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort | tail -1)"
+          mapfile -t apks < <(find app/build/outputs/apk -name '*.apk')
+          if [ "${#apks[@]}" -eq 0 ]; then
+            echo "::error::no APK was produced"
+            exit 1
+          fi
+          for apk in "${apks[@]}"; do
+            "$apksigner" verify --verbose --print-certs "$apk"
+          done
+
       - name: Upload APK as Artifact
         uses: actions/upload-artifact@v7
         with:
