@@ -124,7 +124,9 @@ jobs:
             exit 1
           fi
           for apk in "${apks[@]}"; do
-            "$apksigner" verify --verbose --print-certs "$apk"
+            # --min-sdk-version 21 is deliberate: apksigner skips the v1 check entirely when the
+            # APK declares minSdk >= 24, and v1 is what API <= 23 devices refuse to install without.
+            "$apksigner" verify --verbose --min-sdk-version 21 --print-certs "$apk"
           done
 
       - name: Upload APK as Artifact
