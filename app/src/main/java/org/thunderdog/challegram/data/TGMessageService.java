@@ -1535,7 +1535,7 @@ public final class TGMessageService extends TGMessageServiceImpl {
       }
     });
     setDisplayMessage(msg.chatId, pollMessageId, message -> {
-      if (Td.isPoll(message.content)) {
+      if (!Td.isPoll(message.content)) {
         return false;
       }
       setTextCreator(() -> {

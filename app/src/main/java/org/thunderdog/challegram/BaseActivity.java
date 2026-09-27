@@ -3888,7 +3888,11 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
   public void markActivityReady () {
     if (!activityReady) {
       activityReady = true;
-      reportFullyDrawn();
+      try {
+        reportFullyDrawn();
+      } catch (Throwable t) {
+        Log.i("Unable to call reportFullyDrawn()", t);
+      }
     }
   }
 }
