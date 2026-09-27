@@ -23,6 +23,7 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.security.MessageDigest;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -217,8 +218,12 @@ public class ReXSettingsController extends RecyclerViewController<Void> implemen
         adapter.updateValuedSettingById(ID_WHISPER_DOWNLOAD);
 
         Background.instance().post(() -> {
+            File tempFile = null;
+            long total = 0;
             try {
                 String urlStr = ReXConfig.getWhisperModelUrl(modelId);
+                String expectedSha256 = ReXConfig.getWhisperModelSha256(modelId);
+                long expectedBytes = ReXConfig.getWhisperModelBytes(modelId);
                 URL url = new URL(urlStr);
                 HttpURLConnection connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestMethod("GET");
@@ -234,24 +239,31 @@ public class ReXSettingsController extends RecyclerViewController<Void> implemen
                 }
 
                 int fileLength = connection.getContentLength();
+                // getContentLength() 是 int：large-v3 那一級 2.9 GB 的檔會溢位數成負數，
+                // 進度就會卡在 0。表裡有準確位元組數，優先用它。
+                long totalBytes = expectedBytes > 0 ? expectedBytes : fileLength;
                 File outputDir = ReXConfig.getWhisperModelsDir(context);
                 File outputFile = new File(outputDir, ReXConfig.getWhisperModelFileName(modelId));
-                File tempFile = new File(outputDir, ReXConfig.getWhisperModelFileName(modelId) + ".tmp");
+                tempFile = new File(outputDir, ReXConfig.getWhisperModelFileName(modelId) + ".tmp");
+
+                // 邊寫邊算 SHA-256，不再用「檔案有大小就算下載完成」那套：斷線被截斷、
+                // 或被中轉層換掉內容的檔案，之前都會直接被當成可用模型喂給 whisper_init。
+                MessageDigest digest = MessageDigest.getInstance("SHA-256");
 
                 try (InputStream input = connection.getInputStream();
                      FileOutputStream output = new FileOutputStream(tempFile)) {
 
                     byte[] buffer = new byte[8192];
-                    long total = 0;
                     int count;
                     int lastProgress = 0;
 
                     while ((count = input.read(buffer)) != -1) {
                         total += count;
                         output.write(buffer, 0, count);
+                        digest.update(buffer, 0, count);
 
-                        if (fileLength > 0) {
-                            int progress = (int) (total * 100 / fileLength);
+                        if (totalBytes > 0) {
+                            int progress = (int) (total * 100 / totalBytes);
                             if (progress != lastProgress) {
                                 lastProgress = progress;
                                 final int p = progress;
@@ -262,10 +274,21 @@ public class ReXSettingsController extends RecyclerViewController<Void> implemen
                             }
                         }
                     }
+                    output.flush();
+                    output.getFD().sync();
                 }
 
-                // Rename temp file to final
-                tempFile.renameTo(outputFile);
+                if (expectedBytes > 0 && total != expectedBytes) {
+                    throw new Exception("size " + total + " != " + expectedBytes);
+                }
+                String actualSha256 = toHex(digest.digest());
+                if (!expectedSha256.equalsIgnoreCase(actualSha256)) {
+                    throw new Exception("sha256 " + actualSha256 + " != " + expectedSha256);
+                }
+                if (!tempFile.renameTo(outputFile)) {
+                    throw new Exception("rename failed");
+                }
+                tempFile = null;
 
                 UI.post(() -> {
                     isDownloading = false;
@@ -276,13 +299,28 @@ public class ReXSettingsController extends RecyclerViewController<Void> implemen
 
             } catch (Exception e) {
                 e.printStackTrace();
+                if (tempFile != null) {
+                    //noinspection ResultOfMethodCallIgnored
+                    tempFile.delete();
+                }
+                final long failedAt = total;
                 UI.post(() -> {
                     isDownloading = false;
                     adapter.updateValuedSettingById(ID_WHISPER_DOWNLOAD);
-                    Toast.makeText(context, Lang.getString(R.string.WhisperDownloadFailed) + ": " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    String detail = e.getMessage() != null ? e.getMessage() : ("received " + failedAt + " bytes");
+                    Toast.makeText(context, Lang.getString(R.string.WhisperDownloadFailed) + ": " + detail, Toast.LENGTH_LONG).show();
                 });
             }
         });
+    }
+
+    private static String toHex(byte[] bytes) {
+        StringBuilder sb = new StringBuilder(bytes.length * 2);
+        for (byte b : bytes) {
+            sb.append(Character.forDigit((b >> 4) & 0xF, 16));
+            sb.append(Character.forDigit(b & 0xF, 16));
+        }
+        return sb.toString();
     }
 
     @Override
