@@ -78,10 +78,16 @@ gitlink|app/jni/tgvoip/third_party/webrtc|6ecff4f2446ff7d4ce38ca1c764f023e44dbcb
 branch|app/jni/tgvoip/third_party/webrtc|production|main|tgx 的 .gitmodules 寫 main，但該倉沒有 main 分支
 nobranch|app/jni/tgvoip/third_party/openh264|-|v2.4.1|v2.4.1 是 tag 不是分支，留 branch 欄會讓 --remote 偷跳 master
 
-# == 5. (b) webp：抬到 1.6.0 分支尖端（= tgx 值），bad_value 是我方 6292dbea 那次倒扣 ==
-gitlink|app/jni/third_party/webp|991170bbab3e6afc74666d124f3f1dc7be942cd0|845d5476a866141ba35ac133f856fa62f0b7445f|1.6.0 分支尖端；845d5476 是 v1.4.0，曾被 6292dbea 從 tgx 值倒扣回來
-branch|app/jni/third_party/webp|1.6.0|1.4.0|與 pin 同步的版號第二處
-# 版號第三處在 version.properties 的 version.webp，由本腳本第 6 節的 proprow 一併驗
+# == 5. (b) webp：改吃自有 fork Capricornus007/libwebp 的 main ==
+# 血緣實測（完整 commit 圖）：merge-base --is-ancestor 991170bb 0ff181e8 → 非 0（不是祖先）；
+# merge-base = 4fa21912；GitHub compare API 0ff181e8...991170bb → status=diverged、main ahead 273、1.6.0 ahead 2。
+# 分叉不選邊（規則 14）：把兩條併進 fork 的 main = merge commit 22cd9371（父 0ff181e8 + 991170bb）。
+# 唯一衝突檔 src/dsp/cpu.h 採 main 側（main 已含同一次 SRWLOCK 工作的改良版，並刻意以 #error
+# 取代 Vista 前的 fallback）→ merge 後的 tree 與 upstream main 完全相同（c29336e9），內容零損失、血緣零遺失。
+gitlink|app/jni/third_party/webp|22cd937162d2d355284a59f4bf37d969c94ce92b|991170bbab3e6afc74666d124f3f1dc7be942cd0|fork main 尖端（main+1.6.0 的 merge）；991170bb 是舊的 1.6.0 分支尖端，退回它就等於選邊
+branch|app/jni/third_party/webp|main|1.6.0|與 pin 同步的第二處；1.6.0 那條 release 分支已不是追蹤對象
+prop|.gitmodules|url = https://github.com/Capricornus007/libwebp|url = https://github.com/webmproject/libwebp|webp 的來源改成自有 fork；tgx 合併若把 url 換回 upstream，CI 會抓不到這個 merge commit（直接紅）
+# 版號第三處在 version.properties 的 version.webp，由第 8 節的 prop 一併驗（值寫分支名，與 libyuv／lz4 同一格式）
 
 # == 6. (a) androidx-media 兩條：latest 採我方（偏離 tgx），lollipop 採 tgx ==
 # latest：081a432e = androidx/media refs/heads/main 尖端（未發版）；tgx 仍釘 8c6678b6 = refs/tags/1.11.1^{}
@@ -124,7 +130,7 @@ nobranch|app/jni/tgvoip/third_party/webrtc_deps/third_party|-|-|
 
 # == 8. 同一個版號公式的其他藏身處（只改一半等於沒改）==
 # prop 欄位意義：path=檔案、expected=該檔必須出現的一行（子串比對）、bad=必須「不」出現的一行（可逗号分隔多條）
-prop|version.properties|version.webp=v1.6.0|version.webp=v1.2.0,version.webp=v1.4.0,version.webp=v1.5.0|webp 版號第二處（第一處是 gitlink、第三處是 .gitmodules branch）
+prop|version.properties|version.webp=main|version.webp=v1.2.0,version.webp=v1.4.0,version.webp=v1.5.0,version.webp=v1.6.0|webp 版號第三處（第一處是 gitlink、第二處是 .gitmodules 的 branch＋url）；值是 fork 追的分支名
 prop|gradle/libs.versions.toml|androidx-media-lollipop = "1.8.0"|-|lollipop 子模組在 1.8.0 相容線時核心座標必須同步 1.8.0（1.9.0+ 要 minSdk 23，我方 lollipop minSdk=21）
 prop|gradle/libs.versions.toml|androidx-media-latest = "1.11.1"|-|latest 子模組吃未發版 main 尖端，核心座標留在最後一個已發布版號 1.11.1
 prop|version.properties|version.app=|-|自有發佈序號，合併 tgx 時不准被退回上游數字（1814 是來源基線不是我方版本）

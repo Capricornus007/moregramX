@@ -1,8 +1,8 @@
 [submodule "webp"]
 	path = app/jni/third_party/webp
-	url = https://github.com/webmproject/libwebp
+	url = https://github.com/Capricornus007/libwebp
 	shallow = true
-	branch = 1.6.0
+	branch = main
 [submodule "libyuv"]
 	path = app/jni/third_party/libyuv
 	url = https://chromium.googlesource.com/libyuv/libyuv
