@@ -55,28 +55,19 @@ fun DependencyHandlerScope.sinceLollipopImplementation(
   sinceMarshmallow: Any? = null,
   dependencyConfiguration: Action<ExternalModuleDependency>? = null
 ) =
-  this.flavorImplementation(null,
-    sinceLollipop,
-    sinceMarshmallow ?: sinceLollipop,
+  applyApiFlavor(
+    null,
     sinceMarshmallow ?: sinceLollipop,
     dependencyConfiguration
   )
-
-fun DependencyHandlerScope.lollipopImplementation(
-  dependency: Any,
-  dependencyConfiguration: Action<ExternalModuleDependency>? = null
-) =
-  this.flavorImplementation("lollipop", dependency, dependencyConfiguration)
 
 fun DependencyHandlerScope.sinceMarshmallowImplementation(
   sinceMarshmallow: Any,
   sinceNougat: Any? = null,
   dependencyConfiguration: Action<ExternalModuleDependency>? = null
 ) =
-  this.flavorImplementation(
+  applyApiFlavor(
     null,
-    null,
-    sinceMarshmallow,
     sinceNougat ?: sinceMarshmallow,
     dependencyConfiguration
   )
@@ -85,10 +76,8 @@ fun DependencyHandlerScope.preMarshmallowImplementation(
   legacyAndLollipop: Any,
   dependencyConfiguration: Action<ExternalModuleDependency>? = null
 ) =
-  this.flavorImplementation(
+  applyApiFlavor(
     legacyAndLollipop,
-    legacyAndLollipop,
-    null,
     null,
     dependencyConfiguration
   )
@@ -97,9 +86,7 @@ fun DependencyHandlerScope.sinceNougatImplementation(
   sinceNougat: Any,
   dependencyConfiguration: Action<ExternalModuleDependency>? = null
 ) =
-  this.flavorImplementation(
-    null,
-    null,
+  applyApiFlavor(
     null,
     sinceNougat,
     dependencyConfiguration
@@ -125,14 +112,10 @@ fun findExtraFolders(variant: SdkVariant): Set<String> =
 fun <T> selectApiFlavor(
   variant: SdkVariant,
   legacy: T,
-  lollipop: T,
-  marshmallow: T,
   latest: T
 ): T =
   when (variant.flavor) {
     "legacy" -> legacy
-    "lollipop" -> lollipop
-    "marshmallow" -> marshmallow
     "latest" -> latest
     else -> error(variant.flavor)
   }
@@ -186,37 +169,13 @@ private fun DependencyHandlerScope.flavorImplementation(
   }
 }
 
-fun DependencyHandlerScope.flavorImplementation(
+// Terminal implementation for the two-slot (legacy, latest) model. Every SDK variant
+// currently registered (only `latest`) resolves through selectApiFlavor to the `latest`
+// argument; the `legacy` slot is kept only so the pinned submodules' first argument still
+// type-checks. This is private so the public `flavorImplementation` overloads below stay
+// unambiguous for three-positional calls.
+private fun DependencyHandlerScope.applyApiFlavor(
   legacy: Any?,
-  sinceLollipop: Any?,
-  dependencyConfiguration: Action<ExternalModuleDependency>? = null
-) =
-  this.flavorImplementation(
-    legacy,
-    sinceLollipop,
-    sinceLollipop,
-    sinceLollipop,
-    dependencyConfiguration
-  )
-
-fun DependencyHandlerScope.flavorImplementation(
-  legacy: Any?,
-  lollipop: Any?,
-  sinceMarshmallow: Any?,
-  dependencyConfiguration: Action<ExternalModuleDependency>? = null
-) =
-  this.flavorImplementation(
-    legacy,
-    lollipop,
-    sinceMarshmallow,
-    sinceMarshmallow,
-    dependencyConfiguration
-  )
-
-fun DependencyHandlerScope.flavorImplementation(
-  legacy: Any?,
-  lollipop: Any?,
-  marshmallow: Any?,
   latest: Any?,
   dependencyConfiguration: Action<ExternalModuleDependency>? = null
 ) {
@@ -224,13 +183,27 @@ fun DependencyHandlerScope.flavorImplementation(
     val library = selectApiFlavor(
       sdkVariant,
       legacy,
-      lollipop,
-      marshmallow,
       latest
     )
     flavorImplementation(sdkVariant.flavor, library, dependencyConfiguration)
   }
 }
+
+fun DependencyHandlerScope.flavorImplementation(
+  legacy: Any?,
+  latest: Any?,
+  dependencyConfiguration: Action<ExternalModuleDependency>? = null
+) = applyApiFlavor(legacy, latest, dependencyConfiguration)
+
+// Compat shim: the pinned vkryl/X-Core and vkryl/X-Android submodules still call the
+// three-argument form (legacy, lollipop, latest). Only the `latest` SDK flavor builds now,
+// so the middle (former lollipop) slot is ignored and forwarded straight to `latest`.
+fun DependencyHandlerScope.flavorImplementation(
+  legacy: Any?,
+  @Suppress("UNUSED_PARAMETER") lollipop: Any?,
+  latest: Any?,
+  dependencyConfiguration: Action<ExternalModuleDependency>? = null
+) = applyApiFlavor(legacy, latest, dependencyConfiguration)
 
 fun isVariantEnabled(sdkVariant: SdkVariant, abiVariant: AbiVariant, isDebug: Boolean): Boolean =
   sdkVariant.minSdk >= abiVariant.minSdk &&
