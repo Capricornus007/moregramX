@@ -74,9 +74,6 @@
 [submodule "thirdparty/androidx-media/latest"]
 	path = app/thirdparty/androidx-media/latest
 	url = https://github.com/androidx/media
-[submodule "thirdparty/androidx-media/lollipop"]
-	path = app/thirdparty/androidx-media/lollipop
-	url = https://github.com/androidx/media
 [submodule "thirdparty/whispercpp"]
 	path = thirdparty/whispercpp
 	url = https://github.com/ggml-org/whisper.cpp.git
