@@ -90,8 +90,14 @@ prop|.gitmodules|url = https://github.com/Capricornus007/libwebp|url = https://g
 # 版號第三處在 version.properties 的 version.webp，由第 8 節的 prop 一併驗（值寫分支名，與 libyuv／lz4 同一格式）
 
 # == 6. (a) androidx-media 兩條：latest 採我方（偏離 tgx），lollipop 採 tgx ==
-# latest：081a432e = androidx/media refs/heads/main 尖端（未發版）；tgx 仍釘 8c6678b6 = refs/tags/1.11.1^{}
-gitlink|app/thirdparty/androidx-media/latest|081a432e7d9adb86123d4c14f53ccde8aa7cefc2|8c6678b657ede1e7883fc164ef73ed483c7796c3|規則 61 開發尖端主軸；tgx 的 1.11.1 是 bad_value
+# latest：5efc8ddc = androidx/media refs/heads/main 尖端（未發版，對應 1.12.0-dev）；
+# tgx 仍釘 8c6678b6 = refs/tags/1.11.1^{} = refs/heads/release 尖端。
+# 抬昇實測內容中性：081a432e → 5efc8ddc 只差 1 筆提交（effect 模組），
+# 我方真正吃進 sourceSet 的四個目錄（decoder_ffmpeg|flac|opus|vp9）與 14 條
+# proguard-rules.txt、src/main/jni 全部零變動（git diff --stat 實測回空）。
+# 來源 vs 核心（androidx-media-latest = 1.11.1）的錯配仍存在、尚未紅，
+# 處置方式要用戶裁（見派工單第 2 節），不准用把子模組退回 1.11.1 換綠燈。
+gitlink|app/thirdparty/androidx-media/latest|5efc8ddcd4351b05badb99065125f893d546f8af|8c6678b657ede1e7883fc164ef73ed483c7796c3|規則 61 開發尖端主軸；tgx 的 1.11.1 是 bad_value
 # lollipop：必須留在 1.8.0 相容線 —— libs.versions.toml 的 androidx-media-lollipop = 1.8.0（1.9.0+ 要 minSdk 23）
 # 而 Config.kt 的 lollipop flavor minSdk = 21；84a5a45b 那筆 bulk bump 曾把它盲抬成 1.11.1 造成來源/核心錯配。
 gitlink|app/thirdparty/androidx-media/lollipop|b7bbc6e2bc3e45ff3ed99884c114c50f03bba5c9|8c6678b657ede1e7883fc164ef73ed483c7796c3|release-1.8.0 相容線，與 tgx 同值；minSdk 21 硬性限制
