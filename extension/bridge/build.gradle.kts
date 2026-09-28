@@ -9,7 +9,6 @@ plugins {
 dependencies {
   flavorImplementation(
     libs.androidx.core.ktx.legacy,
-    libs.androidx.core.ktx.lollipop,
     libs.androidx.core.ktx.latest
   )
   api(libs.kotlinx.coroutines.core)

@@ -125,7 +125,7 @@ val fetchLocalizedStrings = tasks.register<FetchLocalizedStringsTask>("fetchLoca
   ))
 }
 
-val patchJetpackMediaTasks = Sdk.VARIANTS.values.associateBy({ it.jetpackMediaFlavor }) { variant ->
+val patchJetpackMediaTasks = Sdk.VARIANTS.values.associateBy({ it.flavor }) { variant ->
   tasks.register<PatchJetpackMediaTask>(
     "patchJetpackMedia${variant.flavor.uppercaseFirstChar()}"
   ) {
@@ -134,12 +134,12 @@ val patchJetpackMediaTasks = Sdk.VARIANTS.values.associateBy({ it.jetpackMediaFl
     inputDirs.from(Config.ANDROIDX_MEDIA_EXTENSIONS.map { extension ->
       layout.projectDirectory.dir(
         "thirdparty/androidx-media/${
-          variant.jetpackMediaFlavor
+          variant.flavor
         }/libraries/$extension/src/main/jni"
       )
     })
     outputDir.set(layout.buildDirectory.dir(
-      "generated/tgx/androidx-media/${variant.jetpackMediaFlavor}"
+      "generated/tgx/androidx-media/${variant.flavor}"
     ))
   }
 }
@@ -580,7 +580,7 @@ android {
 
           val dirs = mapOf(
             "ANDROIDX_MEDIA_DIR" to layout.buildDirectory.dir(
-              "generated/tgx/androidx-media/${variant.jetpackMediaFlavor}"
+              "generated/tgx/androidx-media/${variant.flavor}"
             ),
             "OPUS_DIR" to layout.buildDirectory.dir(
               "generated/tgx/opus"
@@ -600,7 +600,7 @@ android {
         sourceSets.getByName(variant.flavor) {
           Config.ANDROIDX_MEDIA_EXTENSIONS.forEach { extension ->
             java.directories += "thirdparty/androidx-media/${
-              variant.jetpackMediaFlavor
+              variant.flavor
             }/libraries/${extension}/src/main/java"
           }
           val extraFolders = findExtraFolders(variant)
@@ -631,7 +631,7 @@ android {
         ).plus(Config.ANDROIDX_MEDIA_EXTENSIONS).forEach { extension ->
           val proguardFile = project.layout.projectDirectory.file(
             "thirdparty/androidx-media/${
-              variant.jetpackMediaFlavor
+              variant.flavor
             }/libraries/${extension}/proguard-rules.txt"
           ).asFile
           if (proguardFile.exists()) {
@@ -695,7 +695,7 @@ android {
       val nativeBuildTasks = mutableListOf<TaskProvider<out Task>>()
 
       nativeBuildTasks.addAll(arrayOf(
-        patchJetpackMediaTasks[sdkVariant.jetpackMediaFlavor]!!,
+        patchJetpackMediaTasks[sdkVariant.flavor]!!,
         patchOpusTask
       ))
 
@@ -714,7 +714,7 @@ android {
         group = "Setup"
         description = "Builds native dependencies for ${sdkVariant.flavor}, $abiVariant flavor and validates output"
         jetpackMediaDir.set(layout.buildDirectory.dir(
-          "generated/tgx/androidx-media/${sdkVariant.jetpackMediaFlavor}"
+          "generated/tgx/androidx-media/${sdkVariant.flavor}"
         ))
         opusDir.set(layout.buildDirectory.dir(
           "generated/tgx/opus"
@@ -811,8 +811,6 @@ android {
       val recaptchaVersion = selectApiFlavor(
         sdkVariant,
         libs.google.recaptcha.legacy,
-        libs.google.recaptcha.lollipop,
-        libs.google.recaptcha.marshmallow,
         libs.google.recaptcha.latest
       ).get().version!!
       require(recaptchaVersion.isNotEmpty() && recaptchaVersion.matches(Regex("^[0-9.]+$"))) {
@@ -941,7 +939,6 @@ dependencies {
   sinceNougatImplementation(libs.androidx.profileinstaller)
   flavorImplementation(
     libs.androidx.tracing.legacy,
-    libs.androidx.tracing.lollipop,
     libs.androidx.tracing.latest
   )
   implementation(project(":extension:${config.extension}"))
@@ -955,7 +952,6 @@ dependencies {
   // AndroidX: https://developer.android.com/jetpack/androidx/versions
   flavorImplementation(
     libs.androidx.activity.legacy,
-    libs.androidx.activity.lollipop,
     libs.androidx.activity.latest
   )
   flavorImplementation(
@@ -976,12 +972,10 @@ dependencies {
   )
   flavorImplementation(
     libs.androidx.browser.legacy,
-    libs.androidx.browser.lollipop,
     libs.androidx.browser.latest
   )
   flavorImplementation(
     libs.androidx.work.runtime.legacy,
-    libs.androidx.work.runtime.lollipop,
     libs.androidx.work.runtime.latest
   )
   flavorImplementation(
@@ -995,43 +989,35 @@ dependencies {
   // CameraX: https://developer.android.com/jetpack/androidx/releases/camera
   flavorImplementation(
     libs.androidx.camera.camera2.legacy,
-    libs.androidx.camera.camera2.legacy,
     libs.androidx.camera.camera2.latest
   )
   flavorImplementation(
-    libs.androidx.camera.video.legacy,
     libs.androidx.camera.video.legacy,
     libs.androidx.camera.video.latest
   )
   flavorImplementation(
     libs.androidx.camera.lifecycle.legacy,
-    libs.androidx.camera.lifecycle.legacy,
     libs.androidx.camera.lifecycle.latest
   )
   flavorImplementation(
-    libs.androidx.camera.view.legacy,
     libs.androidx.camera.view.legacy,
     libs.androidx.camera.view.latest
   )
   // Google Play Services: https://developers.google.com/android/guides/releases
   flavorImplementation(
     libs.google.play.services.base.legacy,
-    libs.google.play.services.base.lollipop,
     libs.google.play.services.base.latest
   )
   flavorImplementation(
     libs.google.play.services.basement.legacy,
-    libs.google.play.services.basement.lollipop,
     libs.google.play.services.basement.latest
   )
   flavorImplementation(
     libs.google.play.services.maps.legacy,
-    libs.google.play.services.maps.lollipop,
     libs.google.play.services.maps.latest
   )
   flavorImplementation(
     libs.google.play.services.location.legacy,
-    libs.google.play.services.location.lollipop,
     libs.google.play.services.location.latest
   )
   flavorImplementation(
@@ -1050,7 +1036,6 @@ dependencies {
   // Firebase: https://firebase.google.com/support/release-notes/android
   flavorImplementation(
     libs.google.firebase.messaging.legacy,
-    libs.google.firebase.messaging.lollipop,
     libs.google.firebase.messaging.latest
   ) {
     exclude(group = "com.google.firebase", module = "firebase-core")
@@ -1060,40 +1045,32 @@ dependencies {
   // Play Integrity: https://developer.android.com/google/play/integrity/reference/com/google/android/play/core/release-notes
   flavorImplementation(
     libs.google.play.integrity.legacy,
-    libs.google.play.integrity.lollipop,
     libs.google.play.integrity.latest
   )
   // ReCaptcha: https://cloud.google.com/recaptcha/docs/release-notes
   flavorImplementation(
     libs.google.recaptcha.legacy,
-    libs.google.recaptcha.lollipop,
-    libs.google.recaptcha.marshmallow,
     libs.google.recaptcha.latest
   )
   // AndroidX/media: https://github.com/androidx/media/blob/release/RELEASENOTES.md
   flavorImplementation(
     libs.androidx.media.common.legacy,
-    libs.androidx.media.common.lollipop,
     libs.androidx.media.common.latest
   )
   flavorImplementation(
     libs.androidx.media.transformer.legacy,
-    libs.androidx.media.transformer.lollipop,
     libs.androidx.media.transformer.latest
   )
   flavorImplementation(
     libs.androidx.media.effect.legacy,
-    libs.androidx.media.effect.lollipop,
     libs.androidx.media.effect.latest
   )
   flavorImplementation(
     libs.androidx.media.exoplayer.legacy,
-    libs.androidx.media.exoplayer.lollipop,
     libs.androidx.media.exoplayer.latest
   )
   flavorImplementation(
     libs.androidx.media.exoplayer.hls.legacy,
-    libs.androidx.media.exoplayer.hls.lollipop,
     libs.androidx.media.exoplayer.hls.latest
   )
   sinceMarshmallowImplementation(libs.androidx.media.inspector.latest)
@@ -1101,7 +1078,6 @@ dependencies {
   implementation(libs.google.play.app.update)
   // Play Billing: https://developer.android.com/google/play/billing/release-notes
   sinceLollipopImplementation(
-    libs.google.play.billing.lollipop,
     libs.google.play.billing.latest
   )
   // The Checker Framework: https://checkerframework.org/CHANGELOG.md
