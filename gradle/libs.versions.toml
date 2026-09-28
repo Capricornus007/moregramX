@@ -60,6 +60,19 @@ androidx-viewpager-latest = "1.1.0"
 androidx-browser-latest = "1.10.0"
 androidx-exifinterface-latest = "1.4.2"
 androidx-camera-latest = "1.6.2"
+# 這裡只能是 1.11.1，不是「忘了抬」，也不是「來源比核心新」的錯配：
+# 1) 公開通道上沒有更新的 media3 核心。Google Maven 的 latest/release 都是 1.11.1，
+#    1.11.1 之後沒有任何 alpha/beta/rc；media3 也不在 androidx/androidx 主倉（獨立倉
+#    androidx/media），不參與 androidx.dev snapshot 發車，實測 1.12.0-SNAPSHOT 與
+#    1.12.0-alpha01 全 404，repo1／oss.sonatype 也沒有。
+# 2) 1.11.1 與 main 尖端不是新舊、是**分叉**（compare API：ahead 474 / behind 1264），
+#    release 線有 1264 筆 main 沒有的 hotfix。所以「抬到最新核心」這個動作根本不存在。
+# 3) 子模組 app/thirdparty/androidx-media/latest 釘 main 尖端，是因為
+#    media3-decoder-ffmpeg/-flac/-opus/-vp9 這四個擴充**從未在 Maven 發布過**（四個
+#    metadata 全 404），源碼是唯一交付管道（見 buildSrc Config.ANDROIDX_MEDIA_EXTENSIONS
+#    與 app/build.gradle.kts 的 sourceSet 注入）。真正進到產物的接觸面只有 3 檔。
+# → 不准用「把子模組退回 1.11.1」換取綠燈；符號相容性由每次 push 的
+#    Java Compile Check / Android CI 真編譯把关（政策表 scripts/merge-policy.txt 也釘著）。
 androidx-media-latest = "1.11.1"
 androidx-tracing-latest = "2.0.2"
 
