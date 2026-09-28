@@ -6,7 +6,7 @@ if(NOT ANDROID_NDK_MAJOR OR NOT ANDROID_NDK_REVISION)
   message(FATAL_ERROR "Unknown NDK: r${ANDROID_NDK_MAJOR} (${ANDROID_NDK_REVISION})")
 endif()
 
-if (NOT TGX_FLAVOR MATCHES "^(legacy|lollipop|marshmallow|latest)$")
+if (NOT TGX_FLAVOR MATCHES "^(legacy|latest)$")
   message(FATAL_ERROR "Unknown flavor: ${TGX_FLAVOR}")
 endif()
 

@@ -193,36 +193,17 @@ data class SdkVariant(
 ) {
   val isLatest: Boolean =
     flavor == "latest"
-  val isMarshmallow: Boolean =
-    flavor == "marshmallow"
-  val isLollipop: Boolean =
-    flavor == "lollipop"
   val isLegacy: Boolean =
     flavor == "legacy"
-
-  val jetpackMediaFlavor: String =
-    flavor.takeIf { !isMarshmallow } ?: "latest"
 
   val usesLegacyNdk: Boolean =
     isLegacy
 }
 
 object Sdk {
-  const val LOLLIPOP = 1
-  const val MARSHMALLOW = 2
   const val LATEST = 3
 
   val VARIANTS = mapOf(
-    Pair(LOLLIPOP, SdkVariant(
-      flavor = "lollipop",
-      minSdk = 21,
-      maxSdk = 22
-    )),
-    Pair(MARSHMALLOW, SdkVariant(
-      flavor = "marshmallow",
-      minSdk = 23,
-      maxSdk = 23
-    )),
     Pair(LATEST, SdkVariant(
       flavor = "latest",
       minSdk = 24,
