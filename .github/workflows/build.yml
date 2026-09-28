@@ -33,6 +33,14 @@ jobs:
           submodules: recursive
           lfs: true
 
+      # 同 java-check.yml：合併 tgx 後的回歸閘門（政策表 scripts/merge-policy.txt）。
+      # 放在最前面是因為它不需要 JDK/SDK，幾秒就判完，能把「上游把我們刪掉的東西帶回來」
+      # 這種錯在 30 分鐘的 APK 建置之前先擋掉。
+      - name: Verify merge policy
+        run: |
+          chmod +x scripts/check-merge-policy.sh
+          ./scripts/check-merge-policy.sh
+
       - name: Set up JDK 21
         uses: actions/setup-java@v6
         with:

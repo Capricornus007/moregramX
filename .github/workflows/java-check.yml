@@ -33,6 +33,14 @@ jobs:
           submodules: recursive
           lfs: true
 
+      # 跟 tgx-android/telegram-x 合併的回歸閘門：已刪的 libtgvoip 路徑、子模組 gitlink、
+      # .gitmodules 裡指向不存在分支的 branch 欄、以及藏在第二第三處的版號，
+      # 任何一項被合併帶回來就在這裡紅，不用等編譯到一半才炸。政策表在 scripts/merge-policy.txt。
+      - name: Verify merge policy
+        run: |
+          chmod +x scripts/check-merge-policy.sh
+          ./scripts/check-merge-policy.sh
+
       - name: Set up JDK 21
         uses: actions/setup-java@v6
         with:

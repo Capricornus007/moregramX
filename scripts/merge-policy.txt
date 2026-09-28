@@ -1,0 +1,130 @@
+# mgx 跟 tgx-android/telegram-x 合併時的取捨政策表（唯一真相來源）
+#
+# 目的：讓「跟隨上游」變成可機驗的規則，而不是每次合併都靠人肉回憶。
+# 檢查器：scripts/check-merge-policy.sh（合併後必跑，不符就 exit 非 0）
+# CI 掛點：.github/workflows/java-check.yml 與 .github/workflows/build.yml 的
+#          「Verify merge policy」步驟（checkout 之後、編譯之前，純離線、秒級）
+#
+# 語法：每行一條，欄位用 | 分隔，共 5 欄，順序固定：
+#   kind | path | expected | bad_value | note
+# kind 取值：
+#   deleted    path 這個路徑必須「不存在」於 git ls-files（上游刪掉的東西不准被合併帶回來）
+#   deleted-any  path 欄當「子串」比對，任何追蹤路徑含該子串就算違規（整棵目錄用）
+#   present    path 必須仍然存在於 git ls-files（被誤認為遺物、實際還在用的東西）
+#   gitlink    path 的子模組 pin 必須等於 expected；等於 bad_value 會另報「退回舊值」
+#   branch     .gitmodules 中該 path 對應 submodule 段的 branch 必須等於 expected
+#   nobranch   .gitmodules 中該 path 對應段必須「沒有」branch 欄位（釘死在 tag 或上游無分支）
+#   prop       path=檔案、expected=檔內必須出現的一行、bad=必須不出現（可逗号分隔）
+# 規則：空行與 # 開頭忽略；note 是給人看的，不得含 |；腳色欄值不得含空白。
+#
+# 合併流程（跟 tgx 合併時照這走，衝突就不用人肉重解）：
+#   1) 本倉已開 git config rerere.enabled=true 與 rerere.autoupdate=true，
+#      同一個衝突第二次會自動套用第一次的解法並直接標記 resolved。
+#   2) 第一次遇到新衝突時，照本表的 kind 決定方向：deleted/present 維持我方存在性、
+#      gitlink 一律取 expected、branch 一律取 expected；解完 git add 讓 rerere 記下來。
+#   3) 合併收尾跑 scripts/check-merge-policy.sh（CI 也會跑），非 0 就別推。
+#   4) 本表改了要連 gitlink／.gitmodules／version.properties／libs.versions.toml 一起改，
+#      同一個版號常藏兩到三處，只改一半等於沒改。
+
+# == 1. VoIP / libtgvoip 移除鏈（tgx 的 6fa3eed3 / 46b97ed0 / f61d8c56 / ce50b6a9 已併入我方）==
+# 这四筆同時是 tgx/main 與我方 HEAD 的祖先，我方 git ls-files 計 libtgvoip = 0，
+# HEAD..tgx/main = 0 —— 「跟著上游刪」早就完成了，以下只當回歸閘門用。
+deleted-any|libtgvoip|-|-|整棵 libtgvoip（含 app/jni/tgvoip/third_party/libtgvoip gitlink）不准再出現
+deleted|app/jni/tgvoip/BuildTelegramVoIP.cmake|-|tgx 舊檔|6fa3eed3 刪除
+deleted|app/jni/tgvoip/third_party/libtgvoip|-|-|6fa3eed3 刪除的 gitlink
+deleted|app/src/main/java/org/thunderdog/challegram/voip/VoIPController.java|-|tgx 舊檔|46b97ed0 刪除（321 行）
+deleted|app/src/main/java/org/thunderdog/challegram/voip/AudioRecordJNI.java|-|tgx 舊檔|f61d8c56 刪除（245 行）
+deleted|app/src/main/java/org/thunderdog/challegram/voip/AudioTrackJNI.java|-|tgx 舊檔|f61d8c56 刪除（130 行）
+deleted|app/src/main/java/org/thunderdog/challegram/voip/JNIUtilities.java|-|tgx 舊檔|f61d8c56 刪除（127 行）
+deleted|app/src/main/java/org/thunderdog/challegram/voip/Resampler.java|-|tgx 舊檔|f61d8c56 刪除
+deleted|app/src/main/java/org/thunderdog/challegram/voip/VLog.java|-|tgx 舊檔|f61d8c56 刪除（40 行）
+
+# == 2. app/jni/tgvoip/** 是 tgcalls/webrtc 的原生建置檔，不是 libtgvoip 遺物，不准刪 ==
+# 由 app/jni/CMakeLists.txt 的 if(ENABLE_TGVOIP) add_subdirectory(tgvoip) 吃進去，非 legacy flavor 仍在用。
+present|app/jni/tgvoip/CMakeLists.txt|-|-|tgvoip 樹的進入點
+present|app/jni/tgvoip/tgvoip.cpp|-|-|webrtc sdk + tgvoip.cpp layer
+present|app/jni/tgvoip/tgvoip_config.h|-|-|tgvoip.cpp 用的設定標頭
+present|app/jni/tgvoip/stub/config.h|-|-|webrtc 依賴的 stub 標頭
+present|app/jni/tgvoip/stub/crc32c/crc32c_config.h|-|-|crc32c stub 設定
+present|app/jni/tgvoip/BuildAbsl.cmake|-|-|abseil 建置片段
+present|app/jni/tgvoip/BuildJson11.cmake|-|-|json11 建置片段
+present|app/jni/tgvoip/BuildLibSRTP.cmake|-|-|libsrtp 建置片段
+present|app/jni/tgvoip/BuildOpenH264.cmake|-|-|openh264 建置片段
+present|app/jni/tgvoip/BuildRNNoise.cmake|-|-|rnnoise 建置片段
+present|app/jni/tgvoip/BuildTgCalls.cmake|-|-|tgcalls 建置片段
+present|app/jni/tgvoip/BuildUsrSCTP.cmake|-|-|usrsctp 建置片段
+present|app/jni/tgvoip/BuildWebRTC.cmake|-|-|webrtc 建置片段
+
+# == 3. (c) tgvoip 樹的七條 gitlink：逐條 ls-tree 實測「我方 == tgx」，跟隨上游＝現況已一致 ==
+# 它們相對於「各自的 upstream 倉分支」是落後的，但 tgx 釘的是同一個值，
+# 抬上去等於主動偏離 tgx（正是要消掉的衝突來源），所以政策是維持我方＝維持 tgx 值。
+gitlink|app/jni/tgvoip/third_party/usrsctp|01cc4e042e2235b29d9d489d89728a6f9ac063ed|-|sctplab/usrsctp，與 tgx 同值
+gitlink|app/jni/tgvoip/third_party/libsrtp|860492290f7d1f25e2bd45da6471bfd4cd4d7add|-|cisco/libsrtp，與 tgx 同值
+gitlink|app/jni/tgvoip/third_party/abseil-cpp|2f9e432cce407ce0ae50676696666f33a77d42ac|-|abseil/abseil-cpp，與 tgx 同值
+gitlink|app/jni/tgvoip/third_party/rnnoise|1cbdbcf1283499bbb2230a6b0f126eb9b236defd|-|xiph/rnnoise，與 tgx 同值
+gitlink|app/jni/tgvoip/third_party/crc32c|21fc8ef30415a635e7351ffa0e5d5367943d4a94|-|google/crc32c，與 tgx 同值
+gitlink|app/jni/tgvoip/third_party/webrtc_deps/base|fd5eca261fa03e22f053a0eaa5b010ca01c6fe51|-|chromium src/base，與 tgx 同值
+gitlink|app/jni/tgvoip/third_party/webrtc_deps/third_party|121de111a913373d1ac15e4605da24fd22b21bcf|-|chromium src/third_party，與 tgx 同值
+# 同-tree 的另兩條（也逐條核過與 tgx 同值），一起納管避免漏網
+gitlink|app/jni/tgvoip/third_party/openh264|c59550a2147c255cc8e09451f6deb96de2526b6d|-|= refs/tags/v2.4.1，與 tgx 同值，故意釘死在 tag
+gitlink|app/jni/tgvoip/third_party/libevent|422a87cd9cfc916fae4b918d63bf2a3d9bc9c40f|-|TGX-Android/libevent main 尖端，與 tgx 同值
+
+# == 4. (d) tgcalls / webrtc：pin 已命中各自 production 尖端，抬昇判定為零，只留 pin 與 branch 政策 ==
+# 血緣實測（GitHub compare API）：tgcalls production 領先 development 2 筆；
+# webrtc production 領先 telegram 2 筆、領先 M123 6 筆 —— production 是最新那條，development 沒新東西。
+gitlink|app/jni/tgvoip/third_party/tgcalls|236c2d53f4e5cbf608fe1f72bf6cfae1c56784ba|-|= refs/heads/production 尖端，與 tgx 同值
+branch|app/jni/tgvoip/third_party/tgcalls|production|main|tgx 的 .gitmodules 寫 main，但該倉沒有 main 分支
+gitlink|app/jni/tgvoip/third_party/webrtc|6ecff4f2446ff7d4ce38ca1c764f023e44dbcb1b|-|= refs/heads/production 尖端，與 tgx 同值
+branch|app/jni/tgvoip/third_party/webrtc|production|main|tgx 的 .gitmodules 寫 main，但該倉沒有 main 分支
+nobranch|app/jni/tgvoip/third_party/openh264|-|v2.4.1|v2.4.1 是 tag 不是分支，留 branch 欄會讓 --remote 偷跳 master
+
+# == 5. (b) webp：抬到 1.6.0 分支尖端（= tgx 值），bad_value 是我方 6292dbea 那次倒扣 ==
+gitlink|app/jni/third_party/webp|991170bbab3e6afc74666d124f3f1dc7be942cd0|845d5476a866141ba35ac133f856fa62f0b7445f|1.6.0 分支尖端；845d5476 是 v1.4.0，曾被 6292dbea 從 tgx 值倒扣回來
+branch|app/jni/third_party/webp|1.6.0|1.4.0|與 pin 同步的版號第二處
+# 版號第三處在 version.properties 的 version.webp，由本腳本第 6 節的 proprow 一併驗
+
+# == 6. (a) androidx-media 兩條：latest 採我方（偏離 tgx），lollipop 採 tgx ==
+# latest：081a432e = androidx/media refs/heads/main 尖端（未發版）；tgx 仍釘 8c6678b6 = refs/tags/1.11.1^{}
+gitlink|app/thirdparty/androidx-media/latest|081a432e7d9adb86123d4c14f53ccde8aa7cefc2|8c6678b657ede1e7883fc164ef73ed483c7796c3|規則 61 開發尖端主軸；tgx 的 1.11.1 是 bad_value
+# lollipop：必須留在 1.8.0 相容線 —— libs.versions.toml 的 androidx-media-lollipop = 1.8.0（1.9.0+ 要 minSdk 23）
+# 而 Config.kt 的 lollipop flavor minSdk = 21；84a5a45b 那筆 bulk bump 曾把它盲抬成 1.11.1 造成來源/核心錯配。
+gitlink|app/thirdparty/androidx-media/lollipop|b7bbc6e2bc3e45ff3ed99884c114c50f03bba5c9|8c6678b657ede1e7883fc164ef73ed483c7796c3|release-1.8.0 相容線，與 tgx 同值；minSdk 21 硬性限制
+# 版號錯配的第三處：Maven 座標由腳本比對 gradle/libs.versions.toml
+# latest 吃 main 尖端（尚無對應已發布版號）→ 座標留在最後穩定版 1.11.1
+# lollipop 吃 1.8.0 相容線                → 座標必須是 1.8.0
+
+# == 7. 其它 .gitmodules branch 條目一併納管（不在表內的 branch 欄一律視為未審）==
+branch|app/jni/third_party/ffmpeg|release/6.1|-|FFmpeg 穩定分支
+branch|tdlib|main|-|TGX-Android/tdlib
+branch|app/jni/third_party/jni-utils|main|-|TGX-Android/jni-utils
+branch|vkryl/leveldb|main|-|TGX-Android/leveldb
+branch|vkryl/core|main|-|TGX-Android/X-Core
+branch|app/jni/third_party/rlottie|main|-|TGX-Android/rlottie
+branch|vkryl/td|main|-|TGX-Android/tdlib-utils
+branch|vkryl/android|main|-|TGX-Android/X-Android
+branch|app/jni/tgvoip/third_party/libevent|main|-|TGX-Android/libevent
+branch|app/jni/tgvoip/third_party/crc32c|main|-|google/crc32c 有 main
+branch|app/jni/tgvoip/third_party/rnnoise|master|-|xiph/rnnoise 用 master
+nobranch|app/jni/third_party/libyuv|-|-|chromium.googlesource.com 無穩定分支欄位
+nobranch|app/jni/third_party/lz4|-|-|
+nobranch|app/jni/third_party/flac|-|-|
+nobranch|app/jni/third_party/opus|-|-|
+nobranch|app/jni/third_party/opusfile|-|-|
+nobranch|app/jni/third_party/ogg|-|-|
+nobranch|app/jni/third_party/libvpx|-|-|
+nobranch|app/jni/third_party/pixman|-|-|
+nobranch|app/thirdparty/androidx-media/latest|-|-|
+nobranch|app/thirdparty/androidx-media/lollipop|-|-|
+nobranch|thirdparty/whispercpp|-|-|
+nobranch|app/jni/tgvoip/third_party/usrsctp|-|-|
+nobranch|app/jni/tgvoip/third_party/libsrtp|-|-|
+nobranch|app/jni/tgvoip/third_party/abseil-cpp|-|-|
+nobranch|app/jni/tgvoip/third_party/webrtc_deps/base|-|-|
+nobranch|app/jni/tgvoip/third_party/webrtc_deps/third_party|-|-|
+
+# == 8. 同一個版號公式的其他藏身處（只改一半等於沒改）==
+# prop 欄位意義：path=檔案、expected=該檔必須出現的一行（子串比對）、bad=必須「不」出現的一行（可逗号分隔多條）
+prop|version.properties|version.webp=v1.6.0|version.webp=v1.2.0,version.webp=v1.4.0,version.webp=v1.5.0|webp 版號第二處（第一處是 gitlink、第三處是 .gitmodules branch）
+prop|gradle/libs.versions.toml|androidx-media-lollipop = "1.8.0"|-|lollipop 子模組在 1.8.0 相容線時核心座標必須同步 1.8.0（1.9.0+ 要 minSdk 23，我方 lollipop minSdk=21）
+prop|gradle/libs.versions.toml|androidx-media-latest = "1.11.1"|-|latest 子模組吃未發版 main 尖端，核心座標留在最後一個已發布版號 1.11.1
+prop|version.properties|version.app=|-|自有發佈序號，合併 tgx 時不准被退回上游數字（1814 是來源基線不是我方版本）
