@@ -139,4 +139,4 @@ nobranch|app/jni/tgvoip/third_party/webrtc_deps/third_party|-|-|
 prop|version.properties|version.webp=main|version.webp=v1.2.0,version.webp=v1.4.0,version.webp=v1.5.0,version.webp=v1.6.0|webp 版號第三處（第一處是 gitlink、第二處是 .gitmodules 的 branch＋url）；值是 fork 追的分支名
 prop|gradle/libs.versions.toml|androidx-media-lollipop = "1.8.0"|-|lollipop 子模組在 1.8.0 相容線時核心座標必須同步 1.8.0（1.9.0+ 要 minSdk 23，我方 lollipop minSdk=21）
 prop|gradle/libs.versions.toml|androidx-media-latest = "1.11.1"|-|latest 子模組吃未發版 main 尖端，核心座標留在最後一個已發布版號 1.11.1
-prop|version.properties|version.app=|-|自有發佈序號，合併 tgx 時不准被退回上游數字（1814 是來源基線不是我方版本）
+prop|version.properties|version.app=|version.app=181,version.app=182|自有發佈序號：合併 tgx 時不准被退回上游數字（tgx 目前是 1814；181x／182x 全擋，往後抬版號不需要動這條）
