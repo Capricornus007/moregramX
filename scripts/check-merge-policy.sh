@@ -47,6 +47,14 @@ warn() {
 
 tracked_all="$(git ls-files)"
 
+# 先擋「還沒解完的衝突標記」：git config -f 讀不了帶標記的 .gitmodules，
+# 那會讓下面報出幾十條「找不到段」的誤診，所以這裡先明確回報一次、branch 兩類檢查直接跳過。
+GM_CONFLICT=0
+if [[ -f .gitmodules ]] && grep -qE '^(<<<<<<<|>>>>>>>|={7})([[:space:]]|$)' .gitmodules; then
+  GM_CONFLICT=1
+  fail ".gitmodules 還帶著未解的合併衝突標記——先把 branch 那幾條解掉再重跑（本輪跳過 branch/nobranch 檢查，避免誤診）"
+fi
+
 # .gitmodules：兩趟解析，避免用 IFS 拆欄位時空欄位被吃掉
 declare -A SEG_NAME=()    # path -> submodule 段名
 declare -A PATH_OF=()     # 段名 -> path
@@ -115,6 +123,9 @@ while IFS='|' read -r kind path expected bad note || [[ -n "${kind:-}" ]]; do
       fi
       ;;
     branch)
+      if [[ "$GM_CONFLICT" == "1" ]]; then
+        continue
+      fi
       BRANCH_ROWS["$path"]=1
       name="${SEG_NAME[$path]:-}"
       if [[ -z "$name" ]]; then
@@ -141,6 +152,9 @@ while IFS='|' read -r kind path expected bad note || [[ -n "${kind:-}" ]]; do
       fi
       ;;
     nobranch)
+      if [[ "$GM_CONFLICT" == "1" ]]; then
+        continue
+      fi
       BRANCH_ROWS["$path"]=1
       name="${SEG_NAME[$path]:-}"
       if [[ -z "$name" ]]; then
