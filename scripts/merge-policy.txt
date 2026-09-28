@@ -89,7 +89,7 @@ branch|app/jni/third_party/webp|main|1.6.0|與 pin 同步的第二處；1.6.0 �
 prop|.gitmodules|url = https://github.com/Capricornus007/libwebp|url = https://github.com/webmproject/libwebp|webp 的來源改成自有 fork；tgx 合併若把 url 換回 upstream，CI 會抓不到這個 merge commit（直接紅）
 # 版號第三處在 version.properties 的 version.webp，由第 8 節的 prop 一併驗（值寫分支名，與 libyuv／lz4 同一格式）
 
-# == 6. (a) androidx-media 兩條：latest 採我方（偏離 tgx），lollipop 採 tgx ==
+# == 6. (a) androidx-media：latest 採我方（偏離 tgx）；lollipop flavor 已隨死 flavor 一併刪除 ==
 # latest：5efc8ddc = androidx/media refs/heads/main 尖端（未發版，對應 1.12.0-dev）；
 # tgx 仍釘 8c6678b6 = refs/tags/1.11.1^{} = refs/heads/release 尖端。
 # 抬昇實測內容中性：081a432e → 5efc8ddc 只差 1 筆提交（effect 模組），
@@ -98,12 +98,9 @@ prop|.gitmodules|url = https://github.com/Capricornus007/libwebp|url = https://g
 # 來源 vs 核心（androidx-media-latest = 1.11.1）的錯配仍存在、尚未紅，
 # 處置方式要用戶裁（見派工單第 2 節），不准用把子模組退回 1.11.1 換綠燈。
 gitlink|app/thirdparty/androidx-media/latest|5efc8ddcd4351b05badb99065125f893d546f8af|8c6678b657ede1e7883fc164ef73ed483c7796c3|規則 61 開發尖端主軸；tgx 的 1.11.1 是 bad_value
-# lollipop：必須留在 1.8.0 相容線 —— libs.versions.toml 的 androidx-media-lollipop = 1.8.0（1.9.0+ 要 minSdk 23）
-# 而 Config.kt 的 lollipop flavor minSdk = 21；84a5a45b 那筆 bulk bump 曾把它盲抬成 1.11.1 造成來源/核心錯配。
-gitlink|app/thirdparty/androidx-media/lollipop|b7bbc6e2bc3e45ff3ed99884c114c50f03bba5c9|8c6678b657ede1e7883fc164ef73ed483c7796c3|release-1.8.0 相容線，與 tgx 同值；minSdk 21 硬性限制
 # 版號錯配的第三處：Maven 座標由腳本比對 gradle/libs.versions.toml
 # latest 吃 main 尖端（尚無對應已發布版號）→ 座標留在最後穩定版 1.11.1
-# lollipop 吃 1.8.0 相容線                → 座標必須是 1.8.0
+# lollipop 子模組與 androidx-media-lollipop 座標已連同死 flavor 一起刪（回歸閘門見第 9 節）。
 
 # == 7. 其它 .gitmodules branch 條目一併納管（不在表內的 branch 欄一律視為未審）==
 branch|app/jni/third_party/ffmpeg|release/6.1|-|FFmpeg 穩定分支
@@ -126,7 +123,6 @@ nobranch|app/jni/third_party/ogg|-|-|
 nobranch|app/jni/third_party/libvpx|-|-|
 nobranch|app/jni/third_party/pixman|-|-|
 nobranch|app/thirdparty/androidx-media/latest|-|-|
-nobranch|app/thirdparty/androidx-media/lollipop|-|-|
 nobranch|thirdparty/whispercpp|-|-|
 nobranch|app/jni/tgvoip/third_party/usrsctp|-|-|
 nobranch|app/jni/tgvoip/third_party/libsrtp|-|-|
@@ -137,6 +133,13 @@ nobranch|app/jni/tgvoip/third_party/webrtc_deps/third_party|-|-|
 # == 8. 同一個版號公式的其他藏身處（只改一半等於沒改）==
 # prop 欄位意義：path=檔案、expected=該檔必須出現的一行（子串比對）、bad=必須「不」出現的一行（可逗号分隔多條）
 prop|version.properties|version.webp=main|version.webp=v1.2.0,version.webp=v1.4.0,version.webp=v1.5.0,version.webp=v1.6.0|webp 版號第三處（第一處是 gitlink、第二處是 .gitmodules 的 branch＋url）；值是 fork 追的分支名
-prop|gradle/libs.versions.toml|androidx-media-lollipop = "1.8.0"|-|lollipop 子模組在 1.8.0 相容線時核心座標必須同步 1.8.0（1.9.0+ 要 minSdk 23，我方 lollipop minSdk=21）
+prop|gradle/libs.versions.toml|androidx-core-ktx-lollipop = |-|釘死子模組 vkryl/core、vkryl/android 的 build.gradle.kts 仍引用 libs.androidx.core.ktx.lollipop 別名，這行必須留（合併不准刪；其餘所有 -lollipop 條目已隨死 flavor 刪除，見第 9 節）
 prop|gradle/libs.versions.toml|androidx-media-latest = "1.11.1"|-|latest 子模組吃未發版 main 尖端，核心座標留在最後一個已發布版號 1.11.1
 prop|version.properties|version.app=|version.app=181,version.app=182|自有發佈序號：合併 tgx 時不准被退回上游數字（tgx 目前是 1814；181x／182x 全擋，往後抬版號不需要動這條）
+
+# == 9. 死 flavor 刪除的回歸閘門（用戶只發 latest／arm64 一顆；lollipop、marshmallow 從不建置、從不發布）==
+# 上游 tgx 仍保留舊 flavor；合併若把下面這些目錄／子模組／version.flavors 清單帶回來，CI 直接紅，不靠人記得。
+deleted-any|app/src/onlyLollipop|-|-|lollipop flavor 專屬目錄（僅 1 檔 MediaExtractor typealias；latest 由 sinceMarshmallow/LatestFlavor.kt 提供同名符號）
+deleted-any|preMarshmallow|-|-|lollipop 專屬 preMarshmallow 目錄（app/src/preMarshmallow 的 NLoader.kt 與 app/src/google/preMarshmallow 的 Firebase 兩檔；latest 由同名 sinceMarshmallow／google/sinceMarshmallow 提供）
+deleted|app/thirdparty/androidx-media/lollipop|-|-|已刪的 androidx-media lollipop 子模組 gitlink，不准被合併帶回（見第 6 節 latest 那條保留）
+prop|version.properties|version.flavors=latest|lollipop,marshmallow|唯一建置／發布的 flavor；上游把 lollipop／marshmallow 加回 version.flavors 就直接紅（legacy 於第二刀再併入 bad）
