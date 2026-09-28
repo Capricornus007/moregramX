@@ -48,7 +48,7 @@ fun DependencyHandlerScope.legacyImplementation(
   dependency: Any,
   dependencyConfiguration: Action<ExternalModuleDependency>? = null
 ) =
-  this.flavorImplementation("legacy", dependency, dependencyConfiguration)
+  this.registerFlavorImpl("legacy", dependency, dependencyConfiguration)
 
 fun DependencyHandlerScope.sinceLollipopImplementation(
   sinceLollipop: Any,
@@ -139,7 +139,7 @@ fun <T> selectAbiFlavor(
     else -> error(variant.flavor)
   }
 
-private fun DependencyHandlerScope.flavorImplementation(
+private fun DependencyHandlerScope.registerFlavorImpl(
   flavor: String,
   dependency: Any?,
   dependencyConfiguration: Action<ExternalModuleDependency>? = null
@@ -185,7 +185,7 @@ private fun DependencyHandlerScope.applyApiFlavor(
       legacy,
       latest
     )
-    flavorImplementation(sdkVariant.flavor, library, dependencyConfiguration)
+    registerFlavorImpl(sdkVariant.flavor, library, dependencyConfiguration)
   }
 }
 
