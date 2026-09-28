@@ -96,7 +96,6 @@
 	path = app/jni/tgvoip/third_party/openh264
 	url = https://github.com/cisco/openh264
 	shallow = true
-	branch = v2.4.1
 [submodule "abseil"]
 	path = app/jni/tgvoip/third_party/abseil-cpp
 	url = https://github.com/abseil/abseil-cpp
@@ -105,12 +104,12 @@
 	path = app/jni/tgvoip/third_party/webrtc
 	url = https://github.com/TGX-Android/webrtc
 	shallow = true
-	branch = main
+	branch = production
 [submodule "tgcalls"]
 	path = app/jni/tgvoip/third_party/tgcalls
 	url = https://github.com/TGX-Android/tgcalls
 	shallow = true
-	branch = main
+	branch = production
 [submodule "libevent"]
 	path = app/jni/tgvoip/third_party/libevent
 	url = https://github.com/TGX-Android/libevent
