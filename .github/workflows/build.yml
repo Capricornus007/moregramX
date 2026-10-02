@@ -41,11 +41,16 @@ jobs:
           chmod +x scripts/check-merge-policy.sh
           ./scripts/check-merge-policy.sh
 
-      - name: Set up JDK 21
+      # tgx@ea17e077/fc91511c 把 Java 與 toolchain 一起抬到 25（buildSrc 的
+      # java.toolchain.languageVersion = 25）。本專案沒有裝 foojay toolchain resolver，
+      # Gradle 不能用不了自動下載，環境裡必須「真的有」JDK 25，否則直接在
+      # "No matching toolchain" 掛掉。依規則 15：吃最新版本、再把連帶錯誤修掉，
+      # 不回退 toolchain 換綠燈（用戶 09-28 裁決）。
+      - name: Set up JDK 25
         uses: actions/setup-java@v6
         with:
           distribution: 'zulu'
-          java-version: '21'
+          java-version: '25'
           cache: 'gradle'
 
       - name: Create local.properties

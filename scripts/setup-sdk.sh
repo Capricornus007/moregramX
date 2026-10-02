@@ -33,8 +33,10 @@ yes | "$ANDROID_SDK_ROOT"/cmdline-tools/latest/bin/sdkmanager --install \
   "ndk;$ANDROID_NDK_VERSION_PRIMARY" \
   "cmake;$CMAKE_VERSION"
 
-test -d "$ANDROID_SDK_ROOT" || (echo "ANDROID_SDK_ROOT ($ANDROID_SDK_ROOT) not found!" && exit 1)
-test -d "$ANDROID_SDK_ROOT/ndk/$ANDROID_NDK_VERSION_PRIMARY" || (echo "ANDROID_NDK ($ANDROID_NDK_VERSION_PRIMARY) not found!" && exit 1)
+test -d "$ANDROID_SDK_ROOT" || { echo "ANDROID_SDK_ROOT ($ANDROID_SDK_ROOT) not found!" >&2; exit 1; }
+test -d "$ANDROID_SDK_ROOT/ndk/$ANDROID_NDK_VERSION_PRIMARY" || { echo "ANDROID_NDK ($ANDROID_NDK_VERSION_PRIMARY) not found!" >&2; exit 1; }
+# 我方已移除 legacy NDK (r23) 安裝步驟與 flavor，故上游重新撿回的 ndk_legacy 檢查不予採用，
+# 否則 setup-sdk.sh 會在「沒裝 r23」的機器上直接 exit 1（規則 14：我方較佳且確認重複 → 去重丟棄）。
 
 echo "SDK setup is now complete!"
 echo "build-tools: ${BUILD_TOOLS_VERSION}, ndk: ${ANDROID_NDK_VERSION_PRIMARY}"

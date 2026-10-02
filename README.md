@@ -141,7 +141,7 @@ with another key cannot update an existing installation.
 
 - Linux or macOS; Windows users should use WSL.
 - Git with Git LFS.
-- JDK 21.
+- JDK 25.
 - Android SDK/NDK components selected by scripts/setup.sh.
 - At least 6 GB of free disk space and 4 GB of RAM.
 
