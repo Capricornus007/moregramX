@@ -70,9 +70,9 @@ gitlink|app/jni/tgvoip/third_party/openh264|c59550a2147c255cc8e09451f6deb96de252
 gitlink|app/jni/tgvoip/third_party/libevent|422a87cd9cfc916fae4b918d63bf2a3d9bc9c40f|-|TGX-Android/libevent main 尖端，與 tgx 同值
 
 # == 4. (d) tgcalls / webrtc：pin 已命中各自 production 尖端，抬昇判定為零，只留 pin 與 branch 政策 ==
-# 血緣實測（GitHub compare API）：tgcalls production 領先 development 2 筆；
+# 血緣實測（GitHub compare API）：tgcalls production 領先 development 3 筆；
 # webrtc production 領先 telegram 2 筆、領先 M123 6 筆 —— production 是最新那條，development 沒新東西。
-gitlink|app/jni/tgvoip/third_party/tgcalls|236c2d53f4e5cbf608fe1f72bf6cfae1c56784ba|-|= refs/heads/production 尖端，與 tgx 同值
+gitlink|app/jni/tgvoip/third_party/tgcalls|76c951bb42e9668b326a53c277d4823bd5657ec6|-|= refs/heads/production 尖端，與 tgx 同值（2026-10-02 tgx LF 統一後抬昇；236c2d53 的直接子提交）
 branch|app/jni/tgvoip/third_party/tgcalls|production|main|tgx 的 .gitmodules 寫 main，但該倉沒有 main 分支
 gitlink|app/jni/tgvoip/third_party/webrtc|6ecff4f2446ff7d4ce38ca1c764f023e44dbcb1b|-|= refs/heads/production 尖端，與 tgx 同值
 branch|app/jni/tgvoip/third_party/webrtc|production|main|tgx 的 .gitmodules 寫 main，但該倉沒有 main 分支
