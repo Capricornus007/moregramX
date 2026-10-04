@@ -51,6 +51,7 @@ import org.thunderdog.challegram.theme.ColorId;
 import org.thunderdog.challegram.tool.Fonts;
 import org.thunderdog.challegram.tool.Strings;
 import org.thunderdog.challegram.tool.UI;
+import org.thunderdog.challegram.unsorted.AppContext;
 import org.thunderdog.challegram.unsorted.Settings;
 import org.thunderdog.challegram.util.CustomTypefaceSpan;
 import org.thunderdog.challegram.util.StringList;
@@ -108,7 +109,7 @@ public class Lang {
 
   public static String getResourceEntryName (int resource) {
     try {
-      return UI.getAppContext().getResources().getResourceEntryName(resource);
+      return UI.getResources().getResourceEntryName(resource);
     } catch (Throwable t) {
       Log.e("Unable to find resource entry name (shitty modified APK?)");
       return "";
@@ -126,7 +127,7 @@ public class Lang {
   @StringRes
   public static int getStringResourceIdentifier (String key) {
     try {
-      Context context = UI.getAppContext();
+      Context context = AppContext.get();
       return context.getResources().getIdentifier(key, "string", context.getPackageName());
     } catch (Throwable ignored) {
       return 0;
@@ -333,12 +334,12 @@ public class Lang {
 
   private static String getAndroidString (@StringRes int resId) throws Resources.NotFoundException {
     // TODO non-current languagePackInfo
-    return UI.getAppContext().getResources().getString(resId);
+    return UI.getResources().getString(resId);
   }
 
   private static String getAndroidString (@StringRes int resId, Object... formatArgs) {
     // TODO non-current languagePackInfo
-    return UI.getAppContext().getResources().getString(resId, formatArgs);
+    return UI.getResources().getString(resId, formatArgs);
   }
 
   private static volatile Resources appLocaleResources;
@@ -347,7 +348,7 @@ public class Lang {
   private static Resources getAppLocaleResources () {
     String packId = packId();
     if (appLocaleResources == null || !packId.equals(appLocaleResourcesPackId)) {
-      Resources appResources = UI.getAppContext().getResources();
+      Resources appResources = AppContext.get().getResources();
       Resources localeResources = appResources;
       try {
         String languageCode = packId.startsWith("X") ? normalizeLanguageCode(packId) : packId;
@@ -363,7 +364,7 @@ public class Lang {
         Configuration configuration = new Configuration(appResources.getConfiguration());
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
           configuration.setLocale(locale);
-          localeResources = UI.getAppContext().createConfigurationContext(configuration).getResources();
+          localeResources = AppContext.get().createConfigurationContext(configuration).getResources();
         } else {
           configuration.locale = locale;
           localeResources = new Resources(appResources.getAssets(), appResources.getDisplayMetrics(), configuration);
@@ -802,7 +803,7 @@ public class Lang {
       /*String language = dateFormatLocale().getLanguage();
       if (language.equals(Locale.getDefault().getLanguage())) {
         Formatter f = new Formatter(new StringBuilder(50), dateFormatLocale());
-        return android.text.format.DateUtils.formatDateRange(UI.getAppContext(), f, timeInMillis, timeInMillis, android.text.format.DateUtils.FORMAT_SHOW_TIME).toString();
+        return android.text.format.DateUtils.formatDateRange(AppContext.get(), f, timeInMillis, timeInMillis, android.text.format.DateUtils.FORMAT_SHOW_TIME).toString();
       }
       if (language.equals("en")) {
         return dateFormat(fallbackPattern, timeInMillis);
@@ -2563,7 +2564,7 @@ public class Lang {
 
   public static String getDateRange (long timeStart, long timeEnd, TimeUnit unit, boolean needTime) {
     Formatter f = new Formatter(new StringBuilder(50), locale());
-    return android.text.format.DateUtils.formatDateRange(UI.getAppContext(), f, unit.toMillis(timeStart), unit.toMillis(timeEnd), (needTime ? android.text.format.DateUtils.FORMAT_ABBREV_ALL | android.text.format.DateUtils.FORMAT_SHOW_TIME : android.text.format.DateUtils.FORMAT_ABBREV_ALL)).toString();
+    return android.text.format.DateUtils.formatDateRange(AppContext.get(), f, unit.toMillis(timeStart), unit.toMillis(timeEnd), (needTime ? android.text.format.DateUtils.FORMAT_ABBREV_ALL | android.text.format.DateUtils.FORMAT_SHOW_TIME : android.text.format.DateUtils.FORMAT_ABBREV_ALL)).toString();
   }
 
   public static String getDatestamp (long time, TimeUnit unit) {
@@ -3523,7 +3524,7 @@ public class Lang {
   }
 
   public static Locale getConfigurationLocale () {
-    Configuration configuration = UI.getAppContext().getResources().getConfiguration();
+    Configuration configuration = UI.getResources().getConfiguration();
     return getPrimaryLocale(configuration);
   }
 

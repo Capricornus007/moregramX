@@ -36,6 +36,7 @@ import org.drinkless.tdlib.TdApi;
 import org.thunderdog.challegram.Log;
 import org.thunderdog.challegram.telegram.Tdlib;
 import org.thunderdog.challegram.tool.UI;
+import org.thunderdog.challegram.unsorted.AppContext;
 
 import java.text.NumberFormat;
 import java.util.ArrayList;
@@ -84,7 +85,7 @@ public class BillingManager implements PurchasesUpdatedListener, BillingClientSt
     if (instance == null) {
       synchronized (BillingManager.class) {
         if (instance == null) {
-          instance = new BillingManager(UI.getAppContext());
+          instance = new BillingManager(AppContext.get());
         }
       }
     }
