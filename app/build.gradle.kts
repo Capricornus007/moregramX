@@ -32,6 +32,7 @@ val validateGitSetupTask = tasks.register<ValidateGitSetupTask>("validateGitSetu
   group = "Setup"
   description = "Ensures git modules and LFS objects are fetched correctly"
 
+  mainDir.set(layout.projectDirectory.dir(".."))
   gitmodulesFile.set(layout.projectDirectory.file("../.gitmodules"))
   submoduleMarkers.from(providers.fileContents(
     layout.projectDirectory.file("../.gitmodules")
@@ -182,6 +183,7 @@ val patchOpusTask = tasks.register<PatchOpusTask>(
 ) {
   group = "Setup"
   description = "Creates a patched copy of opus"
+  msys2Dir.set(msys2Directory(config.msys2Dir))
   inputDir.set(layout.projectDirectory.dir(
     "jni/third_party/opus"
   ))
@@ -216,7 +218,7 @@ val buildLibvpxTasks = Sdk.VARIANTS.values.filter {
       description = "Builds libvpx for ${sdkVariant.flavor}, $abiVariant flavor"
       // System
       sdkDir.set(File(config.sdkDir))
-      // sdkDir.fileValue(File(config.sdkDir))
+      msys2Dir.set(msys2Directory(config.msys2Dir))
       ndkVersion.set(config.build.primaryNdkVersion)
       hostTag.set(findHostTag())
       // Input
@@ -268,7 +270,8 @@ val buildFfmpegTasks = Sdk.VARIANTS.values.filter {
       group = "Setup"
       description = "Builds FFmpeg for ${sdkVariant.flavor}, $abiVariant flavor"
       // System
-      sdkDir.fileValue(File(config.sdkDir))
+      sdkDir.set(File(config.sdkDir))
+      msys2Dir.set(msys2Directory(config.msys2Dir))
       ndkVersion.set(config.build.primaryNdkVersion)
       hostTag.set(findHostTag())
       // Input

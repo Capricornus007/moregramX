@@ -144,6 +144,21 @@ with another key cannot update an existing installation.
 - JDK 25.
 - Android SDK/NDK components selected by scripts/setup.sh.
 - At least 6 GB of free disk space and 4 GB of RAM.
+- Repository must be fetched via `git` (the picker above also relies on Git LFS).
+- **JDK** or [Android Studio](https://developer.android.com/studio/) with a compatible bundled JDK.
+- At least **8 GB** of RAM, and at least **7.32 GB** of free disk space when cloning with
+  `--shallow-submodules --depth=1`; generated build files need roughly **2–5x** that again.
+
+Per-OS setup (upstream tgx instructions, folded in on 2026-10-04):
+
+* macOS — [Homebrew](https://brew.sh): `brew install git git-lfs && git lfs install`, `brew install openjdk@25`
+* Debian/Ubuntu — `apt install git git-lfs`, then `git lfs install`; `apt install openjdk-25-jdk`.
+  With several JDKs installed: `update-java-alternatives --list` and
+  `update-java-alternatives --set java-1.25.0-openjdk-amd64` (or another compatible version).
+* Windows (**MSYS2**, UCRT64 environment) — `pacman -Syu`, then
+  `pacman -S --needed git mingw-w64-ucrt-x86_64-git-lfs perl make diffutils`, `git lfs install`,
+  `git config --global core.longpaths true`, clone the repository, and set `msys2.dir` in
+  `local.properties` after cloning.
 
 Clone all submodules:
 
