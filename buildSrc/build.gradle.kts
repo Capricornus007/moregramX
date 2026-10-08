@@ -57,9 +57,23 @@ kotlin {
     // KOTLIN_2_3（javap 實查），不是照文件猜的。
     languageVersion = KotlinVersion.KOTLIN_2_3
     apiVersion = KotlinVersion.KOTLIN_2_3
+    // 專案層設了还不夠：CI #177/#163 顯示 `:buildSrc:compileKotlin` 仍拿 2.2，代表 kotlin-dsl
+    // 是在 KotlinCompile **任務**上蓋值（不是專案層的 compilerOptions）。下面另有一段任務級的
+    // configureEach。suppressVersionWarnings 是 KGP 專門給「語言版本棄用」這一類警告的開關，
+    // 只壓這一款；其他警告照樣被 allWarningsAsErrors 擋下。
+    suppressVersionWarnings = true
   }
   jvmToolchain {
     languageVersion = JavaLanguageVersion.of(27)
+  }
+}
+
+// 任務級再設一次：configureEach 的註冊順序在 kotlin-dsl 之後，所以這裡的值會覆蓋它釘的 2.2。
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+  compilerOptions {
+    languageVersion = KotlinVersion.KOTLIN_2_3
+    apiVersion = KotlinVersion.KOTLIN_2_3
+    suppressVersionWarnings = true
   }
 }
 
