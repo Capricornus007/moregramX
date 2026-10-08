@@ -132,7 +132,10 @@ data class Keystore(
 ) {
   constructor(configPath: String) : this(loadProperties(configPath))
   constructor(file: File) : this(loadProperties(file))
-  constructor(config: org.jetbrains.kotlin.konan.properties.Properties) : this(
+  // Kotlin 2.5.0-Beta1 拿掉了 org.jetbrains.kotlin.konan.properties.Properties
+  // （2.4.20 時它是 java.util.Properties 的 typealias，所以舊寫法編得過）。本檔已有
+  // import java.util.*，直接改用真身；getOrThrow 是 Map<*,*> 的擴充，行為不變。
+  constructor(config: Properties) : this(
     file = File(config.getOrThrow("keystore.file")),
     password = config.getOrThrow("keystore.password"),
     keyAlias = config.getOrThrow("key.alias"),
