@@ -1,8 +1,8 @@
 [versions]
-android-gradle-plugin = "9.4.1"
+android-gradle-plugin = "9.5.0-alpha08"
 
 kotlin = "2.4.20"
-ksp = "2.3.4"
+ksp = "2.3.12"
 desugaring = "2.1.5"
 
 jgit = "7.8.0.202609011348-r"

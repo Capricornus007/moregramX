@@ -41,13 +41,13 @@ jobs:
           chmod +x scripts/check-merge-policy.sh
           ./scripts/check-merge-policy.sh
 
-      # 同 build.yml：上游 toolchain 已是 Java 25，且本專案無 foojay resolver，
-      # 必須在 CI 裡真的裝出 JDK 25（規則 15：吃最新＋修連帶錯誤，不回退換綠燈）。
-      - name: Set up JDK 25
+      # 同 build.yml：toolchain 已抬到 Java 26（Kotlin 2.4.20 的 JvmTarget 上限就是 26），
+      # 且本專案無 foojay resolver，必須在 CI 裡真的裝出 JDK 26（規則 15：吃最新＋修連帶錯誤，不回退換綠燈）。
+      - name: Set up JDK 26
         uses: actions/setup-java@v6
         with:
           distribution: 'zulu'
-          java-version: '25'
+          java-version: '26'
           cache: 'gradle'
 
       - name: Create local.properties
