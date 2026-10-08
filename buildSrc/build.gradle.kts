@@ -61,7 +61,9 @@ kotlin {
     // 是在 KotlinCompile **任務**上蓋值（不是專案層的 compilerOptions）。下面另有一段任務級的
     // configureEach。suppressVersionWarnings 是 KGP 專門給「語言版本棄用」這一類警告的開關，
     // 只壓這一款；其他警告照樣被 allWarningsAsErrors 擋下。
-    suppressVersionWarnings = true
+    // suppressVersionWarnings 不是 KGP 的 DSL 屬性（CI #178/#164 實測
+    // 「Unresolved reference」），這是一款編譯器旗標，只能走 freeCompilerArgs。
+    freeCompilerArgs.add("-Xsuppress-version-warnings")
   }
   jvmToolchain {
     languageVersion = JavaLanguageVersion.of(27)
@@ -73,7 +75,7 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
   compilerOptions {
     languageVersion = KotlinVersion.KOTLIN_2_3
     apiVersion = KotlinVersion.KOTLIN_2_3
-    suppressVersionWarnings = true
+    freeCompilerArgs.add("-Xsuppress-version-warnings")
   }
 }
 
