@@ -1,7 +1,20 @@
 [versions]
 android-gradle-plugin = "9.5.0-alpha08"
 
-kotlin = "2.4.20"
+# Java 27 bytecode requires Kotlin >= 2.5.0: the `JvmTarget` enum of 2.4.20 and every
+# earlier 2.4.x line stops at JVM_26 — verified on the artifacts themselves, not from docs
+# (`javap org.jetbrains.kotlin.gradle.dsl.JvmTarget` on kotlin-gradle-plugin-api-2.4.20.jar
+# lists …JVM_25, JVM_26; the same command on kotlin-gradle-plugin-api-2.5.0-Beta1.jar adds
+# JVM_27). AGP 9.5.0-alpha08 declares a *runtime* dependency on kotlin-gradle-plugin 2.2.10
+# (see its pom on dl.google.com), which is what compiles our .kt sources via AGP's built-in
+# Kotlin; this catalog entry overrides it, because buildSrc/build.gradle.kts puts
+# `implementation(libs.kotlin.gradle.plugin)` on the classpath every project inherits and
+# Gradle keeps the highest version. No Compose compiler plugin here — the repo has zero
+# androidx.compose usage (only vendored media3 docsamples, which are not in settings.gradle.kts).
+kotlin = "2.5.0-Beta1"
+# KSP is declared but never applied (no `alias(libs.plugins.kotlin-ksp)` / `ksp(...)` anywhere in
+# the included projects), so it imposes no constraint on the Kotlin bump. Kept at 2.3.12, the
+# version proven against Kotlin 2.5.0-Beta1 in Capricornus007/XposedSmsCode's green CI.
 ksp = "2.3.12"
 desugaring = "2.1.5"
 

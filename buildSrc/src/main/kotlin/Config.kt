@@ -23,7 +23,13 @@ object Config {
 
   // FIXME(ndK): As of 16.08.2025, NDK team didn't release an update for r23's c++_shared.so with 16 KB ELF alignment
   const val SHARED_STL = false
-  val JAVA_VERSION = org.gradle.api.JavaVersion.VERSION_26
+  // Java 27 source/target compatibility (class file major version 71). `JavaVersion.VERSION_27`
+  // exists in the Gradle API from Gradle 9.8.0 onwards (verified with javap against
+  // gradle-stdlib-java-extensions-9.8.0.jar: the enum runs to VERSION_31 + VERSION_HIGHER),
+  // and the toolchain that produces it is `java-toolchain-convention.gradle.kts`.
+  // Bumping this alone is not enough: AGP 9.5.0-alpha08 pulls org.ow2.asm 9.9, which stops at
+  // V26 = 70, so the ASM 9.10.1 force in buildSrc/build.gradle.kts is what keeps V27 readable.
+  val JAVA_VERSION = org.gradle.api.JavaVersion.VERSION_27
   val ANDROIDX_MEDIA_EXTENSIONS = arrayOf(
     "decoder_ffmpeg",
     "decoder_flac",

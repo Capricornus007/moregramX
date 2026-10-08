@@ -20,7 +20,12 @@ import tgx.gradle.source.AppBuildVersionSource
 import tgx.gradle.source.KeystoreSource
 import java.io.File
 
-@Suppress("UnstableApiUsage")
+// DEPRECATION：AGP 9.4 起把 legacy multidex 的兩個開關（multiDexEnabled、
+// multiDexKeepProguard，共 5 处：117/183/211/232/269）標成 deprecated，而 buildSrc 是
+// allWarningsAsErrors，於是 `:buildSrc:compileKotlin` 直接紅。呼叫留著不刪：minSdk 17 的
+// Huawei flavor 沒有 ART 的多 dex 支援，拿掉它們就裝不起來（新舊通吃）。哪天 AGP 把它們
+// 真的移除，這裡會是編譯錯誤而不是靜默失效。
+@Suppress("UnstableApiUsage", "DEPRECATION")
 open class ModulePlugin : Plugin<Project> {
   override fun apply(project: Project) {
     val config = try {

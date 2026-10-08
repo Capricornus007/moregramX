@@ -41,19 +41,22 @@ jobs:
           chmod +x scripts/check-merge-policy.sh
           ./scripts/check-merge-policy.sh
 
-      # tgx@ea17e077/fc91511c 把 Java 與 toolchain 一起抬到 25（buildSrc 的
-      # java.toolchain.languageVersion = 25）；本機再依規則 15 抬到 26。上限停在 26 不是忘了抬：
-      # Kotlin 2.4.20 的 JvmTarget 列舉最高只有 JVM_26（實測 kotlin-gradle-plugin-api-2.4.20.jar），
-      # JVM_27 要等 Kotlin 2.5.x；且 AGP 內建的 ASM 不認 class major 71，需要像
-      # xposedsmscode 那樣 force asm 9.10.1。本專案沒有裝 foojay toolchain resolver，
-      # Gradle 用不了自動下載，環境裡必須「真的有」JDK 26，否則直接在
-      # "No matching toolchain" 掛掉。依規則 15：吃最新版本、再把連帶錯誤修掉，
-      # 不回退 toolchain 換綠燈（用戶 09-28 裁決）。
-      - name: Set up JDK 26
+      # tgx@ea17e077/fc91511c 把 Java 與 toolchain 一起抬到 25；本機依規則 15 一路抬到 27。
+      # 26 只是中途站：Kotlin 2.4.20 的 JvmTarget 列舉最高只有 JVM_26（實測
+      # kotlin-gradle-plugin-api-2.4.20.jar），所以要 27 就得把 Kotlin 換成 2.5.0-Beta1
+      # （kotlin-gradle-plugin-api-2.5.0-Beta1.jar 才有 JVM_27），並在 buildSrc 的 plugins 區塊
+      # 明確套 KGP，否則 buildSrc 用的是 Gradle 內建那份 2.4.20、JVM_27 直接編不過。
+      # AGP 9.5.0-alpha08 的 pom 宣告 org.ow2.asm 9.9（Opcodes 止於 V26 = 70，讀不了 class major
+      # 71），已 force 成 9.10.1（asm-9.10.1.jar 有 V27 = 71；這個版本也正是 Gradle 9.8/9.9 自己
+      # 內嵌的那份）。本專案沒有裝 foojay toolchain resolver，Gradle 用不了自動下載，
+      # 環境裡必須「真的有」JDK 27，否則直接在 "No matching toolchain" 掛掉
+      # ——Azul Zulu 27 已 GA（zulu27.28.103-ca-fx-jdk27.0.0-linux_x64），temurin 也列了 27。
+      # 依規則 15：吃最新版本、再把連帶錯誤修掉，不回退 toolchain 換綠燈（用戶 09-28 裁決）。
+      - name: Set up JDK 27
         uses: actions/setup-java@v6
         with:
           distribution: 'zulu'
-          java-version: '26'
+          java-version: '27'
           cache: 'gradle'
 
       - name: Create local.properties
