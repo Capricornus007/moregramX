@@ -1,6 +1,7 @@
 @file:Suppress("AvoidApplyPluginMethod")
 
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 plugins {
   // Kotlin 2.5.0-Beta1 explicitly, and it must be this line rather than `libs.kotlin` below:
@@ -48,6 +49,14 @@ kotlin {
   compilerOptions {
     allWarningsAsErrors = true
     jvmTarget = JvmTarget.JVM_27
+    // `kotlin-dsl` 把 languageVersion 釘在 2.2，而 KGP 2.5.0-Beta1 已視 2.2 為棄用，buildSrc
+    // 又開 allWarningsAsErrors，於是 :buildSrc:compileKotlin 紅在
+    // 「Language version 2.2 is deprecated ... Update the version to 2.3」。抬到 2.3 正面修，
+    // apiVersion 一起抬（兩個不一致會觸發另一條診斷），而不是把 allWarningsAsErrors 關掉。
+    // 常數存在性查過：kotlin-gradle-plugin-api 的 KotlinVersion 是列舉，2.4.0 那份就有
+    // KOTLIN_2_3（javap 實查），不是照文件猜的。
+    languageVersion = KotlinVersion.KOTLIN_2_3
+    apiVersion = KotlinVersion.KOTLIN_2_3
   }
   jvmToolchain {
     languageVersion = JavaLanguageVersion.of(27)
