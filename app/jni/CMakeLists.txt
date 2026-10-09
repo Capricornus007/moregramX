@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22.1 FATAL_ERROR)
 project(tgx VERSION 1.0.0 LANGUAGES C CXX)
-message(STATUS "Building ${PROJECT_NAME} ndk: r${ANDROID_NDK_MAJOR} (${ANDROID_NDK_REVISION}) platform: ${ANDROID_PLATFORM} abi: ${ANDROID_ABI} type: ${CMAKE_BUILD_TYPE} flavor: ${TGX_FLAVOR} (${PROJECT_SOURCE_DIR})")
+message(STATUS "Building ${PROJECT_NAME} ndk: r${ANDROID_NDK_MAJOR} (${ANDROID_NDK_REVISION}) platform: ${ANDROID_PLATFORM} (${ANDROID_MIN_SDK_VERSION}) abi: ${ANDROID_ABI} type: ${CMAKE_BUILD_TYPE} flavor: ${TGX_FLAVOR} (${PROJECT_SOURCE_DIR})")
 
 if(NOT ANDROID_NDK_MAJOR OR NOT ANDROID_NDK_REVISION)
   message(FATAL_ERROR "Unknown NDK: r${ANDROID_NDK_MAJOR} (${ANDROID_NDK_REVISION})")
@@ -8,6 +8,10 @@ endif()
 
 if (NOT TGX_FLAVOR MATCHES "^(legacy|latest)$")
   message(FATAL_ERROR "Unknown flavor: ${TGX_FLAVOR}")
+endif()
+
+if (NOT DEFINED ANDROID_MIN_SDK_VERSION)
+  message(FATAL_ERROR "ANDROID_MIN_SDK_VERSION is not set")
 endif()
 
 # == Include ==
@@ -66,36 +70,44 @@ add_compile_options(
   "$<$<CONFIG:Release,RelWithDebInfo,MinSizeRel>:-fvisibility=hidden>"
   "$<$<CONFIG:Release,RelWithDebInfo,MinSizeRel>:-fvisibility-inlines-hidden>"
   "$<$<CONFIG:Release,RelWithDebInfo,MinSizeRel>:-flto=full>"
+  "$<$<CONFIG:Release,RelWithDebInfo,MinSizeRel>:-fno-unwind-tables>"
+  "$<$<CONFIG:Release,RelWithDebInfo,MinSizeRel>:-fno-asynchronous-unwind-tables>"
 )
+
+if (ANDROID_MIN_SDK_VERSION GREATER_EQUAL 23)
+  add_link_options(
+    "-Wl,--pack-dyn-relocs=android"
+  )
+endif()
 
 # == Libraries ==
 
 # tdjni
 
-# tdlib ships per-NDK OpenSSL prebuilds: openssl/<ndk>/<abi>/ (upstream changed
-# the flat openssl/<abi>/ layout when 64-bit moved to primary NDK 27.3).
-# Derive the NDK layer from the toolchain in use (ANDROID_NDK/source.properties
-# Pkg.Revision), falling back to the flat layout when it is absent.
-set(TGX_OPENSSL_DIR "${TDLIB_DIR}/openssl/${ANDROID_ABI}")
-if(DEFINED ANDROID_NDK AND EXISTS "${ANDROID_NDK}/source.properties")
-  file(STRINGS "${ANDROID_NDK}/source.properties" _tgx_ndk_rev REGEX "^Pkg.Revision =")
-  string(REGEX REPLACE "^Pkg.Revision = (.*)$" "\\1" _tgx_ndk_ver "${_tgx_ndk_rev}")
-  string(STRIP "${_tgx_ndk_ver}" _tgx_ndk_ver)
-  if(EXISTS "${TDLIB_DIR}/openssl/${_tgx_ndk_ver}/${ANDROID_ABI}")
-    set(TGX_OPENSSL_DIR "${TDLIB_DIR}/openssl/${_tgx_ndk_ver}/${ANDROID_ABI}")
-  endif()
-  unset(_tgx_ndk_rev)
-  unset(_tgx_ndk_ver)
+# tdlib ships per-NDK OpenSSL prebuilds and has moved the layout twice:
+#   openssl/<ndk>/android-<api>/<abi>/   (current: one build per minSdk)
+#   openssl/<ndk>/<abi>/                (previous: one build per NDK)
+#   openssl/<abi>/                      (before the per-NDK split)
+# Try the toolchain actually in use (ANDROID_NDK_REVISION / ANDROID_PLATFORM come
+# from it), then any layer carrying this API+ABI — a legacy-sdk x 64-bit combo
+# builds with the legacy NDK while only the primary layer ships arm64 prebuilds.
+set(TGX_OPENSSL_DIR "${TDLIB_DIR}/openssl/${ANDROID_NDK_REVISION}/${ANDROID_PLATFORM}/${ANDROID_ABI}")
+if(NOT EXISTS "${TGX_OPENSSL_DIR}")
+  set(TGX_OPENSSL_DIR "${TDLIB_DIR}/openssl/${ANDROID_NDK_REVISION}/${ANDROID_ABI}")
 endif()
 if(NOT EXISTS "${TGX_OPENSSL_DIR}")
-  # Last resort: any NDK layer carrying this ABI (e.g. legacy x 64-bit combos
-  # build with the legacy NDK while only the primary layer ships arm64 prebuilds).
-  file(GLOB _tgx_ossl_layers "${TDLIB_DIR}/openssl/*/${ANDROID_ABI}")
+  set(TGX_OPENSSL_DIR "${TDLIB_DIR}/openssl/${ANDROID_ABI}")
+endif()
+if(NOT EXISTS "${TGX_OPENSSL_DIR}")
+  file(GLOB _tgx_ossl_layers
+    "${TDLIB_DIR}/openssl/*/${ANDROID_PLATFORM}/${ANDROID_ABI}"
+    "${TDLIB_DIR}/openssl/*/${ANDROID_ABI}")
   if(_tgx_ossl_layers)
     list(GET _tgx_ossl_layers 0 TGX_OPENSSL_DIR)
   endif()
   unset(_tgx_ossl_layers)
 endif()
+message(STATUS "tgx: OpenSSL prebuilds from ${TGX_OPENSSL_DIR}")
 
 add_library(crypto SHARED IMPORTED)
 set_target_properties(crypto PROPERTIES IMPORTED_LOCATION
@@ -114,13 +126,18 @@ if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.11.0")
   )
 endif()
 
-# tdlib's libtdjni.so ships under src/main/libs/<ndk>/<abi>/ (same per-NDK
-# layout as the openssl prebuilds); derive the layer with the same logic.
-set(TGX_TDJNI_DIR "${TDLIB_DIR}/src/main/libs/${ANDROID_ABI}")
-if(DEFINED ANDROID_NDK AND EXISTS "${TDLIB_DIR}/src/main/libs/${_tgx_ossl_ver}/${ANDROID_ABI}/libtdjni.so")
-  set(TGX_TDJNI_DIR "${TDLIB_DIR}/src/main/libs/${_tgx_ossl_ver}/${ANDROID_ABI}")
-elseif(NOT EXISTS "${TGX_TDJNI_DIR}/libtdjni.so")
-  file(GLOB _tgx_tdjni_layers "${TDLIB_DIR}/src/main/libs/*/${ANDROID_ABI}/libtdjni.so")
+# tdlib's libtdjni.so uses the same layering as the OpenSSL prebuilds.
+set(TGX_TDJNI_DIR "${TDLIB_DIR}/src/main/libs/${ANDROID_NDK_REVISION}/${ANDROID_PLATFORM}/${ANDROID_ABI}")
+if(NOT EXISTS "${TGX_TDJNI_DIR}/libtdjni.so")
+  set(TGX_TDJNI_DIR "${TDLIB_DIR}/src/main/libs/${ANDROID_NDK_REVISION}/${ANDROID_ABI}")
+endif()
+if(NOT EXISTS "${TGX_TDJNI_DIR}/libtdjni.so")
+  set(TGX_TDJNI_DIR "${TDLIB_DIR}/src/main/libs/${ANDROID_ABI}")
+endif()
+if(NOT EXISTS "${TGX_TDJNI_DIR}/libtdjni.so")
+  file(GLOB _tgx_tdjni_layers
+    "${TDLIB_DIR}/src/main/libs/*/${ANDROID_PLATFORM}/${ANDROID_ABI}/libtdjni.so"
+    "${TDLIB_DIR}/src/main/libs/*/${ANDROID_ABI}/libtdjni.so")
   if(_tgx_tdjni_layers)
     list(GET _tgx_tdjni_layers 0 _tgx_tdjni_found)
     get_filename_component(TGX_TDJNI_DIR "${_tgx_tdjni_found}" DIRECTORY)
@@ -128,6 +145,7 @@ elseif(NOT EXISTS "${TGX_TDJNI_DIR}/libtdjni.so")
     unset(_tgx_tdjni_found)
   endif()
 endif()
+message(STATUS "tgx: libtdjni from ${TGX_TDJNI_DIR}")
 
 add_library(tdjni SHARED IMPORTED)
 set_target_properties(tdjni PROPERTIES IMPORTED_LOCATION

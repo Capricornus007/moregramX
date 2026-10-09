@@ -44,13 +44,13 @@ val validateGitSetupTask = tasks.register<ValidateGitSetupTask>("validateGitSetu
     layout.projectDirectory.dir(
       "../tdlib/src/main/libs"
     ).asFileTree.matching {
-      include("*/*/*.so")
+      include("*/*/*/*.so")
     },
     layout.projectDirectory.dir(
       "../tdlib/openssl"
     ).asFileTree.matching {
-      include("*/*/lib/libcryptox.so")
-      include("*/*/lib/libsslx.so")
+      include("*/*/*/lib/libcryptox.so")
+      include("*/*/*/lib/libsslx.so")
     }
   )
 }
@@ -149,6 +149,9 @@ val fetchLocalizedStrings = tasks.register<FetchLocalizedStringsTask>("fetchLoca
   description = "Generates and updates all strings.xml resources based on translations.telegram.org"
   resOutputDir.set(layout.buildDirectory.dir(
     "generated/tgx/locales/res"
+  ))
+  localeFiltersOutputFile.set(layout.buildDirectory.file(
+    "generated/tgx/locales/filter.txt"
   ))
 }
 
@@ -597,6 +600,7 @@ android {
           }
           arguments(
             "-DANDROID_PLATFORM=android-${selectedMinSdk}",
+            "-DANDROID_MIN_SDK_VERSION=${selectedMinSdk}",
             "-DANDROID_STL=${if (appliedNdkVersion.ndkVersionMajor() >= 27) "c++_shared" else "c++_static"}",
             "-DCMAKE_BUILD_WITH_INSTALL_RPATH=ON",
             "-DCMAKE_SKIP_RPATH=ON",
@@ -715,6 +719,20 @@ android {
       variant.sources.res?.addGeneratedSourceDirectory(
         fetchLocalizedStrings, FetchLocalizedStringsTask::resOutputDir
       )
+      variant.androidResources.localeFilters.addAll(
+        fetchLocalizedStrings.flatMap { it.localeFiltersOutputFile }.map { file ->
+          val generated = file.asFile.readLines().filter { it.isNotBlank() }
+          // localeFilters 是白名單：只列出生器產出的資料夾，會把本 fork 手刻的
+          // values-b+zh+Hans／values-b+zh+Hant／values-zh-rCN（moex／rex 字串）連同
+          // 任何後來新增的語系一起從 release 包裡剪掉，所以要把 src/main/res 底下
+          // 實際存在的 values-* 目錄併進白名單。
+          val inTree = layout.projectDirectory.dir("src/main/res").asFileTree
+            .matching { include("values-*/*.xml") }
+            .map { it.parentFile.name.removePrefix("values-") }
+            .distinct()
+          (generated + inTree).distinct().sorted()
+        }
+      )
     }
 
     onVariants { variant ->
@@ -793,6 +811,11 @@ android {
           generateEmojiSetsTask, GenerateEmojiSetsTask::kotlinOutputDir
         )
       }
+
+      if (!config.isHuaweiBuild && abiVariant.isUniversal) {
+        variant.packaging.dex.useLegacyPackaging = true
+        variant.packaging.jniLibs.useLegacyPackaging = true
+      }
     }
 
     onVariants { variant ->
@@ -865,23 +888,26 @@ android {
 
         var openSslVersionFull = ""
         var openSslReleaseDate = ""
-        // tdlib ships per-NDK OpenSSL prebuilds: openssl/<ndk>/<abi>/ (upstream changed
-        // the flat openssl/<abi>/ layout when it moved 64-bit to primary NDK 27.3).
+        // tdlib ships per-NDK OpenSSL prebuilds and has moved the layout twice:
+        //   openssl/<ndk>/android-<api>/<abi>/   (current: one build per minSdk)
+        //   openssl/<ndk>/<abi>/                (previous)
+        //   openssl/<abi>/                      (before the per-NDK split)
         // Pick per-ABI, not per-variant: universal/lab variants mix 32+64-bit filters
         // (is64Bit == false) while their first filter can still be arm64-v8a, which
         // only exists under the primary NDK tree.
         val openSslAbi = abiVariant.filters.first()
-        // Layouts across tdlib versions, in probe order:
-        // 1. openssl/<abi>/include/...            (flat, pre-NDK-split)
-        // 2. openssl/<ndk>/<abi>/include/...      (per-NDK prebuilds, current)
-        val root = project.rootDir.absoluteFile
-        val flatCandidate = File(root, "tdlib/openssl/$openSslAbi/include/openssl/opensslv.h")
-        val primaryCandidate = File(root, "tdlib/openssl/${config.build.primaryNdkVersion}/$openSslAbi/include/openssl/opensslv.h")
-        val openSslVersionFile = when {
-          flatCandidate.isFile -> flatCandidate
-          primaryCandidate.isFile -> primaryCandidate
-          else -> flatCandidate // let the reader produce a diagnosable error
-        }
+        val openSslDir = project.isolated.rootProject.projectDirectory.dir("tdlib/openssl")
+        val openSslSuffix = "include/openssl/opensslv.h"
+        val openSslCandidates = listOf(
+          "${config.build.primaryNdkVersion}/android-${sdkVariant.minSdk}/$openSslAbi",
+          "${config.build.legacyNdkVersion}/android-${sdkVariant.minSdk}/$openSslAbi",
+          "${config.build.primaryNdkVersion}/$openSslAbi",
+          "${config.build.legacyNdkVersion}/$openSslAbi",
+          "$openSslAbi"
+        ).map { openSslDir.file("$it/$openSslSuffix") }
+        val openSslVersionFile = (openSslCandidates.firstOrNull { it.asFile.isFile }
+          ?: openSslCandidates.first() // let the reader produce a diagnosable error
+        ).asFile
         openSslVersionFile.bufferedReader().use { reader ->
           val regex = Regex("^# define (OPENSSL_FULL_VERSION_STR|OPENSSL_RELEASE_DATE)\\s*\"([^\"]+)\"$")
           while (true) {
