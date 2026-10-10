@@ -719,22 +719,28 @@ android {
       variant.sources.res?.addGeneratedSourceDirectory(
         fetchLocalizedStrings, FetchLocalizedStringsTask::resOutputDir
       )
+      // 一定要在 lazy provider **外面**先算成純 List：`.map {}` 的 lambda 會被
+      // configuration cache 序列化，在裡面引用 layout／project 就會報
+      // "cannot serialize object of type DefaultProject"，
+      // 把整個 :app:process*ReleaseResources 判紅（#183 實測）。
+      //
+      // localeFilters 是白名單：只列出生器產出的資料夾，會把本 fork 手刻的
+      // values-b+zh+Hans／values-b+zh+Hant／values-zh-rCN（moex／rex 字串）連同
+      // 任何後來新增的語系一起從 release 包裡剪掉，所以要把 src/main/res 底下
+      // 實際存在的 values-* 目錄併進白名單。
+      //
+      // values-* 不只有語言：values-night／values-sw600dp／values-v11 是其他限定詞，
+      // 混進 localeFilters 會被 AGP 以 "invalid locale" 直接擋死整個資源任務，
+      // 所以只放過 2–3 碼語言（可帶 -rXX 地區）與 b+ 開頭的語言標籤。
+      val inTreeLocales = layout.projectDirectory.dir("src/main/res").asFileTree
+        .matching { include("values-*/*.xml") }
+        .map { it.parentFile.name.removePrefix("values-") }
+        .filter { it.startsWith("b+") || it.matches(Regex("^[a-z]{2,3}(-r[A-Za-z]{2,3})?$")) }
+        .distinct()
       variant.androidResources.localeFilters.addAll(
         fetchLocalizedStrings.flatMap { it.localeFiltersOutputFile }.map { file ->
           val generated = file.asFile.readLines().filter { it.isNotBlank() }
-          // localeFilters 是白名單：只列出生器產出的資料夾，會把本 fork 手刻的
-          // values-b+zh+Hans／values-b+zh+Hant／values-zh-rCN（moex／rex 字串）連同
-          // 任何後來新增的語系一起從 release 包裡剪掉，所以要把 src/main/res 底下
-          // 實際存在的 values-* 目錄併進白名單。
-          val inTree = layout.projectDirectory.dir("src/main/res").asFileTree
-            .matching { include("values-*/*.xml") }
-            .map { it.parentFile.name.removePrefix("values-") }
-            // values-* 不只有語言：values-night／values-sw600dp／values-v11 是其他限定詞，
-            // 混進 localeFilters 會被 AGP 以 "invalid locale" 直接擋死整個資源任務。
-            // 只放過 2–3 碼語言（可帶 -rXX 地區）與 b+ 開頭的語言標籤。
-            .filter { it.startsWith("b+") || it.matches(Regex("^[a-z]{2,3}(-r[A-Za-z]{2,3})?$")) }
-            .distinct()
-          (generated + inTree).distinct().sorted()
+          (generated + inTreeLocales).distinct().sorted()
         }
       )
     }
