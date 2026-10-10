@@ -729,6 +729,10 @@ android {
           val inTree = layout.projectDirectory.dir("src/main/res").asFileTree
             .matching { include("values-*/*.xml") }
             .map { it.parentFile.name.removePrefix("values-") }
+            // values-* 不只有語言：values-night／values-sw600dp／values-v11 是其他限定詞，
+            // 混進 localeFilters 會被 AGP 以 "invalid locale" 直接擋死整個資源任務。
+            // 只放過 2–3 碼語言（可帶 -rXX 地區）與 b+ 開頭的語言標籤。
+            .filter { it.startsWith("b+") || it.matches(Regex("^[a-z]{2,3}(-r[A-Za-z]{2,3})?$")) }
             .distinct()
           (generated + inTree).distinct().sorted()
         }
