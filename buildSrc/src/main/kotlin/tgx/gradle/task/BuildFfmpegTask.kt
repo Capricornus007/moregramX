@@ -4,6 +4,7 @@ import Sdk
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.tasks.*
 import tgx.gradle.createEmptyDir
+import tgx.gradle.fatal
 import tgx.gradle.requireDir
 import tgx.gradle.requireFile
 import tgx.gradle.ndkVersionMajor
