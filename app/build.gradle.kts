@@ -20,12 +20,7 @@ plugins {
 
 val config = tgxConfig.config.get()
 val generateBaselineProfile = tgxConfig.generateBaselineProfile.get()
-val useLegacyNdk = tgxConfig.useLegacyNdk.get()
-val appliedNdkVersion = if (useLegacyNdk) {
-  config.build.legacyNdkVersion
-} else {
-  config.build.primaryNdkVersion
-}
+val appliedNdkVersion = config.build.primaryNdkVersion
 val ndkMinSdkVersion = appliedNdkVersion.ndkVersionToMinSdk()
 
 val validateGitSetupTask = tasks.register<ValidateGitSetupTask>("validateGitSetup") {
@@ -205,9 +200,7 @@ val patchOpusTask = tasks.register<PatchOpusTask>(
   dependsOn(validateGitSetupTask)
 }
 
-val buildLibvpxTasks = Sdk.VARIANTS.values.filter {
-  (it.usesLegacyNdk == useLegacyNdk || config.build.primaryNdkVersion == config.build.legacyNdkVersion)
-}.flatMap { sdkVariant ->
+val buildLibvpxTasks = Sdk.VARIANTS.values.flatMap { sdkVariant ->
   val abiVariants = if (sdkVariant.minSdk >= 21) {
     arrayOf("arm64", "arm32", "x86", "x64")
   } else {
@@ -257,9 +250,7 @@ val buildLibvpxTask = tasks.register("buildLibvpx") {
   dependsOn(buildLibvpxTasks.values)
 }
 
-val buildFfmpegTasks = Sdk.VARIANTS.values.filter {
-  (it.usesLegacyNdk == useLegacyNdk || config.build.primaryNdkVersion == config.build.legacyNdkVersion)
-}.flatMap { sdkVariant ->
+val buildFfmpegTasks = Sdk.VARIANTS.values.flatMap { sdkVariant ->
   val abiVariants = if (sdkVariant.minSdk >= 21) {
     arrayOf("arm64", "arm32", "x86", "x64")
   } else {
@@ -554,8 +545,7 @@ android {
 
   flavorDimensions += arrayOf("SDK", "ABI")
   androidComponents.disableRudimentaryVariants { sdkVariant, abiVariant ->
-    maxOf(sdkVariant.minSdk, abiVariant.minSdk) >= ndkMinSdkVersion &&
-    (sdkVariant.usesLegacyNdk == useLegacyNdk || config.build.primaryNdkVersion == config.build.legacyNdkVersion)
+    maxOf(sdkVariant.minSdk, abiVariant.minSdk) >= ndkMinSdkVersion
   }
   productFlavors {
     Sdk.VARIANTS.forEach { (sdkIndex, variant) ->
@@ -570,7 +560,7 @@ android {
           buildConfigBool("${subVariant.flavor.uppercase()}_FLAVOR", sdkIndex == subSdkIndex)
         }
 
-        buildConfigBool("CALLS_AVAILABLE", !variant.isLegacy)
+        buildConfigBool("CALLS_AVAILABLE", true)
 
         val selectedMinSdk = maxOf(
           variant.minSdk,
@@ -595,9 +585,7 @@ android {
         )
         externalNativeBuild.cmake {
           targets += "tgxjni"
-          if (!variant.isLegacy) {
-            targets += "tgcallsjni"
-          }
+          targets += "tgcallsjni"
           arguments(
             "-DANDROID_PLATFORM=android-${selectedMinSdk}",
             "-DANDROID_MIN_SDK_VERSION=${selectedMinSdk}",
@@ -910,9 +898,7 @@ android {
         val openSslSuffix = "include/openssl/opensslv.h"
         val openSslCandidates = listOf(
           "${config.build.primaryNdkVersion}/android-${sdkVariant.minSdk}/$openSslAbi",
-          "${config.build.legacyNdkVersion}/android-${sdkVariant.minSdk}/$openSslAbi",
           "${config.build.primaryNdkVersion}/$openSslAbi",
-          "${config.build.legacyNdkVersion}/$openSslAbi",
           "$openSslAbi"
         ).map { openSslDir.file("$it/$openSslSuffix") }
         val openSslVersionFile = (openSslCandidates.firstOrNull { it.asFile.isFile }

@@ -23,7 +23,6 @@ import tgx.gradle.source.AppConfigurationSource
 abstract class AppConfigurationExtension {
   abstract val config: Property<ApplicationConfig>
   abstract val generateBaselineProfile: Property<Boolean>
-  abstract val useLegacyNdk: Property<Boolean>
 }
 
 @Suppress("UnstableApiUsage")
@@ -45,12 +44,6 @@ open class AppConfigurationPlugin : Plugin<Project> {
 
     ext.generateBaselineProfile.set(
       project.providers.gradleProperty("generateBaselineProfile").map {
-        it.toBoolean()
-      }.orElse(false)
-    )
-
-    ext.useLegacyNdk.set(
-      project.providers.gradleProperty("useLegacyNdk").map {
         it.toBoolean()
       }.orElse(false)
     )
