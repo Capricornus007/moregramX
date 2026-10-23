@@ -15,9 +15,13 @@ package tgx.gradle.plugin
 import ApplicationConfig
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 import org.gradle.kotlin.dsl.create
 import org.gradle.kotlin.dsl.of
+import tgx.gradle.findAbiFilters
+import tgx.gradle.gradleFlag
+import tgx.gradle.needEnableSplitAbi
 import tgx.gradle.source.AppConfigurationSource
 
 abstract class AppConfigurationExtension {

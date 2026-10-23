@@ -88,14 +88,11 @@ token cannot abort the Android process.
 
 ### Telegram X and repository work
 
-- Synced with Telegram X main commit e7000d73 (version 1805).
-- Current TDLib/media/build updates, baseline profiles, signing support, and
-  legacy/latest Android source separation.
-- API 16 through current Android releases covered by separate SDK flavors.
-- Compatibility fixes for legacy variants and native Whisper builds.
+- Synced with Telegram X main (version 1819).
+- Current TDLib/media/build updates, baseline profiles, and signing support.
 - CI produces a latestArm64Release APK and publishes the rolling latest
   prerelease when signing secrets are available.
-- A separate Java check covers latest ARM64 and legacy ARM32 variants.
+- A separate Java check covers the latest ARM64 variant.
 
 ## Integration provenance
 

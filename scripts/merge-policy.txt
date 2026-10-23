@@ -112,7 +112,8 @@ branch|app/jni/third_party/ffmpeg|release/6.1|-|FFmpeg 穩定分支
 # 而 td@a94b83d→9d92b49 這 113 筆動過 td/generate/scheme/td_api.tl（layer 232、
 # oauthLinkInfo 等新欄位）⇒ 綁定層沒重生之前，單抬 tdlib 一定紅。
 # 正確時機：跟 tgx 合併（#34）時把兩條 gitlink 连同 app 端一起收。
-gitlink|tdlib|6c7857c4a5b35e137b36a7428d08313cb85bcb5b|015129f0f0ff3acb2a57c74112cba09e834bf487|url 已改指 Capricornus007/tdlib（TGX fork，已刪 r23 預編譯樹）；pin 要與 vkryl/td 成對抬，單獨抬 015129f 會紅
+gitlink|tdlib|13b78057835cd9441aa49646f26d003178432897|6c7857c4a5b35e137b36a7428d08313cb85bcb5b|url 已改指 Capricornus007/tdlib；13b7805 = b47cd82 的 td@a94b83d payload ＋ 刪 r23 預編譯樹 ＋ 去 legacy 腳本，必須與 vkryl/td 61d4ea0b 成對
+gitlink|vkryl/td|61d4ea0b66cfdeed9352ba0a84e5746e528559d5|2d0a865f69ba86f9e240511ae22a99a1f44f9d02|綁定層，tgx/main 成對值；2d0a865 不認識 td@a94b83d 之後的 TdApi 欄位
 branch|tdlib|main|-|Capricornus007/tdlib（TGX fork，已刪 r23）
 branch|app/jni/third_party/jni-utils|main|-|TGX-Android/jni-utils
 branch|vkryl/leveldb|main|-|TGX-Android/leveldb
