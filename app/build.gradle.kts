@@ -386,6 +386,8 @@ android {
 
     buildConfigString("THEME_FILE_EXTENSION", App.THEME_EXTENSION)
 
+    buildConfigBool("GENERATING_BASELINE_PROFILE", generateBaselineProfile)
+
     // Library versions in BuildConfig.java
 
     var tdlibVersion = ""

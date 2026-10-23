@@ -10,7 +10,7 @@ moregramX is an independent Telegram client for Android based on
 features and fixes from [moeGramX](https://github.com/moeCrafters/moeGramX),
 [reX](https://github.com/logopek/reX), and this repository's own work.
 
-The current application version is **1826**, based on Telegram X **1805**.
+The current application version is **1833**, based on Telegram X **1819**.
 
 > This is an unofficial project. It is not affiliated with, maintained by, or
 > endorsed by Telegram, Telegram X, moeGramX, or reX.
@@ -88,7 +88,7 @@ token cannot abort the Android process.
 
 ### Telegram X and repository work
 
-- Synced with Telegram X main (version 1819).
+- Synced with Telegram X main commit 548b94ed (version 1819).
 - Current TDLib/media/build updates, baseline profiles, and signing support.
 - CI produces a latestArm64Release APK and publishes the rolling latest
   prerelease when signing secrets are available.
@@ -103,7 +103,7 @@ fixes.
 
 | Source | Reference | Status |
 | --- | --- | --- |
-| Telegram X | e7000d73, version 1805 | Included baseline |
+| Telegram X | 548b94ed, version 1819 | Included baseline |
 | moeGramX moe | fda7f8bc | Included with later fixes |
 | reX main | 4ac597ca | Included |
 | reX musicProfile | 308d6220 | Included |
@@ -123,6 +123,7 @@ Notable local integration commits:
 - 7b5268b1: profile-note support.
 - 33d6261e: Telegram X and moeGramX synchronization.
 - 74ac4c50: Telegram X 1805 synchronization while preserving fork changes.
+- 548b94ed merge: Telegram X 1819 synchronization; ABI flavors kept, legacy SDK flavors removed.
 
 ## Download
 
@@ -187,9 +188,7 @@ Build the CI release variant without retaining a Gradle daemon:
 Fast Java compatibility check:
 
 ~~~sh
-./gradlew \
-  :app:compileLatestArm64DebugJavaWithJavac \
-  :app:compileLegacyArm32DebugJavaWithJavac \
+./gradlew :app:compileLatestArm64DebugJavaWithJavac \
   --stacktrace --no-daemon --max-workers=2 --no-build-cache
 ~~~
 
@@ -197,10 +196,7 @@ Fast Java compatibility check:
 
 | Flavor | Android API range |
 | --- | --- |
-| legacy | 16–20 |
-| lollipop | 21–22 |
-| marshmallow | 23 |
-| latest | 24 and newer |
+| latest | 24 and newer (33 in practice; the NDK floor sets the real minimum) |
 
 ### ABI flavors
 
@@ -230,8 +226,7 @@ dependencies, translations, and existing fork behavior all require checking.
 
 Bug reports and focused pull requests are welcome. Include the exact version
 and APK flavor, Android version and device, reproducible steps, and sanitized
-logs. Preserve both current and legacy variants. Before submitting code, run
-the Java checks and ARM64 release build above.
+logs. Before submitting code, run the Java check and ARM64 release build above.
 
 ## Credits and license
 

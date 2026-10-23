@@ -13,11 +13,16 @@
 package tgx.gradle
 
 import Abi
+import AbiVariant
 import Sdk
 import SdkVariant
 import com.android.build.api.dsl.BaseFlavor
 import com.android.build.api.dsl.VariantDimension
-import com.android.build.api.variant.*
+import com.android.build.api.variant.ApplicationAndroidComponentsExtension
+import com.android.build.api.variant.ApplicationVariant
+import com.android.build.api.variant.FilterConfiguration
+import com.android.build.api.variant.TestAndroidComponentsExtension
+import com.android.build.api.variant.VariantOutput
 import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.artifacts.ExternalModuleDependency
@@ -99,10 +104,10 @@ fun findExtraFolders(variant: SdkVariant): Set<String> =
     if (variant.minSdk < 23) {
       this += "preMarshmallow"
     }
-    if (variant.minSdk >= 23) {
+    if (variant.minSdk >= 23 || variant.isLatest) {
       this += "sinceMarshmallow"
     }
-    if (variant.minSdk >= 26 || (variant.maxSdk ?: Int.MAX_VALUE) >= 26) {
+    if (variant.minSdk >= 26 || variant.isLatest) {
       this += "sinceOreo"
     }
     this += "only${variant.flavor.uppercaseFirstChar()}"
@@ -209,29 +214,33 @@ fun isVariantEnabled(sdkVariant: SdkVariant, abiVariant: AbiVariant, isDebug: Bo
   !(abiVariant.flavor == "universal" && sdkVariant.flavor == "legacy")
 
 fun ApplicationAndroidComponentsExtension.disableRudimentaryVariants(
-  filter: (SdkVariant) -> Boolean = { _ -> true }
+  filter: (SdkVariant, AbiVariant) -> Boolean = { _, _ -> true }
 ) =
   beforeVariants { variantBuilder ->
     val sdkFlavor = variantBuilder.productFlavors.first { it.first == "SDK" }.second
     val sdkVariant = Sdk.VARIANTS.values.first { it.flavor == sdkFlavor }
+    val abiFlavor = variantBuilder.productFlavors.first { it.first == "ABI" }.second
+    val abiVariant = Abi.VARIANTS.values.first { it.flavor == abiFlavor }
     val isDebug = variantBuilder.buildType == "debug"
     if (sdkVariant.maxSdk != null && !isDebug) {
       variantBuilder.maxSdk = sdkVariant.maxSdk
     }
-    variantBuilder.enable = filter(sdkVariant)
+    variantBuilder.enable = isVariantEnabled(sdkVariant, abiVariant, isDebug) && filter(sdkVariant, abiVariant)
   }
 
 fun TestAndroidComponentsExtension.disableRudimentaryVariants(
-  filter: (SdkVariant) -> Boolean = { _ -> true }
+  filter: (SdkVariant, AbiVariant) -> Boolean = { _, _ -> true }
 ) =
   beforeVariants { variantBuilder ->
     val sdkFlavor = variantBuilder.productFlavors.first { it.first == "SDK" }.second
     val sdkVariant = Sdk.VARIANTS.values.first { it.flavor == sdkFlavor }
+    val abiFlavor = variantBuilder.productFlavors.first { it.first == "ABI" }.second
+    val abiVariant = Abi.VARIANTS.values.first { it.flavor == abiFlavor }
     val isDebug = variantBuilder.buildType == "debug"
     if (sdkVariant.maxSdk != null && !isDebug) {
       variantBuilder.maxSdk = sdkVariant.maxSdk
     }
-    variantBuilder.enable = filter(sdkVariant)
+    variantBuilder.enable = isVariantEnabled(sdkVariant, abiVariant, isDebug) && filter(sdkVariant, abiVariant)
   }
 
 fun findHostAbi(): String =
@@ -255,6 +264,37 @@ fun findHostTag(): String {
   }
 }
 
+fun String.toAbiFilter(): String = when (this) {
+  "arm64" -> "arm64-v8a"
+  "arm32" -> "armeabi-v7a"
+  "x86" -> "x86"
+  "x64" -> "x86_64"
+  else -> error("Unknown abi variant: $this")
+}
+
+fun String.toAbiVariant(): String = when (this) {
+  "arm64-v8a" -> "arm64"
+  "armeabi-v7a" -> "arm32"
+  "x86" -> "x86"
+  "x86_64" -> "x64"
+  else -> error("Unknown abi filter: $this")
+}
+
+fun String.ndkVersionMajor(): Int =
+  VersionNumber.parse(this).major
+
+fun String.ndkVersionToMinSdk(): Int =
+  this.ndkVersionMajor().let { major ->
+    when {
+      major >= 27 -> 21
+      major >= 24 -> 19
+      major >= 23 -> 16
+      else -> error("Unsupported NDK version: $this")
+    }
+  }
+
+// 以下四個上游（無 ABI flavor 版本）的輔助函式被嫁接進來的
+// AppConfigurationPlugin／ModulePlugin 匯入，補回以免斷鏈。
 fun VariantOutput.findAbiFilters(ifEmpty: List<String>): List<String> =
   this.filters.filter { filter ->
     filter.filterType == FilterConfiguration.FilterType.ABI
@@ -298,19 +338,6 @@ fun Project.findAbiFilters(useLegacyNdk: Provider<Boolean>): Provider<List<Strin
         listOf(it)
       } ?: abiFilters
     }
-
-fun String.ndkVersionMajor(): Int =
-  VersionNumber.parse(this).major
-
-fun String.ndkVersionToMinSdk(): Int =
-  this.ndkVersionMajor().let { major ->
-    when {
-      major >= 27 -> 21
-      major >= 24 -> 19
-      major >= 23 -> 16
-      else -> error("Unsupported NDK version: $this")
-    }
-  }
 
 fun Project.gradleFlag(name: String, defaultValue: Boolean = false): Provider<Boolean> =
   providers.gradleProperty(name).map {
