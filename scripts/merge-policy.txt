@@ -104,7 +104,15 @@ gitlink|app/thirdparty/androidx-media/latest|5efc8ddcd4351b05badb99065125f893d54
 
 # == 7. 其它 .gitmodules branch 條目一併納管（不在表內的 branch 欄一律視為未審）==
 branch|app/jni/third_party/ffmpeg|release/6.1|-|FFmpeg 穩定分支
-gitlink|tdlib|015129f0f0ff3acb2a57c74112cba09e834bf487|6c7857c|自有 fork 尖端（= TGX main eb50e29 + 刪 r23 預編譯樹與 legacy flavor 管線）；6c7857c 是退回舊 pin
+# tdlib 與 vkryl/td 是「預編譯 + 對該版 TdApi 生成的綁定」，必須成對抬。
+# 實測：單方面把 tdlib 抬到自有 fork 尖端 015129f（td@9d92b49），:vkryl:td 的
+# generated/TdEqualsTo.kt 與 TdBundle.kt 立刻爆「Unresolved reference
+# 'assertTextEntityType_aefd8e69'」與一堆 receiver type mismatch（run 39921265979）。
+# tgx/main 現行的成對值是 tdlib=b47cd82（td@a94b83d）＋vkryl/td=61d4ea0b，
+# 而 td@a94b83d→9d92b49 這 113 筆動過 td/generate/scheme/td_api.tl（layer 232、
+# oauthLinkInfo 等新欄位）⇒ 綁定層沒重生之前，單抬 tdlib 一定紅。
+# 正確時機：跟 tgx 合併（#34）時把兩條 gitlink 连同 app 端一起收。
+gitlink|tdlib|6c7857c4a5b35e137b36a7428d08313cb85bcb5b|015129f0f0ff3acb2a57c74112cba09e834bf487|url 已改指 Capricornus007/tdlib（TGX fork，已刪 r23 預編譯樹）；pin 要與 vkryl/td 成對抬，單獨抬 015129f 會紅
 branch|tdlib|main|-|Capricornus007/tdlib（TGX fork，已刪 r23）
 branch|app/jni/third_party/jni-utils|main|-|TGX-Android/jni-utils
 branch|vkryl/leveldb|main|-|TGX-Android/leveldb
