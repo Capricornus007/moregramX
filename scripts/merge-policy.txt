@@ -104,7 +104,8 @@ gitlink|app/thirdparty/androidx-media/latest|5efc8ddcd4351b05badb99065125f893d54
 
 # == 7. 其它 .gitmodules branch 條目一併納管（不在表內的 branch 欄一律視為未審）==
 branch|app/jni/third_party/ffmpeg|release/6.1|-|FFmpeg 穩定分支
-branch|tdlib|main|-|TGX-Android/tdlib
+gitlink|tdlib|015129f0f0ff3acb2a57c74112cba09e834bf487|6c7857c|自有 fork 尖端（= TGX main eb50e29 + 刪 r23 預編譯樹與 legacy flavor 管線）；6c7857c 是退回舊 pin
+branch|tdlib|main|-|Capricornus007/tdlib（TGX fork，已刪 r23）
 branch|app/jni/third_party/jni-utils|main|-|TGX-Android/jni-utils
 branch|vkryl/leveldb|main|-|TGX-Android/leveldb
 branch|vkryl/core|main|-|TGX-Android/X-Core

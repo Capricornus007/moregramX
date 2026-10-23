@@ -38,7 +38,7 @@
 	shallow = true
 [submodule "tdlib"]
 	path = tdlib
-	url = https://github.com/TGX-Android/tdlib
+	url = https://github.com/Capricornus007/tdlib
 	shallow = true
 	branch = main
 [submodule "jni-utils"]
