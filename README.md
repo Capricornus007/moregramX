@@ -200,13 +200,24 @@ modules, unit tests under `tests/unit`, integration tests under `tests/integrati
 plus `checkMinSdk` / `saveCheckResults` / `describeCheckResults` Gradle tasks. See
 [tests/README.md](tests/README.md) for the reference of commands.
 
-Two upstream-only assumptions do not hold here, so those commands need adjustment
-before copy-pasting: this fork builds a single `latest` SDK flavor (no `legacy`,
-`lollipop` or `marshmallow` flavors, no `-PuseLegacyNdk`) and its variants carry an
-extra ABI flavor, so a task is named `latest<Abi><BuildType>` (for example
-`:app:emulatorLatestArm64DebugAndroidTest`, not `:app:emulatorLatestDebugAndroidTest`).
-Baseline profile generation is still gated behind `-PgenerateBaselineProfile` and
-consumes `:tests:baseline-profile` through the `latestLabRelease` variant.
+Three upstream-only assumptions do not hold here:
+
+- This fork builds a single `latest` SDK flavor (no `legacy`, `lollipop` or
+  `marshmallow` flavors, no `-PuseLegacyNdk`), so those commands must drop the flags.
+- App variants carry a second ABI flavor, so a task is named
+  `latest<Abi><BuildType>` (for example `:app:emulatorLatestArm64DebugAndroidTest`,
+  not `:app:emulatorLatestDebugAndroidTest`). Baseline profile consumption stays
+  behind `-PgenerateBaselineProfile` and targets `latestLabRelease` (the `lab` flavor
+  is the only variant that carries all four ABIs).
+- The test modules themselves declare only the `SDK` dimension, so a device task
+  cannot pick one of `:app`'s six ABI variants: `./gradlew -m :app:generateBaselineProfile
+  -PgenerateBaselineProfile=true -Pabi=arm64,x64` fails while resolving
+  `:tests:baseline-profile:latestNonMinifiedReleaseTestedApks` ("cannot choose between
+  latestArm32NonMinifiedReleaseRuntimeElements, latestArm64..., latestLab...").
+  Generation and on-device checks are therefore not usable in this fork yet; the
+  main build and `checkMinSdk` / unit-test configuration are unaffected (verified by
+  dry run). Adding the `ABI` dimension to `tests/*/build.gradle.kts`, or a
+  `matchingFallbacks` for it in `AppTests.configureAppTests`, is the remaining work.
 
 ### SDK flavors
 
