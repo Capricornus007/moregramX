@@ -26,6 +26,10 @@ import tgx.gradle.source.AppConfigurationSource
 
 abstract class AppConfigurationExtension {
   abstract val config: Property<ApplicationConfig>
+  // tgx/main aa687c67c 拿掉了這個屬性（上游的 baseline profile 產線改成一律套用）。
+  // 我方仍用 -PgenerateBaselineProfile 決定要不要註冊 lab ABI flavor 與 consumer 變體，
+  // 所以這條留在我方擴充介面裡；useLegacyNdk／useLegacyPackaging／enableSplitAbi／
+  // abiFilters 四條屬已刪除的 legacy NDK 路徑，不跟著上游帶回來。
   abstract val generateBaselineProfile: Property<Boolean>
 }
 
@@ -47,9 +51,7 @@ open class AppConfigurationPlugin : Plugin<Project> {
     })
 
     ext.generateBaselineProfile.set(
-      project.providers.gradleProperty("generateBaselineProfile").map {
-        it.toBoolean()
-      }.orElse(false)
+      project.gradleFlag("generateBaselineProfile")
     )
   }
 }

@@ -8,8 +8,15 @@
 // androidx.baselineprofile 1.5.0 -> benchmark-baseline-profile-gradle-plugin ->
 // benchmark-gradle-plugin, AGP only compileOnly), so a force on this classpath would be a no-op
 // that only *looks* like a fix.
+
+import tgx.test.configureCheckResults
+import tgx.test.configureTestToolsCheck
+
 plugins {
   id("java-toolchain-convention")
   alias(libs.plugins.google.services) apply false
   alias(libs.plugins.androidx.baselineprofile) apply false
 }
+
+configureCheckResults()
+configureTestToolsCheck()

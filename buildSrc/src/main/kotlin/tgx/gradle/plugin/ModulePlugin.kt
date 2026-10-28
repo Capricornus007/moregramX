@@ -18,6 +18,7 @@ import tgx.gradle.ndkVersionToMinSdk
 import tgx.gradle.requireFile
 import tgx.gradle.source.AppBuildVersionSource
 import tgx.gradle.source.KeystoreSource
+import tgx.test.configureMinSdkCheck
 import java.io.File
 
 // DEPRECATION：AGP 9.4 起把 legacy multidex 的兩個開關（multiDexEnabled、
@@ -46,6 +47,11 @@ open class ModulePlugin : Plugin<Project> {
     project.dependencies {
       add("coreLibraryDesugaring", libs.desugaring)
     }
+    project.configurations.named {
+      it == "compileOnly" || it == "testCompileOnly" || it == "androidTestCompileOnly"
+    }.configureEach {
+      dependencies.addLater(libs.vkryl.annotation)
+    }
 
     project.afterEvaluate {
       tasks.withType(JavaCompile::class.java).configureEach {
@@ -70,6 +76,9 @@ open class ModulePlugin : Plugin<Project> {
     }
 
     val androidExt = project.extensions.getByName("android")
+    if (androidExt !is TestExtension && !project.path.startsWith(":tests:")) {
+      project.configureMinSdkCheck()
+    }
     val keystore = config?.keystorePropertiesPath?.let { keystorePropertiesPath ->
       project.providers.of(KeystoreSource::class) {
         parameters.properties.set(

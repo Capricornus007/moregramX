@@ -107,7 +107,7 @@ fun findExtraFolders(variant: SdkVariant): Set<String> =
     if (variant.minSdk >= 23 || variant.isLatest) {
       this += "sinceMarshmallow"
     }
-    if (variant.minSdk >= 26 || variant.isLatest) {
+    if (variant.supportsSdk(26)) {
       this += "sinceOreo"
     }
     this += "only${variant.flavor.uppercaseFirstChar()}"
@@ -209,6 +209,18 @@ fun DependencyHandlerScope.flavorImplementation(
   dependencyConfiguration: Action<ExternalModuleDependency>? = null
 ) = applyApiFlavor(legacy, latest, dependencyConfiguration)
 
+// Compat shim for tgx/main aa687c67c: app/build.gradle.kts now passes four slots
+// (legacy, lollipop, marshmallow, latest) — e.g. androidx.palette and
+// play-services-maps. Same reasoning as above: only `latest` is built here, so the two
+// middle slots are ignored and the call forwards to the two-slot terminal form.
+fun DependencyHandlerScope.flavorImplementation(
+  legacy: Any?,
+  @Suppress("UNUSED_PARAMETER") lollipop: Any?,
+  @Suppress("UNUSED_PARAMETER") marshmallow: Any?,
+  latest: Any?,
+  dependencyConfiguration: Action<ExternalModuleDependency>? = null
+) = applyApiFlavor(legacy, latest, dependencyConfiguration)
+
 fun isVariantEnabled(sdkVariant: SdkVariant, abiVariant: AbiVariant, isDebug: Boolean): Boolean =
   sdkVariant.minSdk >= abiVariant.minSdk &&
   !(abiVariant.flavor == "universal" && sdkVariant.flavor == "legacy")
@@ -222,7 +234,8 @@ fun ApplicationAndroidComponentsExtension.disableRudimentaryVariants(
     val abiFlavor = variantBuilder.productFlavors.first { it.first == "ABI" }.second
     val abiVariant = Abi.VARIANTS.values.first { it.flavor == abiFlavor }
     val isDebug = variantBuilder.buildType == "debug"
-    if (sdkVariant.maxSdk != null && !isDebug) {
+    // Only published builds are limited: debug and baseline profile builds must install on any device
+    if (sdkVariant.maxSdk != null && variantBuilder.buildType == "release") {
       variantBuilder.maxSdk = sdkVariant.maxSdk
     }
     variantBuilder.enable = isVariantEnabled(sdkVariant, abiVariant, isDebug) && filter(sdkVariant, abiVariant)
@@ -237,7 +250,8 @@ fun TestAndroidComponentsExtension.disableRudimentaryVariants(
     val abiFlavor = variantBuilder.productFlavors.first { it.first == "ABI" }.second
     val abiVariant = Abi.VARIANTS.values.first { it.flavor == abiFlavor }
     val isDebug = variantBuilder.buildType == "debug"
-    if (sdkVariant.maxSdk != null && !isDebug) {
+    // Only published builds are limited: debug and baseline profile builds must install on any device
+    if (sdkVariant.maxSdk != null && variantBuilder.buildType == "release") {
       variantBuilder.maxSdk = sdkVariant.maxSdk
     }
     variantBuilder.enable = isVariantEnabled(sdkVariant, abiVariant, isDebug) && filter(sdkVariant, abiVariant)
@@ -324,6 +338,8 @@ fun Project.findAbiFilters(useLegacyNdk: Provider<Boolean>): Provider<List<Strin
     .zip(useLegacyNdk) { abiFilters, useLegacyNdk ->
       abiFilters.filter { abi ->
         abi == "armeabi-v7a" || abi == "x86" || !useLegacyNdk
+      }.ifEmpty {
+        fatal("Legacy NDK supports only 32-bit ABIs, select arm32 or x86 with -Pabi")
       }
     }
     .zip(providers.gradleProperty("android.injected.build.abi").orElse("")) { abiFilters, injectedAbiList ->

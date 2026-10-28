@@ -200,7 +200,16 @@ object Abi {
     if (abi.isEmpty() || abi == "all") {
       FILTERS
     } else {
-      toFilters(fromFilter(abi))
+      // tgx 起支援 -Pabi=arm64,x64 這種逗號清單（上游在 enum 的 companion 裡做同一件事）；
+      // 我方保留 ABI flavor 骨幹，照上游語意逐項換成 filters，再依 FILTERS 順序過濾回傳。
+      val abiFilters = abi
+        .split(',')
+        .flatMap {
+          toFilters(fromFilter(it.trim()))
+        }
+      FILTERS.filter {
+        it in abiFilters
+      }
     }
 
   fun toFilters(abi: Int): List<String> =
@@ -247,6 +256,16 @@ data class SdkVariant(
 ) {
   val isLatest: Boolean =
     flavor == "latest"
+
+  // tgx/main aa687c67c：isTens／isMarshmallow／isLollipop／isLegacy／jetpackMediaFlavor／
+  // usesLegacyNdk 這組死 flavor 輔助我方已隨 legacy／lollipop／marshmallow 一併刪除
+  // （見 scripts/merge-policy.txt 第 9 節），只留下測試產線真的用到的兩個。
+  fun supportsSdk(sdk: Int): Boolean =
+    (maxSdk ?: Int.MAX_VALUE) >= sdk
+
+  // ART uses baseline profiles starting with Android 7.0
+  val usesBaselineProfile: Boolean =
+    supportsSdk(24)
 }
 
 object Sdk {

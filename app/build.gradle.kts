@@ -9,11 +9,13 @@ import org.gradle.kotlin.dsl.support.uppercaseFirstChar
 import tgx.gradle.*
 import tgx.gradle.source.GitInformationSource
 import tgx.gradle.task.*
+import tgx.test.configureTests
 import java.util.*
 
 plugins {
   id("java-toolchain-convention")
   id(libs.plugins.android.application.get().pluginId)
+  id(libs.plugins.androidx.baselineprofile.get().pluginId)
   id("tgx-config")
   id("tgx-module")
 }
@@ -386,8 +388,6 @@ android {
 
     buildConfigString("THEME_FILE_EXTENSION", App.THEME_EXTENSION)
 
-    buildConfigBool("GENERATING_BASELINE_PROFILE", generateBaselineProfile)
-
     // Library versions in BuildConfig.java
 
     var tdlibVersion = ""
@@ -555,9 +555,6 @@ android {
         dimension = "SDK"
         isDefault = sdkIndex == Sdk.LATEST
 
-        if (generateBaselineProfile && !variant.isLatest) {
-          matchingFallbacks += Sdk.VARIANTS[Sdk.LATEST]!!.flavor
-        }
         Sdk.VARIANTS.forEach { (subSdkIndex, subVariant) ->
           buildConfigBool("${subVariant.flavor.uppercase()}_FLAVOR", sdkIndex == subSdkIndex)
         }
@@ -642,6 +639,14 @@ android {
         }
 
         var extraProguardFileCount = 0
+
+        findExtraFolders(variant).forEach { folderName ->
+          val proguardFile = project.layout.projectDirectory.file("src/$folderName/proguard-rules.pro").asFile
+          if (proguardFile.exists()) {
+            proguardFile(proguardFile)
+            extraProguardFileCount++
+          }
+        }
 
         arrayOf(
           "exoplayer",
@@ -890,6 +895,10 @@ android {
         put("ABI", BuildConfigField(
           "int", abi, null
         ))
+        // Build types added by baseline profile plugin, which only tests use
+        put("TEST_HOOKS_ENABLED", BuildConfigField(
+          "boolean", variant.buildType == "nonMinifiedRelease" || variant.buildType == "benchmarkRelease", null
+        ))
         put("RECAPTCHA_VERSION", BuildConfigField(
           "String", "\"$recaptchaVersion\"", null
         ))
@@ -979,18 +988,23 @@ android {
   }
 }
 
-if (generateBaselineProfile) {
-  apply(plugin = libs.plugins.androidx.baselineprofile.get().pluginId)
+configureTests()
 
+extensions.configure<BaselineProfileConsumerExtension> {
+// 上游（aa687c67c）把 consumer 設定改成一律套用，變體名叫 `<sdk>Release`；
+// 本 fork 的 release 變體名是 `<sdk><abi>Release`（SDK＋ABI 兩個 flavor dimension），
+// 而且 lab flavor（四 ABI 齊備、一次產生到处套用）只在 -PgenerateBaselineProfile 時才註冊，
+// 所以這段維持在我方旗標後面，只把來源從已消失的 `:baseline-profile` 換成上游新的
+// `:tests:baseline-profile`。上游那段「沒有 profile 的變體把 merge/copy 任務關掉」的
+// 處理是為它那些舊 SDK flavor 寫的，我方只有 latest 一顆、用不上，一併不收。
+if (generateBaselineProfile) {
   extensions.configure<BaselineProfileConsumerExtension> {
     mergeIntoMain = true
     automaticGenerationDuringBuild = false
     saveInSrc = true
     warnings.disabledVariants = false
-  }
-
-  afterEvaluate {
-    dependencies.add("latestLabReleaseBaselineProfile", project(":baseline-profile"))
+    warnings.variantHasNoBaselineProfileDependency = false
+    variants.create("latestLabRelease").from(project(":tests:baseline-profile"))
   }
 }
 
@@ -1056,7 +1070,12 @@ dependencies {
     libs.androidx.exifinterface.latest
   )
   implementation(libs.androidx.biometric)
-  implementation(libs.androidx.palette)
+  flavorImplementation(
+    libs.androidx.palette.legacy,
+    libs.androidx.palette.legacy,
+    libs.androidx.palette.legacy,
+    libs.androidx.palette.latest
+  )
   implementation(libs.androidx.collection)
   implementation(libs.androidx.interpolator)
   // CameraX: https://developer.android.com/jetpack/androidx/releases/camera
@@ -1187,6 +1206,10 @@ dependencies {
   compileOnly(libs.androidx.room.latest)
   compileOnly(libs.annotations.jsr305)
   compileOnly(libs.annotations.kotlin)
+
+  // Tests: tests/README.md
+  testImplementation(libs.bundles.unit.test)
+  androidTestImplementation(project(":tests:core"))
 }
 
 if (!config.isExperimentalBuild) {

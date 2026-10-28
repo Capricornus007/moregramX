@@ -18,6 +18,8 @@ obj
 /local.properties
 keystore.properties
 
+/tests/*/checks
+
 libc++_shared.so
 local.properties
 release.keystore

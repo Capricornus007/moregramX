@@ -192,6 +192,22 @@ Fast Java compatibility check:
   --stacktrace --no-daemon --max-workers=2 --no-build-cache
 ~~~
 
+### Tests
+
+tgx/main aa687c67c brought in upstream's test infrastructure: `tests/core`,
+`tests/ui`, `tests/benchmark`, `tests:microbenchmark` and `tests:baseline-profile`
+modules, unit tests under `tests/unit`, integration tests under `tests/integration`,
+plus `checkMinSdk` / `saveCheckResults` / `describeCheckResults` Gradle tasks. See
+[tests/README.md](tests/README.md) for the reference of commands.
+
+Two upstream-only assumptions do not hold here, so those commands need adjustment
+before copy-pasting: this fork builds a single `latest` SDK flavor (no `legacy`,
+`lollipop` or `marshmallow` flavors, no `-PuseLegacyNdk`) and its variants carry an
+extra ABI flavor, so a task is named `latest<Abi><BuildType>` (for example
+`:app:emulatorLatestArm64DebugAndroidTest`, not `:app:emulatorLatestDebugAndroidTest`).
+Baseline profile generation is still gated behind `-PgenerateBaselineProfile` and
+consumes `:tests:baseline-profile` through the `latestLabRelease` variant.
+
 ### SDK flavors
 
 | Flavor | Android API range |
@@ -227,6 +243,10 @@ dependencies, translations, and existing fork behavior all require checking.
 Bug reports and focused pull requests are welcome. Include the exact version
 and APK flavor, Android version and device, reproducible steps, and sanitized
 logs. Before submitting code, run the Java check and ARM64 release build above.
+
+Upstream's contributor documents are kept and apply to this fork as well:
+[code style](docs/CODE_STYLE.md), [guide](docs/GUIDE.md) and
+[pull request template](docs/PULL_REQUEST_TEMPLATE.md).
 
 ## Credits and license
 
