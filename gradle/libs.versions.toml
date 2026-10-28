@@ -318,8 +318,9 @@ android-test = { id = "com.android.test", version.ref = "android-gradle-plugin" 
 google-services = { id = "com.google.gms.google-services", version.ref = "google-services-plugin" }
 
 androidx-baselineprofile = { id = "androidx.baselineprofile", version.ref = "androidx-baselineprofile" }
-# 上游同段新增的 kotlin-jvm 別名在本倉（含 tests/）沒有任何呼叫端：
-# vkryl/annotation 是獨立 includeBuild、有自己的 catalog，所以這裡不收，
-# 否則緊接著那行 kotlin-ksp 會被重複定義。
+# 上游新增的 kotlin-jvm 別名必須收：vkryl/annotation 是獨立 includeBuild，
+# 它的 settings.gradle.kts 用 `from(files("../../gradle/libs.versions.toml"))` 共用本 catalog，
+# 而它的 build.gradle.kts 寫 `alias(libs.plugins.kotlin.jvm)`（實測檔內第 2 行）。
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 
 kotlin-ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
