@@ -53,6 +53,7 @@ jobs:
       # ——Azul Zulu 27 已 GA（zulu27.28.103-ca-fx-jdk27.0.0-linux_x64），temurin 也列了 27。
       # 依規則 15：吃最新版本、再把連帶錯誤修掉，不回退 toolchain 換綠燈（用戶 09-28 裁決）。
       - name: Set up JDK 27
+        id: java27
         uses: actions/setup-java@v6
         with:
           distribution: 'zulu'
@@ -72,10 +73,19 @@ jobs:
         with:
           distribution: 'zulu'
           java-version: '25'
-          set-home: 'false'
+          # setup-java v6 把這個輸入改名成 set-default（v4/v5 的 set-home 無效）：
+          # run 40623374472 實測 log 有 "Unexpected input(s) 'set-home'" 警告，JAVA_HOME 被
+          # 换成 25，於是 :buildSrc:buildScriptClasspath 直接
+          # "Dependency requires at least JVM runtime version 27. This build uses a Java 25 JVM."
+          set-default: 'false'
 
       - name: Link JDK 25 into Gradle toolchain auto-detection path
         run: sudo ln -sfn "${{ steps.java25.outputs.path }}" /usr/lib/jvm/java-25-zulu
+
+      # 第二道保險：就算 set-default 未來又改輸入名字，這裡也把 JAVA_HOME 明確指回 27，
+      # 後面的 setup.sh、gradlew 與 apksigner 都跟著走。
+      - name: Keep JDK 27 as the default JVM for Gradle
+        run: echo "JAVA_HOME=${{ steps.java27.outputs.path }}" >> "$GITHUB_ENV"
 
       - name: Create local.properties
         run: |

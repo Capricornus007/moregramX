@@ -45,6 +45,7 @@ jobs:
       # AGP 帶的 asm 9.9 只認到 V26，已 force 9.10.1），且本專案無 foojay resolver，
       # 必須在 CI 裡真的裝出 JDK 27（規則 15：吃最新＋修連帶錯誤，不回退換綠燈）。
       - name: Set up JDK 27
+        id: java27
         uses: actions/setup-java@v6
         with:
           distribution: 'zulu'
@@ -64,10 +65,19 @@ jobs:
         with:
           distribution: 'zulu'
           java-version: '25'
-          set-home: 'false'
+          # setup-java v6 把這個輸入改名成 set-default（v4/v5 的 set-home 無效）：
+          # run 40623374472 實測 log 有 "Unexpected input(s) 'set-home'" 警告，JAVA_HOME 被
+          # 换成 25，於是 :buildSrc:buildScriptClasspath 直接
+          # "Dependency requires at least JVM runtime version 27. This build uses a Java 25 JVM."
+          set-default: 'false'
 
       - name: Link JDK 25 into Gradle toolchain auto-detection path
         run: sudo ln -sfn "${{ steps.java25.outputs.path }}" /usr/lib/jvm/java-25-zulu
+
+      # 第二道保險：就算 set-default 未來又改輸入名字，這裡也把 JAVA_HOME 明確指回 27，
+      # 後面的 setup.sh、gradlew 與 apksigner 都跟著走。
+      - name: Keep JDK 27 as the default JVM for Gradle
+        run: echo "JAVA_HOME=${{ steps.java27.outputs.path }}" >> "$GITHUB_ENV"
 
       - name: Create local.properties
         run: |
