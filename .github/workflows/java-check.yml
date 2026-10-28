@@ -51,6 +51,24 @@ jobs:
           java-version: '27'
           cache: 'gradle'
 
+      # tgx/main aa687c67c 新增的 vkryl/annotation 是一顆獨立 includeBuild，而它的
+      # build.gradle.kts 釘了 `kotlin { jvmToolchain(25) }`。本專案沒有裝 foojay resolver
+      # （同上那段 Java 27 說明），Gradle 不會自己下載 JDK，所以要真的有一顆 25，否則
+      # buildSrc 第一步就紅在 "No matching toolchains found for Java 25"——buildSrc 的
+      # dependencies 現在有 implementation(libs.vkryl.annotation)，等於每次呼叫 Gradle 都要建它。
+      # set-home: false 讓 JAVA_HOME 維持在 27（Gradle 本身跑在 27 上，見上方法），
+      # 再把它軟鏈接到 Gradle 在 Linux 上必掃的 /usr/lib/jvm，讓 toolchain 自動探索找得到。
+      - name: Set up JDK 25 (vkryl/annotation toolchain only)
+        id: java25
+        uses: actions/setup-java@v6
+        with:
+          distribution: 'zulu'
+          java-version: '25'
+          set-home: 'false'
+
+      - name: Link JDK 25 into Gradle toolchain auto-detection path
+        run: sudo ln -sfn "${{ steps.java25.outputs.path }}" /usr/lib/jvm/java-25-zulu
+
       - name: Create local.properties
         run: |
           cat << 'EOF' > local.properties

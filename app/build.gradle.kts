@@ -990,7 +990,6 @@ android {
 
 configureTests()
 
-extensions.configure<BaselineProfileConsumerExtension> {
 // 上游（aa687c67c）把 consumer 設定改成一律套用，變體名叫 `<sdk>Release`；
 // 本 fork 的 release 變體名是 `<sdk><abi>Release`（SDK＋ABI 兩個 flavor dimension），
 // 而且 lab flavor（四 ABI 齊備、一次產生到处套用）只在 -PgenerateBaselineProfile 時才註冊，
