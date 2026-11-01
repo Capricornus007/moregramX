@@ -33,9 +33,9 @@ import androidx.annotation.StringRes;
 import androidx.annotation.UiThread;
 
 import org.drinkless.tdlib.TdApi;
-import org.thunderdog.challegram.BuildConfig;
 import org.thunderdog.challegram.Log;
 import org.thunderdog.challegram.R;
+import org.thunderdog.challegram.U;
 import org.thunderdog.challegram.config.Config;
 import org.thunderdog.challegram.data.ContentPreview;
 import org.thunderdog.challegram.data.TD;
@@ -1094,7 +1094,9 @@ public class Lang {
 
   public static String getAppBuildAndVersion (@Nullable Tdlib tdlib) {
     // MoregramX overrides the upstream application title shown with the version.
-    String msg = Lang.getString(R.string.AppNameAndVersionOverride, BuildConfig.VERSION_NAME);
+    // Upstream c7a355211 switched the value source to U.getVersionName() (reads the manifest of
+    // the installed APK, falling back to BuildConfig.VERSION_NAME) — keep that, keep our string.
+    String msg = getString(R.string.AppNameAndVersionOverride, U.getVersionName());
     if (tdlib != null && tdlib.isEmulator()) {
       msg += " (emulator)";
     }

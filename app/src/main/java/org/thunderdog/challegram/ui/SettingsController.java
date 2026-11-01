@@ -1562,7 +1562,8 @@ public class SettingsController extends ViewController<Void> implements
     }
 
     SpannableStringBuilder b = new SpannableStringBuilder();
-    b.append(Lang.getMarkdownStringSecure(this, R.string.AppSignatureOverride, BuildConfig.VERSION_NAME));
+    // MoregramX override string + upstream c7a355211 value source (manifest of installed APK)
+    b.append(Lang.getMarkdownStringSecure(this, R.string.AppSignatureOverride, U.getVersionName()));
 
     showOptions(b, ids.get(), strings.get(), colors.get(), icons.get(), (itemView, id) -> {
       if (id == R.id.btn_copyText) {

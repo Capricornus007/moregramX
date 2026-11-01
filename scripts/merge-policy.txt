@@ -108,12 +108,15 @@ branch|app/jni/third_party/ffmpeg|release/6.1|-|FFmpeg 穩定分支
 # 實測：單方面把 tdlib 抬到自有 fork 尖端 015129f（td@9d92b49），:vkryl:td 的
 # generated/TdEqualsTo.kt 與 TdBundle.kt 立刻爆「Unresolved reference
 # 'assertTextEntityType_aefd8e69'」與一堆 receiver type mismatch（run 39921265979）。
-# tgx/main 現行的成對值是 tdlib=b47cd82（td@a94b83d）＋vkryl/td=61d4ea0b，
+# tgx/main 現行的成對值是 tdlib=b47cd82（td@a94b83d）＋vkryl/td=595dee3e（tgx d1ebf3fef
+# 2026-10-30 只抬綁定層、tdlib 原值不動；實測 595dee3 新增的
+# `PushMessageContentChecklistTasksAdded.CONSTRUCTOR` 在 13b7805 的
+# tdlib/src/main/java/org/drinkless/tdlib/TdApi.java 內存在 ⇒ 成對仍成立），
 # 而 td@a94b83d→9d92b49 這 113 筆動過 td/generate/scheme/td_api.tl（layer 232、
 # oauthLinkInfo 等新欄位）⇒ 綁定層沒重生之前，單抬 tdlib 一定紅。
 # 正確時機：跟 tgx 合併（#34）時把兩條 gitlink 连同 app 端一起收。
-gitlink|tdlib|13b78057835cd9441aa49646f26d003178432897|6c7857c4a5b35e137b36a7428d08313cb85bcb5b|url 已改指 Capricornus007/tdlib；13b7805 = b47cd82 的 td@a94b83d payload ＋ 刪 r23 預編譯樹 ＋ 去 legacy 腳本，必須與 vkryl/td 61d4ea0b 成對
-gitlink|vkryl/td|61d4ea0b66cfdeed9352ba0a84e5746e528559d5|2d0a865f69ba86f9e240511ae22a99a1f44f9d02|綁定層，tgx/main 成對值；2d0a865 不認識 td@a94b83d 之後的 TdApi 欄位
+gitlink|tdlib|13b78057835cd9441aa49646f26d003178432897|6c7857c4a5b35e137b36a7428d08313cb85bcb5b|url 已改指 Capricornus007/tdlib；13b7805 = b47cd82 的 td@a94b83d payload ＋ 刪 r23 預編譯樹 ＋ 去 legacy 腳本，必須與 vkryl/td 595dee3e 成對
+gitlink|vkryl/td|595dee3e06bd35e73e9974d93326c351829d4587|61d4ea0b66cfdeed9352ba0a84e5746e528559d5|綁定層，tgx/main d1ebf3fef 成對值；61d4ea0b 少了 PushMessageContentChecklistTasksAdded 那條 isPinned 分支（被合併退回就是 bad_value）
 # tgx/main aa687c67c 把 me.vkryl.annotation 從 X-Core 拆成獨立倉 X-Annotation：
 # core c1179615 → a3e94a40（"Move Annotations.kt to separate module"），同一筆新增
 # vkryl/annotation gitlink 與 settings.gradle.kts 的 includeBuild，ModulePlugin 才把
