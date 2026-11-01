@@ -90,16 +90,19 @@ prop|.gitmodules|url = https://github.com/Capricornus007/libwebp|url = https://g
 # 版號第三處在 version.properties 的 version.webp，由第 8 節的 prop 一併驗（值寫分支名，與 libyuv／lz4 同一格式）
 
 # == 6. (a) androidx-media：latest 採我方（偏離 tgx）；lollipop flavor 已隨死 flavor 一併刪除 ==
-# latest：5efc8ddc = androidx/media refs/heads/main 尖端（未發版，對應 1.12.0-dev）；
-# tgx 仍釘 8c6678b6 = refs/tags/1.11.1^{} = refs/heads/release 尖端。
-# 抬昇實測內容中性：081a432e → 5efc8ddc 只差 1 筆提交（effect 模組），
-# 我方真正吃進 sourceSet 的四個目錄（decoder_ffmpeg|flac|opus|vp9）與 14 條
-# proguard-rules.txt、src/main/jni 全部零變動（git diff --stat 實測回空）。
-# 來源 vs 核心（androidx-media-latest = 1.11.1）的錯配仍存在、尚未紅，
-# 處置方式要用戶裁（見派工單第 2 節），不准用把子模組退回 1.11.1 換綠燈。
-gitlink|app/thirdparty/androidx-media/latest|5efc8ddcd4351b05badb99065125f893d546f8af|8c6678b657ede1e7883fc164ef73ed483c7796c3|規則 61 開發尖端主軸；tgx 的 1.11.1 是 bad_value
+# 2026-11-01 重測改釘「已發布核心 == 源碼那一版」的成對值：
+# d9e7774e = androidx/media refs/heads/release-1.12.0-alpha02 尖端 = refs/tags/1.12.0-alpha02^{}
+# （2026-10-23「Version bump to media3:1.12.0-alpha02」），Google Maven 的 latest/release
+# 現為 1.12.0-alpha02，所以四個僅存於源碼的擴充（decoder_ffmpeg|flac|opus|vp9，Maven 404）
+# 就拿它那顆 jar 來編——這是配對，不是回退：d9e7774e 是舊 pin 5efc8ddc 的後裔
+# （compare API：ahead 205 / behind 0）。
+# tgx 仍釘 8c6678b6 = refs/tags/1.11.1^{} = refs/heads/release 尖端（bad_value）。
+# media3 main（54d1a08bfd，2026-10-31）與 release-1.12.0-alpha02 分叉
+# （main ahead 187 / release ahead 5）；釘 main 會拿未發布的核心符號去編已發布 jar，
+# 所以主軸在这里要讓位給「源碼與 jar 同源」這條更強的約束，等 1.12.0-alpha03 發布再整對抬。
+gitlink|app/thirdparty/androidx-media/latest|d9e7774e724ccd8558c4a4d9ce098c2a81b6328c|8c6678b657ede1e7883fc164ef73ed483c7796c3|源碼必須與已發布核心同源（1.12.0-alpha02）；tgx 的 1.11.1 是 bad_value
 # 版號錯配的第三處：Maven 座標由腳本比對 gradle/libs.versions.toml
-# latest 吃 main 尖端（尚無對應已發布版號）→ 座標留在最後穩定版 1.11.1
+# latest 吃 release-1.12.0-alpha02 尖端 → 座標同步寫 1.12.0-alpha02（第 8 節 prop 驗）
 # lollipop 子模組與 androidx-media-lollipop 座標已連同死 flavor 一起刪（回歸閘門見第 9 節）。
 
 # == 7. 其它 .gitmodules branch 條目一併納管（不在表內的 branch 欄一律視為未審）==
@@ -159,7 +162,7 @@ nobranch|app/jni/tgvoip/third_party/webrtc_deps/third_party|-|-|
 # prop 欄位意義：path=檔案、expected=該檔必須出現的一行（子串比對）、bad=必須「不」出現的一行（可逗号分隔多條）
 prop|version.properties|version.webp=main|version.webp=v1.2.0,version.webp=v1.4.0,version.webp=v1.5.0,version.webp=v1.6.0|webp 版號第三處（第一處是 gitlink、第二處是 .gitmodules 的 branch＋url）；值是 fork 追的分支名
 prop|gradle/libs.versions.toml|androidx-core-ktx-lollipop = |-|釘死子模組 vkryl/core、vkryl/android 的 build.gradle.kts 仍引用 libs.androidx.core.ktx.lollipop 別名，這行必須留（合併不准刪；其餘所有 -lollipop 條目已隨死 flavor 刪除，見第 9 節）
-prop|gradle/libs.versions.toml|androidx-media-latest = "1.11.1"|-|latest 子模組吃未發版 main 尖端，核心座標留在最後一個已發布版號 1.11.1
+prop|gradle/libs.versions.toml|androidx-media-latest = "1.12.0-alpha02"|-|latest 子模組釘 release-1.12.0-alpha02 尖端，核心座標必須寫同一個已發布版號（1.11.1 是舊值，出現就代表兩邊沒成對抬）
 prop|version.properties|version.app=|version.app=181,version.app=182|自有發佈序號：合併 tgx 時不准被退回上游數字（tgx 現行 1820；181x／182x 全擋，往後抬版號不需要動這條）
 
 # == 9. 死 flavor 刪除的回歸閘門（用戶只發 latest／arm64 一顆；lollipop、marshmallow 從不建置、從不發布）==
