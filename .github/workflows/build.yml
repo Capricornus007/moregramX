@@ -43,10 +43,10 @@ jobs:
 
       # tgx@ea17e077/fc91511c 把 Java 與 toolchain 一起抬到 25；本機依規則 15 一路抬到 27。
       # 26 只是中途站：Kotlin 2.4.20 的 JvmTarget 列舉最高只有 JVM_26（實測
-      # kotlin-gradle-plugin-api-2.4.20.jar），所以要 27 就得把 Kotlin 換成 2.5.0-Beta1
+      # kotlin-gradle-plugin-api-2.4.20.jar），所以要 27 就得把 Kotlin 換成 2.5.0-Beta1 以上（現行 2.5.0-Beta2）
       # （kotlin-gradle-plugin-api-2.5.0-Beta1.jar 才有 JVM_27），並在 buildSrc 的 plugins 區塊
       # 明確套 KGP，否則 buildSrc 用的是 Gradle 內建那份 2.4.20、JVM_27 直接編不過。
-      # AGP 9.5.0-alpha08 的 pom 宣告 org.ow2.asm 9.9（Opcodes 止於 V26 = 70，讀不了 class major
+      # AGP 9.6.0-alpha02 的 pom 仍宣告 org.ow2.asm 9.9（Opcodes 止於 V26 = 70，讀不了 class major
       # 71），已 force 成 9.10.1（asm-9.10.1.jar 有 V27 = 71；這個版本也正是 Gradle 9.8/9.9 自己
       # 內嵌的那份）。本專案沒有裝 foojay toolchain resolver，Gradle 用不了自動下載，
       # 環境裡必須「真的有」JDK 27，否則直接在 "No matching toolchain" 掛掉

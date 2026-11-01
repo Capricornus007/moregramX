@@ -4,22 +4,22 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 plugins {
-  // Kotlin 2.5.0-Beta1 explicitly, and it must be this line rather than `libs.kotlin` below:
+  // Kotlin 2.5.0-Beta2 explicitly, and it must be this line rather than `libs.kotlin` below:
   // `kotlin-dsl` applies org.jetbrains.kotlin.jvm itself, at whatever Kotlin Gradle is embedding
-  // (Gradle 9.9.0-M2 embeds 2.4.20 — docs "Embedded Kotlin version" table, and confirmed against
-  // the distribution zip), and 2.4.x's `JvmTarget` enum stops at JVM_26. Writing JVM_27 without
+  // (the Gradle 9.9.0 line embeds 2.4.20 — docs "Embedded Kotlin version" table, and confirmed
+  // against the distribution zip), and 2.4.x's `JvmTarget` enum stops at JVM_26. Writing JVM_27 without
   // this line does not compile: proven by running Gradle's own 2.4.10 compiler on
   // kotlin-gradle-plugin-api-2.4.20.jar -> "unresolved reference 'JVM_27'", same source against
-  // kotlin-gradle-plugin-api-2.5.0-Beta1.jar -> compiles. Keep this in sync with the `kotlin`
+  // kotlin-gradle-plugin-api-2.5.0-Beta1.jar -> compiles (Beta2 is the same 2.5.0 line). Keep this in sync with the `kotlin`
   // version in gradle/libs.versions.toml.
   // That also means buildSrc classes are emitted with 2.5.0 metadata while app/build.gradle.kts is
   // compiled by the embedded 2.4.20 script compiler (it imports tgx.gradle.*) — tolerated: the
-  // 2.4.10 compiler above read 2.5.0-Beta1 metadata without a compatibility complaint.
-  id("org.jetbrains.kotlin.jvm") version "2.5.0-Beta1"
+  // 2.4.10 compiler above read 2.5.0-Beta1/2 metadata without a compatibility complaint.
+  id("org.jetbrains.kotlin.jvm") version "2.5.0-Beta2"
   `kotlin-dsl`
 }
 
-// Java 27 = class file major version 71. AGP 9.5.0-alpha08's pom declares org.ow2.asm 9.9 (plus
+// Java 27 = class file major version 71. AGP 9.6.0-alpha02's pom still declares org.ow2.asm 9.9 (plus
 // asm-analysis / asm-commons / asm-util), whose Opcodes stop at V26 = 70 — verified with
 // `javap -constants` on asm-9.9.1.jar; asm-9.10.1 is the release that adds V27 = 71, and it is
 // also exactly what Gradle 9.8/9.9 themselves bundle, so nothing exotic is being introduced.
@@ -52,7 +52,7 @@ kotlin {
   compilerOptions {
     allWarningsAsErrors = true
     jvmTarget = JvmTarget.JVM_27
-    // `kotlin-dsl` 把 languageVersion 釘在 2.2，而 KGP 2.5.0-Beta1 已視 2.2 為棄用，buildSrc
+    // `kotlin-dsl` 把 languageVersion 釘在 2.2，而 KGP 2.5.0-Beta1/2 已視 2.2 為棄用，buildSrc
     // 又開 allWarningsAsErrors，於是 :buildSrc:compileKotlin 紅在
     // 「Language version 2.2 is deprecated ... Update the version to 2.3」。抬到 2.3 正面修，
     // apiVersion 一起抬（兩個不一致會觸發另一條診斷），而不是把 allWarningsAsErrors 關掉。

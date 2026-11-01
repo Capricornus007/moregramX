@@ -41,7 +41,7 @@ jobs:
           chmod +x scripts/check-merge-policy.sh
           ./scripts/check-merge-policy.sh
 
-      # 同 build.yml：toolchain 已抬到 Java 27（Kotlin 換 2.5.0-Beta1 才有任何 JVM_27 可用，
+      # 同 build.yml：toolchain 已抬到 Java 27（Kotlin 換 2.5.0-Beta1 以上（現行 Beta2）才有任何 JVM_27 可用，
       # AGP 帶的 asm 9.9 只認到 V26，已 force 9.10.1），且本專案無 foojay resolver，
       # 必須在 CI 裡真的裝出 JDK 27（規則 15：吃最新＋修連帶錯誤，不回退換綠燈）。
       - name: Set up JDK 27

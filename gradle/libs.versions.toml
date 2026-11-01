@@ -1,27 +1,29 @@
 [versions]
-android-gradle-plugin = "9.5.0-alpha08"
+android-gradle-plugin = "9.6.0-alpha02"
 
 # Java 27 bytecode requires Kotlin >= 2.5.0: the `JvmTarget` enum of 2.4.20 and every
 # earlier 2.4.x line stops at JVM_26 — verified on the artifacts themselves, not from docs
 # (`javap org.jetbrains.kotlin.gradle.dsl.JvmTarget` on kotlin-gradle-plugin-api-2.4.20.jar
 # lists …JVM_25, JVM_26; the same command on kotlin-gradle-plugin-api-2.5.0-Beta1.jar adds
-# JVM_27). AGP 9.5.0-alpha08 declares a *runtime* dependency on kotlin-gradle-plugin 2.2.10
-# (see its pom on dl.google.com), which is what compiles our .kt sources via AGP's built-in
-# Kotlin; this catalog entry overrides it, because buildSrc/build.gradle.kts puts
+# JVM_27, and 2.5.0-Beta2 is the same release line so it keeps it). AGP declares a *runtime*
+# dependency on kotlin-gradle-plugin 2.2.10 — re-verified on 9.6.0-alpha02's pom on
+# dl.google.com (same as 9.5.0-alpha08 had), which is what compiles our .kt sources via AGP's
+# built-in Kotlin; this catalog entry overrides it, because buildSrc/build.gradle.kts puts
 # `implementation(libs.kotlin.gradle.plugin)` on the classpath every project inherits and
 # Gradle keeps the highest version. No Compose compiler plugin here — the repo has zero
 # androidx.compose usage (only vendored media3 docsamples, which are not in settings.gradle.kts).
-kotlin = "2.5.0-Beta1"
+kotlin = "2.5.0-Beta2"
 # KSP is declared but never applied (no `alias(libs.plugins.kotlin-ksp)` / `ksp(...)` anywhere in
-# the included projects), so it imposes no constraint on the Kotlin bump. Kept at 2.3.12, the
-# version proven against Kotlin 2.5.0-Beta1 in Capricornus007/XposedSmsCode's green CI.
-ksp = "2.3.12"
+# the included projects), so it imposes no constraint on the Kotlin bump. 2.3.13 is the current
+# latest on the Gradle plugin portal (metadata <latest>/<release> both = 2.3.13; 2.3.12 was the
+# value proven against Kotlin 2.5.0-Beta1 in Capricornus007/XposedSmsCode's green CI).
+ksp = "2.3.13"
 desugaring = "2.1.5"
 
 jgit = "7.8.0.202609011348-r"
 
 kotlinx-coroutines = "1.11.0"
-kotlinx-serialization = "1.11.0"
+kotlinx-serialization = "1.12.0"
 
 androidx-multidex = "2.0.1"
 androidx-annotation = "1.11.0"
@@ -32,7 +34,7 @@ androidx-interpolator = "1.0.0"
 google-zxing = "3.5.4"
 google-play-app-update = "2.1.0"
 google-play-billing = "7.1.1"
-google-gson = "2.10.1"
+google-gson = "2.15.0"
 
 google-services-plugin = "4.5.0"
 
@@ -50,14 +52,14 @@ subsampling-scale-image-view = "3.10.0"
 mp4parser-isoparser = "1.0.6" # Do not upgrade.
 
 annotations-checkerframework = "4.3.1"
-annotations-errorprone = "2.50.0"
+annotations-errorprone = "2.51.0"
 annotations-j2objc = "3.1"
 annotations-jsr305 = "3.0.2"
-annotations-kotlin = "2.1.20"
+annotations-kotlin = "2.5.0-Beta2"
 
-androidx-baselineprofile = "1.5.0"
+androidx-baselineprofile = "1.6.0-alpha01"
 androidx-profileinstaller = "1.4.1"
-androidx-benchmark = "1.5.0"
+androidx-benchmark = "1.6.0-alpha01"
 androidx-test = "1.7.0"
 androidx-junit = "1.3.0"
 androidx-uiautomator = "2.4.0"
@@ -66,7 +68,7 @@ google-truth = "1.4.5"
 
 # latest
 
-okhttp-latest = "5.5.0"
+okhttp-latest = "5.5.1"
 
 androidx-core-latest = "1.19.1"
 androidx-activity-latest = "1.13.0"
@@ -79,20 +81,23 @@ androidx-viewpager-latest = "1.1.0"
 androidx-browser-latest = "1.10.0"
 androidx-exifinterface-latest = "1.4.2"
 androidx-camera-latest = "1.6.2"
-# 這裡只能是 1.11.1，不是「忘了抬」，也不是「來源比核心新」的錯配：
-# 1) 公開通道上沒有更新的 media3 核心。Google Maven 的 latest/release 都是 1.11.1，
-#    1.11.1 之後沒有任何 alpha/beta/rc；media3 也不在 androidx/androidx 主倉（獨立倉
-#    androidx/media），不參與 androidx.dev snapshot 發車，實測 1.12.0-SNAPSHOT 與
-#    1.12.0-alpha01 全 404，repo1／oss.sonatype 也沒有。
-# 2) 1.11.1 與 main 尖端不是新舊、是**分叉**（compare API：ahead 474 / behind 1264），
-#    release 線有 1264 筆 main 沒有的 hotfix。所以「抬到最新核心」這個動作根本不存在。
-# 3) 子模組 app/thirdparty/androidx-media/latest 釘 main 尖端，是因為
-#    media3-decoder-ffmpeg/-flac/-opus/-vp9 這四個擴充**從未在 Maven 發布過**（四個
-#    metadata 全 404），源碼是唯一交付管道（見 buildSrc Config.ANDROIDX_MEDIA_EXTENSIONS
-#    與 app/build.gradle.kts 的 sourceSet 注入）。真正進到產物的接觸面只有 3 檔。
-# → 不准用「把子模組退回 1.11.1」換取綠燈；符號相容性由每次 push 的
-#    Java Compile Check / Android CI 真編譯把关（政策表 scripts/merge-policy.txt 也釘著）。
-androidx-media-latest = "1.11.1"
+# media3 核心與那四個「只在源碼裡」的擴充必須成對，取捨理由（2026-11-01 重測，取代 10 月那版
+# 「公開通道上沒有更新的 media3」的舊結論——當時成立、現在已不成立，所以要改）：
+# 1) Google Maven 現在最新是 1.12.0-alpha02（metadata 的 latest/release 都是它；
+#    1.12.0-alpha01 也已發布）。所以「抬到最新核心」這個動作現在存在，照做。
+# 2) 子模組 app/thirdparty/androidx-media/latest 改釘 **release-1.12.0-alpha02 分支尖端
+#    d9e7774e7（= tag 1.12.0-alpha02，2026-10-23）**，不是釘 main 尖端：media3 的 main
+#    （54d1a08bfd，2026-10-31）與該 release 分支是分叉（compare：main ahead 187 /
+#    release ahead 5），而源碼是唯一交付管道的 media3-decoder_ffmpeg/_flac/_opus/_vp9
+#    這四個擴充（四個 Maven 座標至今 404，見 buildSrc Config.ANDROIDX_MEDIA_EXTENSIONS 與
+#    app/build.gradle.kts 的 sourceSet 注入）會被拿來**對已發布的核心 jar 編譯**，
+#    所以源碼必須取「就是那顆 jar 的那一版」，釘 main 尖端等於拿尚未發布的核心符號去編。
+#    d9e7774e7 同時是舊 pin 5efc8ddc 的後裔（compare：ahead 205 / behind 0），
+#    所以這次抬升是純前進、沒有丢東西。
+# 3) 核心 1.11.1 → 1.12.0-alpha02 的符號相容性由每次 push 的 Java Compile Check /
+#    Android CI 真編譯把关（app/src/main/java 下 22 檔直接 import androidx.media3）。
+# → 不准用「把子模組退回舊版」換取綠燈；要修就修呼叫端（政策表 scripts/merge-policy.txt 第 6 節也釘著）。
+androidx-media-latest = "1.12.0-alpha02"
 androidx-tracing-latest = "2.0.5"
 androidx-palette-latest = "1.1.0"
 

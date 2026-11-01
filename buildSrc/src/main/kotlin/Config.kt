@@ -27,7 +27,7 @@ object Config {
   // exists in the Gradle API from Gradle 9.8.0 onwards (verified with javap against
   // gradle-stdlib-java-extensions-9.8.0.jar: the enum runs to VERSION_31 + VERSION_HIGHER),
   // and the toolchain that produces it is `java-toolchain-convention.gradle.kts`.
-  // Bumping this alone is not enough: AGP 9.5.0-alpha08 pulls org.ow2.asm 9.9, which stops at
+  // Bumping this alone is not enough: AGP 9.6.0-alpha02 pulls org.ow2.asm 9.9, which stops at
   // V26 = 70, so the ASM 9.10.1 force in buildSrc/build.gradle.kts is what keeps V27 readable.
   val JAVA_VERSION = org.gradle.api.JavaVersion.VERSION_27
   val ANDROIDX_MEDIA_EXTENSIONS = arrayOf(
@@ -129,7 +129,7 @@ data class Keystore(
 ) {
   constructor(configPath: String) : this(loadProperties(configPath))
   constructor(file: File) : this(loadProperties(file))
-  // Kotlin 2.5.0-Beta1 拿掉了 org.jetbrains.kotlin.konan.properties.Properties
+  // Kotlin 2.5.0-Beta1/2 拿掉了 org.jetbrains.kotlin.konan.properties.Properties
   // （2.4.20 時它是 java.util.Properties 的 typealias，所以舊寫法編得過）。本檔已有
   // import java.util.*，直接改用真身；getOrThrow 是 Map<*,*> 的擴充，行為不變。
   constructor(config: Properties) : this(
