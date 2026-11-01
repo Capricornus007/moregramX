@@ -8,7 +8,6 @@ import androidx.annotation.Nullable;
 
 import org.drinkmore.Tracer;
 import org.thunderdog.challegram.Log;
-import org.thunderdog.challegram.tool.UI;
 import org.thunderdog.challegram.unsorted.AppContext;
 import org.thunderdog.challegram.unsorted.Settings;
 

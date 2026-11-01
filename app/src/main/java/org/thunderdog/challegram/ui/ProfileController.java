@@ -704,9 +704,10 @@ public class ProfileController extends ViewController<ProfileController.Args> im
     // Add/Remove Personal Channel button
     if (mode == Mode.CHANNEL && isCreator()) {
       TdApi.UserFullInfo myUserFull = tdlib.myUserFull();
-      boolean isPersonal = myUserFull != null && myUserFull.personalChatId == getChatId();
-      ids.append(R.id.btn_setPersonalChannel);
-      strings.append(Lang.getString(isPersonal ? R.string.RemoveFromProfile : R.string.AddToProfile));
+      if (myUserFull != null && isPublicChannel()) {
+        ids.append(R.id.btn_setPersonalChannel);
+        strings.append(Lang.getString(myUserFull.personalChatId == getChatId() ? R.string.RemoveFromProfile : R.string.AddToProfile));
+      }
     }
 
     if (!tdlib.isDirectMessagesChat(getChatId()) && (mode == Mode.SUPERGROUP || mode == Mode.GROUP)) {
@@ -2427,6 +2428,7 @@ public class ProfileController extends ViewController<ProfileController.Args> im
   private TdApi.FormattedText personalChannelPreview;
   private String personalChannelTime;
   private int personalChannelMembers;
+  private long personalChannelChatId;
 
   private static int getTextWidth (int width) {
     return Math.max(0, width - Screen.dp(73f) - Screen.dp(17f));
@@ -2479,12 +2481,16 @@ public class ProfileController extends ViewController<ProfileController.Args> im
   }
 
   private void setPersonalChannelData (TdApi.Chat chat, @Nullable TdApi.Message lastMessage) {
+    personalChannelChatId = chat.id;
     personalChannelWrapper = new DoubleTextWrapper(tdlib, chat, false, false);
     personalChannelMembers = tdlib.chatMemberCount(chat.id);
     if (lastMessage != null) {
       ContentPreview preview = ContentPreview.getChatListPreview(tdlib, chat.id, lastMessage, false);
       personalChannelPreview = preview.buildFormattedText(false);
       personalChannelTime = Lang.time(lastMessage.date, TimeUnit.SECONDS);
+    } else {
+      personalChannelPreview = null;
+      personalChannelTime = null;
     }
   }
 
@@ -2581,7 +2587,7 @@ public class ProfileController extends ViewController<ProfileController.Args> im
     int addedCount = 0;
 
     if (userFull != null) {
-      if (userFull.personalChatId != 0 && personalChannelWrapper != null) {
+      if (userFull.personalChatId != 0 && personalChannelPreview != null) {
         items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
         items.add(newPersonalChannelItem());
         addedCount++;
@@ -2685,14 +2691,14 @@ public class ProfileController extends ViewController<ProfileController.Args> im
     if (isEditing())
       return;
     if (userFull.personalChatId == 0) {
-      personalChannelWrapper = null;
-    } else if (personalChannelWrapper == null) {
-      setPersonalChannel();
+      personalChannelChatId = 0;
+      personalChannelPreview = null;
+    } else if (personalChannelChatId != userFull.personalChatId && !setPersonalChannel()) {
       return;
     }
     int foundIndex = baseAdapter.indexOfViewById(R.id.btn_personalChannel);
     boolean hadPersonalChannel = foundIndex != -1;
-    boolean hasPersonalChannel = personalChannelWrapper != null;
+    boolean hasPersonalChannel = personalChannelPreview != null;
     if (hadPersonalChannel != hasPersonalChannel) {
       if (hadPersonalChannel) {
         removeTopItem(foundIndex);
