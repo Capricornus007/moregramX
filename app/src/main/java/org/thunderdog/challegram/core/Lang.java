@@ -33,6 +33,7 @@ import androidx.annotation.StringRes;
 import androidx.annotation.UiThread;
 
 import org.drinkless.tdlib.TdApi;
+import org.thunderdog.challegram.BuildConfig;
 import org.thunderdog.challegram.Log;
 import org.thunderdog.challegram.R;
 import org.thunderdog.challegram.U;
@@ -242,11 +243,32 @@ public class Lang {
     return getStringImpl(languagePackInfo, resId, true);
   }
 
+  /**
+   * Upstream and imported language packs still contain their original product names.
+   * Keep the fork name in one build-time source of truth instead of chasing every locale
+   * after each Telegram X / moeGramX merge. Attribution URLs and handles remain untouched.
+   */
+  private static String applyProductName (String value) {
+    return value.replace("Telegram X", BuildConfig.PROJECT_NAME);
+  }
+
+  private static String applyProductName (@StringRes int resId, String value) {
+    String branded = applyProductName(value);
+    if (resId == R.string.MoexChannelLink ||
+        resId == R.string.MoexSourceLink ||
+        resId == R.string.moexChannel) {
+      return branded;
+    }
+    return branded
+      .replace("moeGram X", BuildConfig.PROJECT_NAME)
+      .replace("moeGramX", BuildConfig.PROJECT_NAME);
+  }
+
   @Nullable
   private  static String getCloudString (String key) {
     TdApi.LanguagePackInfo languagePackInfo = Settings.instance().getLanguagePackInfo();
     TdApi.LanguagePackStringValueOrdinary string = getStringValue(key, languagePackInfo);
-    return string != null ? string.value : null;
+    return string != null ? applyProductName(string.value) : null;
   }
 
   public static CharSequence getTutorial (ViewController<?> context, @NonNull TdApi.ChatSource source) {
@@ -322,10 +344,10 @@ public class Lang {
       final String key = getResourceEntryName(resId);
       TdApi.LanguagePackStringValueOrdinary string = getStringValue(key, languagePackInfo);
       if (string != null)
-        return string.value;
+        return applyProductName(resId, string.value);
     }
     try {
-      return allowCloud ? getLocalizedAndroidString(resId) : getAndroidString(resId);
+      return applyProductName(resId, allowCloud ? getLocalizedAndroidString(resId) : getAndroidString(resId));
     } catch (Resources.NotFoundException e) {
       Log.e("Resource not found (shitty modified lang pack?): %d %s", resId, getResourceEntryName(resId));
       return "";
@@ -480,7 +502,7 @@ public class Lang {
       TdApi.LanguagePackStringValueOrdinary string = getStringValue(key, languagePackInfo);
       if (string != null) {
         try {
-          return formatString(applyFlags(string.value, flags), hasSpanned, creator, formatArgs);
+          return formatString(applyFlags(applyProductName(resId, string.value), flags), hasSpanned, creator, formatArgs);
         } catch (Throwable t) {
           warnResource(true, pluralCode(), resId);
         }
@@ -488,10 +510,10 @@ public class Lang {
     }
     try {
       if (creator != null || flags != 0 || hasSpanned) {
-        String format = applyFlags(allowCloud ? getLocalizedAndroidString(resId) : getAndroidString(resId), flags);
+        String format = applyFlags(applyProductName(resId, allowCloud ? getLocalizedAndroidString(resId) : getAndroidString(resId)), flags);
         return formatString(format, hasSpanned, creator, formatArgs);
       } else {
-        return allowCloud ? getLocalizedAndroidString(resId, formatArgs) : getAndroidString(resId, formatArgs);
+        return applyProductName(resId, allowCloud ? getLocalizedAndroidString(resId, formatArgs) : getAndroidString(resId, formatArgs));
       }
     } catch (Resources.NotFoundException e) {
       Log.e("Resource not found (shitty modified lang pack?): %d %s", resId, getResourceEntryName(resId));
@@ -499,7 +521,7 @@ public class Lang {
     } catch (Throwable t) {
       String str = getAndroidString(resId);
       Log.e("Resource format is broken (shitty modified lang pack?): %s, format: %s", t, getResourceEntryName(resId), str);
-      return str;
+      return applyProductName(resId, str);
     }
   }
 
@@ -1093,7 +1115,7 @@ public class Lang {
   // Build no
 
   public static String getAppBuildAndVersion (@Nullable Tdlib tdlib) {
-    // MoregramX overrides the upstream application title shown with the version.
+    // moregramX overrides the upstream application title shown with the version.
     // Upstream c7a355211 switched the value source to U.getVersionName() (reads the manifest of
     // the installed APK, falling back to BuildConfig.VERSION_NAME) — keep that, keep our string.
     String msg = getString(R.string.AppNameAndVersionOverride, U.getVersionName());

@@ -1,7 +1,7 @@
 # moregramX (MGX)
 
-[![Android CI](https://github.com/Capricornus007/moreGramX/actions/workflows/build.yml/badge.svg)](https://github.com/Capricornus007/moreGramX/actions/workflows/build.yml)
-[![Java Compile Check](https://github.com/Capricornus007/moreGramX/actions/workflows/java-check.yml/badge.svg)](https://github.com/Capricornus007/moreGramX/actions/workflows/java-check.yml)
+[![Android CI](https://github.com/Capricornus007/moregramX/actions/workflows/build.yml/badge.svg)](https://github.com/Capricornus007/moregramX/actions/workflows/build.yml)
+[![Java Compile Check](https://github.com/Capricornus007/moregramX/actions/workflows/java-check.yml/badge.svg)](https://github.com/Capricornus007/moregramX/actions/workflows/java-check.yml)
 [![License: GPLv3](https://img.shields.io/badge/license-GPLv3-blue.svg)](LICENSE)
 
 moregramX is an independent Telegram client for Android based on
@@ -128,8 +128,8 @@ Notable local integration commits:
 ## Download
 
 APK files are published in the rolling
-[Latest Release](https://github.com/Capricornus007/moreGramX/releases/tag/latest)
-and as artifacts of successful [Android CI runs](https://github.com/Capricornus007/moreGramX/actions/workflows/build.yml).
+[Latest Release](https://github.com/Capricornus007/moregramX/releases/tag/latest)
+and as artifacts of successful [Android CI runs](https://github.com/Capricornus007/moregramX/actions/workflows/build.yml).
 Only install builds from a source and signing key you trust. A build signed
 with another key cannot update an existing installation.
 
@@ -161,8 +161,8 @@ Per-OS setup (upstream tgx instructions, folded in on 2026-10-04):
 Clone all submodules:
 
 ~~~sh
-git clone --recursive https://github.com/Capricornus007/moreGramX.git
-cd moreGramX
+git clone --recursive https://github.com/Capricornus007/moregramX.git
+cd moregramX
 git lfs install
 ~~~
 
