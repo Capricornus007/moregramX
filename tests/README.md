@@ -47,6 +47,7 @@ Tests are kept in the repository and guard behavior that must keep working after
 | UI | `tests/ui/src/main/kotlin` | `tests/ui/checks` |
 | Benchmarks | `tests/benchmark/src/main/kotlin` | `tests/benchmark/checks` |
 | Microbenchmarks | `tests/microbenchmark/src/main/kotlin` | `tests/microbenchmark/checks` |
+| Build, `buildSrc` | — | `tests/buildSrc/checks` |
 
 * A check is moved to tests only when it guards a core user flow or a contract other code relies on, which changes elsewhere can break unnoticed, and it's fast and gives the same result on every run. A test that fails randomly is worse than none. Everything else stays a check, however useful it was for the change.
 * Helpers that checks need are added to `tests/core`, so that next checks stay small.
@@ -85,13 +86,13 @@ App is built in flavors for ranges of Android versions. Code, resources, manifes
 | `legacy` | 4.1–4.4W, API 16–20 | `preMarshmallow`, `onlyLegacy` |
 | `lollipop` | 5.0–5.1, API 21–22 | `sinceLollipop`, `preMarshmallow`, `onlyLollipop` |
 | `marshmallow` | 6.0, API 23 | `sinceLollipop`, `sinceMarshmallow`, `onlyMarshmallow` |
-| `tens` | 7.0–9, API 24–28 | `sinceLollipop`, `sinceMarshmallow`, `sinceOreo`, `onlyTens` |
+| `nop` | 7.0–9, API 24–28 | `sinceLollipop`, `sinceMarshmallow`, `sinceOreo`, `onlyNop` |
 | `qrs` | 10–12L, API 29–32 | `sinceLollipop`, `sinceMarshmallow`, `sinceOreo`, `onlyQrs` |
 | `latest` | 13 and newer, API 33+ | `sinceLollipop`, `sinceMarshmallow`, `sinceOreo`, `onlyLatest` |
 
-* `sinceOreo` is added to `tens` too, which also runs on Android 7.x, so code there still compares `Build.VERSION.SDK_INT`.
+* `sinceOreo` is added to `nop` too, which also runs on Android 7.x, so code there still compares `Build.VERSION.SDK_INT`.
 * When no folder matches affected flavors exactly, code in the closest wider folder compares `Build.VERSION.SDK_INT`. A new folder is added to `findExtraFolders` only when several files need it.
-* Checks run on a flavor with its name in the task instead of `Latest`, see [Running tests](#running-tests). Unit checks run on every flavor, e.g. `testLegacyDebugUnitTest`, checks on device only on `tens`, `qrs` and `latest`.
+* Checks run on a flavor with its name in the task instead of `Latest`, see [Running tests](#running-tests). Unit checks run on every flavor, e.g. `testLegacyDebugUnitTest`, checks on device only on `nop`, `qrs` and `latest`.
 * Classes added after `minSdk` of a flavor are used only after version checks. Declarations can't be guarded by them: older Android fails to load or verify classes that mention new classes in supertypes, types of fields, parameters and results of methods, or caught exceptions, e.g. with `NoClassDefFoundError` or `VerifyError` on Android 4.x. `./gradlew checkMinSdk` finds such declarations and imports of new classes in debug variants of all flavors, `check<Variant>MinSdk` in one variant, and lists them in `build/reports/minSdk/<variant>.txt` of the module. It fails only in flavors for Android 4.x, where new classes are referenced by their full name only inside version checks: Dalvik fails to verify whole classes that use them elsewhere, and imports make such uses easy to miss. ART of Android 5.0+ resolves classes only when they are used, so in newer flavors the lists are only for reference. Files of classes annotated with `@RequiresApi` or `@TargetApi` may import them. `legacy` flavor of the app is built and checked only with `-PuseLegacyNdk=true`. Uses of classes and methods annotated with `@RequiresApi`, anonymous classes and calls inside methods are checked by `NewApi` check of lint instead, e.g. `./gradlew :app:lintLegacyDebug -PuseLegacyNdk=true`: without the flag newer NDK raises minSdk of `legacy` flavor. Classes of `java.util` and `java.time` are left to lint too, because core library desugaring adds many of them to older Android.
 
 ## Pull request description
@@ -270,7 +271,8 @@ class ChatTest : AuthorizedTest() {
 * Helpers are in [`Extensions.kt`](core/src/main/kotlin/tgx/test/Extensions.kt): `findElement`, `waitForElement`, `failIfPresent`, `openUrl`, `runShellCommand` and others. Helpers of chats are in [`Chats.kt`](ui/src/main/kotlin/tgx/test/Chats.kt): `openSavedMessages`, the only chat where tests send messages, `sendMessage`, `lastMessages`, `visibleTopOfChat` below bars of the chat, e.g. of a pinned message, `openMessageMenu` by a tap at the time of a message, `setAppearance(AppTheme.NIGHT_BLUE, bubbles = false)`, which sets the theme and the chat style without screens of settings, and `textCopiedBy { }`, which returns what the block copied. Any `UiDevice` and `UiObject2` methods can be used as well, except `executeShellCommand`: use `runShellCommand` or `androidx.test.shell.Shell` instead.
 * To see ids of elements currently displayed on device: `adb exec-out uiautomator dump /dev/tty`.
 * On Windows MSYS2 and Git Bash convert arguments that look like paths, e.g. `/dev/tty`, to Windows paths. Prepend `MSYS2_ARG_CONV_EXCL='*'` to `adb` commands with paths on device.
-* Notifications of new messages come without a second account and without sending anything from [`NotificationFlood`](ui/app/kotlin/tgx/test/NotificationFlood.kt), which builds of tests have inside app process: it loads incoming messages of chats of the account from their history and gives the app updates of TDLib about notifications with new ids and dates, as if they had just come. Builds of tests get notifications from TDLib like release builds, and the flood starts without them. A test starts it by a broadcast, e.g. `runShellCommand("am broadcast -n ${getApplicationId()}/tgx.test.NotificationFloodReceiver --ei count 3000 --ei perMinute 3000 --ei chats 5")`, and waits for `done` in logcat of tag `NotificationFlood`, where each second it logs the notifications it sent with the number of mappings and the native heap of the app. When the system caches the app in background, which ends a long flood by "excessive binder traffic during cached", it warns `the app is cached`. After the flood `--ez removeAfter true` removes its notifications as TDLib does when they are read, and `--ez muteAfter true` turns notifications of its chats off in the app. Each second it also logs the icons of notifications that the app keeps, which `tgx.test.NotificationIconsReceiver` logs on demand.
+* Notifications of new messages come without a second account and without sending anything from [`NotificationFlood`](ui/app/kotlin/tgx/test/NotificationFlood.kt), which builds of tests have inside app process: it loads incoming messages of chats of the account from their history and gives the app updates of TDLib about notifications with new ids and dates, as if they had just come. Builds of tests get notifications from TDLib like release builds, and the flood starts without them. A test starts it by a broadcast, e.g. `runShellCommand("am broadcast -n ${getApplicationId()}/tgx.test.NotificationFloodReceiver --ei count 3000 --ei perMinute 3000 --ei chats 5")`, and waits for `done` in logcat of tag `NotificationFlood`, where each second it logs the notifications it sent with the number of mappings and the native heap of the app. When the system caches the app in background, which ends a long flood by "excessive binder traffic during cached", it warns `the app is cached`. After the flood `--ez removeAfter true` removes its notifications as TDLib does when they are read, and `--ez muteAfter true` turns notifications of its chats off in the app. Each second it also logs the icons of notifications that the app keeps, which `tgx.test.NotificationIconsReceiver` logs on demand. With `--ez local true` TDLib itself adds the messages as local ones from their senders (`AddLocalMessage`, nothing goes to the server), so that the app gets all updates of new messages through the queue of results of TDLib and their notifications from TDLib, and each second the tool also logs how long results wait in that queue; `--ez savedMessages true` adds them to Saved Messages, which has no notifications, e.g. to measure an open chat. `--es chatType supergroup` takes chats of one type, `--ez oneSender true` gives all messages of a chat to one sender, `--ei retainedEvery 30` logs the native heap after garbage collection each 30 seconds, and `--ez muted true` takes muted chats too.
+* Samples of animated stickers for benchmarks of drawing come from the account by [`StickerSamples`](ui/app/kotlin/tgx/test/StickerSamples.kt): `runShellCommand("am broadcast -n ${getApplicationId()}/tgx.test.StickerSamplesReceiver")` saves stickers and custom emoji of installed sets, full-screen effects and animated emoji with colors of skin as `.tgs` files named by unique ids of their files, in `stickers` of external files of the app, and logs `done <count>` in logcat of tag `StickerSamples`. Samples of a test account are kept out of the repository, e.g. in ignored `core/src/main/assets`, which tests read by `instrumentation.context.assets`.
 
 #### Profiles of native memory
 
@@ -279,6 +281,20 @@ class ChatTest : AuthorizedTest() {
 ```shell
 ./gradlew :tests:ui:connectedLatestNonMinifiedReleaseAndroidTest :tests:ui:describeHeapProfiles -Pabi=arm64 -Pandroid.testInstrumentationRunnerArguments.class=tgx.test.<Check>
 ```
+
+#### Images of types of messages
+
+Chats that only the app knows come from [`FakeChats`](ui/app/kotlin/tgx/test/FakeChats.kt) inside the app process of builds of tests: made-up users, private and secret chats, groups and channels, sent to the app by updates of TDLib, while the interceptor of the client of TDLib answers queries of the app about them. [`MessageContents.kt`](ui/app/kotlin/tgx/test/MessageContents.kt) has a sample of every type of `MessageContent` that a client receives, with its directions and kinds of chats, and [`PushContents.kt`](ui/app/kotlin/tgx/test/PushContents.kt) one of every `PushMessageContent`. Media of samples are real files of the account, found by type in its messages, so they load as in real chats; images with them show data of the account.
+
+`MessageTypesImages` saves for each sample in each direction the chat in the list, the message in the chat and its notification, drawn in the app from the views of the system without opening the shade, and for each push its notification before and after the message replaces it; it fails when the app crashes or logs an exception. Messages are dated 10:00 of the day, so images of two runs differ only by changes of the app. `saveMessageTypes` keeps the images of a run as the base, e.g. of the commit a branch starts from, and `compareMessageTypes` lists types whose images changed since, with paths of the images before and after:
+
+```shell
+./gradlew :tests:ui:connectedLatestNonMinifiedReleaseAndroidTest :tests:ui:saveMessageTypes -Pabi=arm64 -Pandroid.testInstrumentationRunnerArguments.class=tgx.test.MessageTypesImages -Pandroid.testInstrumentationRunnerArguments.messageTypes=true
+# With the change
+./gradlew :tests:ui:connectedLatestNonMinifiedReleaseAndroidTest :tests:ui:compareMessageTypes -Pabi=arm64 -Pandroid.testInstrumentationRunnerArguments.class=tgx.test.MessageTypesImages -Pandroid.testInstrumentationRunnerArguments.messageTypes=true
+```
+
+Images are made in Blue and Night Black, in all themes with `-Pandroid.testInstrumentationRunnerArguments.messageTypes.themes=all`. `-Pandroid.testInstrumentationRunnerArguments.messageTypes.filter=MessageText+PushMessageContentText` makes images only of types whose names contain one of the parts, e.g. the types that a change touches; parts are joined by `+`, since the runner of tests splits arguments at commas.
 
 
 ### Benchmarks
@@ -316,7 +332,7 @@ Results are saved in `build/outputs/connected_android_test_additional_output` of
 ./gradlew :tests:benchmark:compareBenchmarkResults
 ```
 
-`saveBenchmarkResults` keeps results in `build/benchmark-results` of the module until `clean`. Microbenchmarks keep every run there, also of commands that neither save nor compare results, join runs of the same build, and don't save a run without measurements, e.g. a dry run or a run of checks only, as results to compare with, see [Optimizing code](#optimizing-code). `compareBenchmarkResults` shows the change of medians of each metric with 95% confidence interval of the shift between iterations, e.g. `-1.2% (-2.0%..-0.4%) lower`, and ends with a summary of clear changes. When the interval includes zero, the change is smaller than measurements can tell: more iterations narrow the interval, 4 times more make it 2 times narrower, and microbenchmarks measure code more precisely. Sampled metrics, e.g. frame durations, are compared by their percentiles. The output is included in the pull request. Tasks that read results run after tests requested in the same command, e.g. `./gradlew :tests:benchmark:connectedLatestBenchmarkReleaseAndroidTest :tests:benchmark:compareBenchmarkResults`.
+`saveBenchmarkResults` keeps results in `build/benchmark-results` of the module until `clean`. Microbenchmarks keep every run there, also of commands that neither save nor compare results, join runs of the same build, and don't save a run without measurements, e.g. a dry run or a run of checks only, as results to compare with, see [Optimizing code](#optimizing-code). In one command `compareBenchmarkResults` runs before `saveBenchmarkResults`, so a change is compared with the base before it becomes the new one. `compareBenchmarkResults` shows the change of medians of each metric with 95% confidence interval of the shift between iterations, e.g. `-1.2% (-2.0%..-0.4%) lower`, and ends with a summary of clear changes. When the interval includes zero, the change is smaller than measurements can tell: more iterations narrow the interval, 4 times more make it 2 times narrower, and microbenchmarks measure code more precisely. Sampled metrics, e.g. frame durations, are compared by their percentiles. The output is included in the pull request. Tasks that read results run after tests requested in the same command, e.g. `./gradlew :tests:benchmark:connectedLatestBenchmarkReleaseAndroidTest :tests:benchmark:compareBenchmarkResults`.
 
 * Among many metrics some change clearly by chance, so intervals are widened for the number of metrics. A change that targets one metric names it, e.g. `-Pmetric=frameDurationCpuMsP90`: its intervals are widened only for the number of benchmarks that have it, so it's measured precisely, while other metrics show only clear regressions.
 * Device heats up while benchmarks run, so the next run may be slower without any change. Run benchmarks before and after the change with the same pause, e.g. let the device cool down for a few minutes.
@@ -538,6 +554,7 @@ git checkout <branch> -- tests && git switch <branch> && git submodule update --
 | Benchmarks | `./gradlew :tests:benchmark:emulatorLatestBenchmarkReleaseAndroidTest -Pabi=arm64` |
 | Microbenchmarks | `./gradlew :tests:microbenchmark:connectedLatestNonMinifiedReleaseAndroidTest -Pabi=arm64` |
 | Baseline profiles | `./gradlew :app:generateBaselineProfile -Pabi=arm64` |
+| Checks of the build | `./gradlew -p buildSrc test` |
 
 Tests on device replace installed app and clear its data, so they must never run on a device with Telegram X used for real accounts. Tests requested together, e.g. integration and UI tests, run one after another. Device is selected by task name:
 
@@ -548,11 +565,28 @@ Tests on device replace installed app and clear its data, so they must never run
 * `-Pabi` limits native libraries to ABIs of devices, separated by commas: `arm64` for phones and emulators on ARM machines, `x64` for emulators on x86 machines, e.g. `-Pabi=arm64,x64` for both. Without it, all ABIs are built.
 * UI tests have two build types. `NonMinifiedRelease` builds faster and is suitable for writing tests. `BenchmarkRelease` is minified with R8 the same way as release builds, use it to check the build before publishing.
 * Benchmarks on emulator fail by default, because results are not representative. To check that they work, add `-Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.suppressErrors=EMULATOR`. Real measurements require `connected` device.
-* To test other flavors, replace `Latest` in task name, e.g. with `Tens` (Android 7.0–9).
+* To test other flavors, replace `Latest` in task name, e.g. with `Nop` (Android 7.0–9).
 * Baseline profiles are generated for all variants that use them, on connected device and then on emulator, and saved in `app/src/<variant>/generated/baselineProfiles`.
 * On failure Gradle prints path to report. Results of tests on device, including logcat, are saved in `build/outputs/androidTest-results` of the module.
 * When a test in separate process fails, screenshot, UI hierarchy and app crashes at that moment are saved as `<Class>.<test>.failure.png`, `<Class>.<test>.failure.xml` and `<Class>.<test>.crash.txt`, screenshots taken by test as `<Class>.<test>.<name>.png`. Gradle copies them to `build/outputs` of the module: `find tests/ui/build/outputs -name 'ChatTest.*'`.
 * After changes in `tests/core` or `tests/buildSrc`, `scripts/check-test-tools.sh` checks test tools: helpers of drawing, animations and scrolling, screenshots and recordings, check results before and after a change, benchmarks and their comparison, microbenchmarks, their outputs, comparison and method traces, `checkMinSdk`. Checks and benchmarks run on connected test device, `minsdk` step doesn't need it. Steps are selected by arguments, e.g. `scripts/check-test-tools.sh checks`. Its smoke checks are in `tests/<module>/tools`, which are compiled only with `-Ptgx.testTools`. The script runs Gradle and works with the device, `describeTestToolsCheck` task checks results and writes `build/test-tools-check/report.md`. It runs on macOS, Ubuntu and Windows in MSYS2 (UCRT64).
+
+### Android older than 7.0
+
+Tests of `tests/` need Android 7.0, API 24. On older phones, e.g. 4.2 of a weak test phone, `legacy` is measured by adb with its build with test hooks, minified like a release, made by `build.sh`:
+
+```shell
+tests/legacy/build.sh legacy -Pabi=arm32 -PuseLegacyNdk=true
+ANDROID_SERIAL=<device> tests/legacy/install.sh <apk> <snapshot.zip>
+ANDROID_SERIAL=<device> tests/legacy/start.sh 10 <output folder>
+ANDROID_SERIAL=<device> tests/legacy/scroll.sh 10 <output folder>
+```
+
+* `build.sh` builds the flavor given with test hooks and the marks of the start of `start-marks.patch`, which it applies to the clone for the time of the build and takes back after: the marks stay out of the code of the app, so that no release has them, and a mark added for a measurement goes into the patch. It prints the path of the APK.
+* `install.sh` installs the build and restores the snapshot of accounts at its first start, then deletes the copy of the snapshot on the phone.
+* `start.sh` measures cold and warm starts by `am start -W`, cold ones also by marks of `StartMarks` of the patch, which builds of `build.sh` log with tag `StartMarks` along the start once for each process: `Application`, the steps of `AppState`, `MainActivity.onCreate`, `first draw`, `chats shown` and `ready`, each with milliseconds since the previous mark and since the first one. It writes `starts.tsv` and the medians.
+* `scroll.sh` makes flings of the same length on the chat list and times each frame: on Android 4.1–4.3 by `debug.hwui.profile`, which it sets back after, and the times that `dumpsys gfxinfo` prints and clears, from Android 6.0 on by `framestats`. It writes `flings.tsv` and the totals: frames, their mean, 90th percentile, longest one and frames over one refresh, `BUDGET=16.67` ms by default. The same scripts measure a recent phone, e.g. `latest` built with `-Pabi=arm64`, to compare a change on both, with `BUDGET` of its refresh rate and the coordinates of its list.
+* Android 4.2 has no sections of traces of apps, API 18, and no `screenrecord`, 4.4; `atrace` there only traces the kernel, e.g. `-s` scheduling. A step that takes long gets marks inside it, by `startMark("name")` in `start-marks.patch`.
 
 ## Test accounts
 

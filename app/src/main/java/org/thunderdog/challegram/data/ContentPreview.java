@@ -806,13 +806,14 @@ public class ContentPreview {
       case TdApi.MessageChatRemovedFromCommunity.CONSTRUCTOR:
       case TdApi.MessageTonConnectRequest.CONSTRUCTOR:
       case TdApi.MessageTonWalletTransfer.CONSTRUCTOR:
+      case TdApi.MessageUnpaidMessagesAllowedByLink.CONSTRUCTOR:
         break;
 
       // Bots only. Unused
       case TdApi.MessagePassportDataReceived.CONSTRUCTOR:
       case TdApi.MessageWebAppDataReceived.CONSTRUCTOR:
       default:
-        Td.assertMessageContent_f7758f8b();
+        Td.assertMessageContent_cc875c63();
         throw Td.unsupported(message.content);
     }
     Refresher refresher = null;
@@ -1670,6 +1671,7 @@ public class ContentPreview {
       case TdApi.MessageChatRemovedFromCommunity.CONSTRUCTOR:
       case TdApi.MessageTonConnectRequest.CONSTRUCTOR:
       case TdApi.MessageTonWalletTransfer.CONSTRUCTOR:
+      case TdApi.MessageUnpaidMessagesAllowedByLink.CONSTRUCTOR:
         // TODO support these previews
         return new ContentPreview(EMOJI_QUIZ, R.string.UnsupportedMessage);
         
@@ -1680,7 +1682,7 @@ public class ContentPreview {
       case TdApi.MessagePassportDataReceived.CONSTRUCTOR:
       case TdApi.MessageWebAppDataReceived.CONSTRUCTOR:
       default:
-        Td.assertMessageContent_f7758f8b();
+        Td.assertMessageContent_cc875c63();
         throw new UnsupportedOperationException(Integer.toString(type));
     }
   }

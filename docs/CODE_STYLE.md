@@ -173,6 +173,25 @@ private fun Project.findAppKeystore(): Keystore? {
 * New files in `app` start with the license header, copied from a neighbouring file.
 * Build code in `buildSrc` and `tests/buildSrc` fails with `fatal(message)` of `tgx.gradle`.
 * Drawing, animations and scrolling don't allocate objects or request layout on frames, see [tests](/tests/README.md#drawing-and-animations).
+* A check of `Build.VERSION.SDK_INT` with both branches tests the newer version first, with the code since that version in `if` and the code before it in `else`:
+
+  ```java
+  // Don't
+  if (Build.VERSION.SDK_INT < Build.VERSION_CODES.KITKAT) {
+    // pre-KitKat code
+  } else {
+    // since KitKat code
+  }
+
+  // Do
+  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+    // since KitKat code
+  } else {
+    // pre-KitKat code
+  }
+  ```
+
+* Lists don't call `notifyDataSetChanged()`, and a change of what rows show doesn't animate: `notifyItemChanged` and `notifyItemRangeChanged` over visible rows run change animations of the `ItemAnimator`. A visible row that shows the change is updated in its view and invalidated; rows off the screen, also those detached in the cache of `RecyclerView`, get `notifyItemRangeChanged` of their ranges and are bound again when shown. `notifyItemInserted`, `notifyItemRemoved` and `notifyItemMoved` are for changes of the structure of the list.
 
 ## Resources
 

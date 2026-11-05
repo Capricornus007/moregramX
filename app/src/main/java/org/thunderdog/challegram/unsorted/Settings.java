@@ -4746,7 +4746,7 @@ public class Settings {
       case TdApi.ProxyTypeMtproto.CONSTRUCTOR:
         return null;
       default: {
-        Td.assertProxyType_bc1a1076();
+        Td.assertProxyType_40673e07();
         throw Td.unsupported(type);
       }
     }
@@ -4761,7 +4761,7 @@ public class Settings {
       case TdApi.ProxyTypeMtproto.CONSTRUCTOR:
         return null;
       default: {
-        Td.assertProxyType_bc1a1076();
+        Td.assertProxyType_40673e07();
         throw Td.unsupported(type);
       }
     }
@@ -4776,7 +4776,7 @@ public class Settings {
       case TdApi.ProxyTypeHttp.CONSTRUCTOR:
         return 3;
       default:
-        Td.assertProxyType_bc1a1076();
+        Td.assertProxyType_40673e07();
         throw Td.unsupported(type);
     }
   }
@@ -4790,7 +4790,7 @@ public class Settings {
       case TdApi.ProxyTypeHttp.CONSTRUCTOR:
         return Proxy.TYPE_HTTP;
       default:
-        Td.assertProxyType_bc1a1076();
+        Td.assertProxyType_40673e07();
         throw Td.unsupported(type);
     }
   }
@@ -5149,7 +5149,7 @@ public class Settings {
           stringRes = R.string.ProxyHttp;
           break;
         default:
-          Td.assertProxyType_bc1a1076();
+          Td.assertProxyType_40673e07();
           throw Td.unsupported(proxy.type);
       }
       return Lang.getString(stringRes, (target, argStart, argEnd, argIndex, needFakeBold) -> new CustomTypefaceSpan(null, ColorId.textLight), name);

@@ -93,12 +93,15 @@ fun Project.configureTests() {
     // Built-in Kotlin compiles only Kotlin source directories
     sourceSets.getByName("test") {
       kotlin.directories += "../tests/unit/kotlin"
+      // Suites that run both on the JVM and on the device, e.g. against implementations of Android
+      kotlin.directories += "../tests/shared/kotlin"
       if (hasChecks) {
         kotlin.directories += "../tests/unit/checks"
       }
     }
     sourceSets.getByName("androidTest") {
       kotlin.directories += "../tests/integration/kotlin"
+      kotlin.directories += "../tests/shared/kotlin"
       if (hasChecks) {
         kotlin.directories += "../tests/integration/checks"
       }
@@ -247,6 +250,19 @@ fun Project.configureAppTests(
     mustRunAfter(tasks.named { it.startsWith("connected") && it.endsWith("AndroidTest") })
     results.set(layout.buildDirectory.dir("outputs/connected_android_test_additional_output"))
     traceProcessor.set(providers.gradleProperty("traceProcessor"))
+  }
+
+  val messageTypesBase = layout.buildDirectory.dir("message-types-base")
+  tasks.register<SaveMessageTypesTask>("saveMessageTypes") {
+    mustRunAfter(tasks.named { it.startsWith("connected") && it.endsWith("AndroidTest") })
+    results.set(layout.buildDirectory.dir("outputs/connected_android_test_additional_output"))
+    base.set(messageTypesBase)
+  }
+  tasks.register<CompareMessageTypesTask>("compareMessageTypes") {
+    mustRunAfter(tasks.named { it.startsWith("connected") && it.endsWith("AndroidTest") })
+    results.set(layout.buildDirectory.dir("outputs/connected_android_test_additional_output"))
+    base.set(messageTypesBase)
+    rootDirectory.set(isolated.rootProject.projectDirectory)
   }
 
   if (inAppProcess) {
