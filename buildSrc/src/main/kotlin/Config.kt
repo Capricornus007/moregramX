@@ -84,6 +84,9 @@ data class BuildVersions(
 
 data class ApplicationConfig(
   val sdkDir: String,
+  // tgx 上游的 rust 編譯鏈參數（AppConfigurationSource 讀 local.properties 的 rust.dir 傳入）；
+  // 本 fork 目前無 rust 消費者，默認空串保持零破壞。
+  val rustDir: String = "",
   val msys2Dir: String,
 
   val applicationName: String,
