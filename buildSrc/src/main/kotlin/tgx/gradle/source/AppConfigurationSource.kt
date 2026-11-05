@@ -77,9 +77,9 @@ abstract class AppConfigurationSource : ValueSource<ApplicationConfig, AppConfig
     }
 
     // rustup home with the version of Rust of version.properties, see scripts/setup-rust.sh
-    val rustDir = properties.getProperty("rust.dir").orEmpty().ifEmpty {
-      fatal("rust.dir is not set in local.properties, see scripts/setup-rust.sh")
-    }
+    // 本 fork 無 rust 消費者（tgx 上游的 rust 編譯鏈未啟用），缺 rust.dir 不 fatal——
+    // 空串直接帶過，CI 的 local.properties 不需要 setup-rust。（2026-11-06）
+    val rustDir = properties.getProperty("rust.dir").orEmpty()
 
     val msys2Dir = if (isWindowsHost()) {
       properties.getOrThrow("msys2.dir").also {
