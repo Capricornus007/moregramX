@@ -171,3 +171,7 @@ deleted-any|app/src/onlyLollipop|-|-|lollipop flavor 專屬目錄（僅 1 檔 Me
 deleted-any|preMarshmallow|-|-|lollipop 專屬 preMarshmallow 目錄（app/src/preMarshmallow 的 NLoader.kt 與 app/src/google/preMarshmallow 的 Firebase 兩檔；latest 由同名 sinceMarshmallow／google/sinceMarshmallow 提供）
 deleted|app/thirdparty/androidx-media/lollipop|-|-|已刪的 androidx-media lollipop 子模組 gitlink，不准被合併帶回（見第 6 節 latest 那條保留）
 prop|version.properties|version.flavors=latest|lollipop,marshmallow|唯一建置／發布的 flavor；上游把 lollipop／marshmallow 加回 version.flavors 就直接紅（legacy 於第二刀再併入 bad）
+# 2026-11-06 收編 tgx/main 43 筆時新增的子模組 branch 元數據登記
+branch | app/thirdparty/androidx-media/legacy | release |  | androidx-media legacy 線（tgx 2026-11 上游新增）
+branch | app/thirdparty/androidx-media/lollipop | release |  | androidx-media lollipop 線
+branch | app/jni/third_party/tlottie | production |  | tlottie（TGX-Android，production 線）
