@@ -118,7 +118,7 @@ branch|app/jni/third_party/ffmpeg|release/6.1|-|FFmpeg 穩定分支
 # 而 td@a94b83d→9d92b49 這 113 筆動過 td/generate/scheme/td_api.tl（layer 232、
 # oauthLinkInfo 等新欄位）⇒ 綁定層沒重生之前，單抬 tdlib 一定紅。
 # 正確時機：跟 tgx 合併（#34）時把兩條 gitlink 连同 app 端一起收。
-gitlink|tdlib|13b78057835cd9441aa49646f26d003178432897|6c7857c4a5b35e137b36a7428d08313cb85bcb5b|url 已改指 Capricornus007/tdlib；13b7805 = b47cd82 的 td@a94b83d payload ＋ 刪 r23 預編譯樹 ＋ 去 legacy 腳本，必須與 vkryl/td 595dee3e 成對
+gitlink|tdlib|c904ea8d268324a27a0cc0f8f59e2506670c4490|13b78057835cd9441aa49646f26d003178432897|url 指 Capricornus007/tdlib；c904ea8 = upstream/main(td@1b9efe8) TdApi.java 補回 WebProxyCarrier 等新 API + fork 專屬 FoundVenue，修 mgx CI 99 個 cannot find symbol；舊值 13b7805(Restore 回退舊 TdApi) 列為 bad 防退回
 gitlink|vkryl/td|595dee3e06bd35e73e9974d93326c351829d4587|61d4ea0b66cfdeed9352ba0a84e5746e528559d5|綁定層，tgx/main d1ebf3fef 成對值；61d4ea0b 少了 PushMessageContentChecklistTasksAdded 那條 isPinned 分支（被合併退回就是 bad_value）
 # tgx/main aa687c67c 把 me.vkryl.annotation 從 X-Core 拆成獨立倉 X-Annotation：
 # core c1179615 → a3e94a40（"Move Annotations.kt to separate module"），同一筆新增
