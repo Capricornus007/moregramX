@@ -213,7 +213,7 @@ public abstract class MediaPreview implements ListAnimator.Measurable {
         break;
       }
       default:
-        Td.assertLinkPreviewType_883de866();
+        Td.assertLinkPreviewType_821de27a();
         throw Td.unsupported(linkPreview.type);
     }
     return false;
@@ -306,7 +306,7 @@ public abstract class MediaPreview implements ListAnimator.Measurable {
               break;
             }
             default:
-              Td.assertLinkPreviewType_883de866();
+              Td.assertLinkPreviewType_821de27a();
               throw Td.unsupported(linkPreview.type);
           }
         }
@@ -532,7 +532,7 @@ public abstract class MediaPreview implements ListAnimator.Measurable {
         break;
       }
       default: {
-        Td.assertMessageContent_cc875c63();
+        Td.assertMessageContent_e4738066();
         throw Td.unsupported(message.content);
       }
     }

@@ -1062,7 +1062,7 @@ public class ReplyComponent implements Client.ResultHandler, Destroyable {
             case TdApi.LinkPreviewTypeTextCompositionStyle.CONSTRUCTOR:
               break;
             default:
-              Td.assertLinkPreviewType_883de866();
+              Td.assertLinkPreviewType_821de27a();
               throw Td.unsupported(linkPreview.type);
           }
         }

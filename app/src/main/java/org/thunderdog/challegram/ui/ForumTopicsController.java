@@ -762,7 +762,7 @@ public class ForumTopicsController extends TelegramViewController<ForumTopicsCon
     }
 
     // Then refresh from network in background
-    tdlib.client().send(new TdApi.GetForumTopics(chatId, "", 0, 0, 0, 100), result -> {
+    tdlib.client().send(new TdApi.GetForumTopics(chatId, "", 0L, false, false, 0, 0, 0, 100), result -> {
       if (result.getConstructor() == TdApi.ForumTopics.CONSTRUCTOR) {
         TdApi.ForumTopics forumTopics = (TdApi.ForumTopics) result;
         UI.post(() -> {
@@ -797,7 +797,7 @@ public class ForumTopicsController extends TelegramViewController<ForumTopicsCon
     long lastMessageId = lastTopic.lastMessage != null ? lastTopic.lastMessage.id : 0;
     int lastDate = lastTopic.lastMessage != null ? lastTopic.lastMessage.date : 0;
 
-    tdlib.client().send(new TdApi.GetForumTopics(chatId, "", lastDate, lastMessageId, lastTopic.info.forumTopicId, 100), result -> {
+    tdlib.client().send(new TdApi.GetForumTopics(chatId, "", 0L, false, false, lastDate, lastMessageId, lastTopic.info.forumTopicId, 100), result -> {
       if (result.getConstructor() == TdApi.ForumTopics.CONSTRUCTOR) {
         TdApi.ForumTopics forumTopics = (TdApi.ForumTopics) result;
         UI.post(() -> {

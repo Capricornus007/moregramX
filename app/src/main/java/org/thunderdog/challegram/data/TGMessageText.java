@@ -780,7 +780,7 @@ public class TGMessageText extends TGMessage {
     textSelectionHelper.showActionMode(view, new TextSelectionHelper.QuoteCallback() {
               @Override
               public void onQuoteCreated(TdApi.FormattedText text, int utf16Position) {
-                  TdApi.InputTextQuote quote = new TdApi.InputTextQuote(text, utf16Position);
+                  TdApi.InputTextQuote quote = new TdApi.InputTextQuote(text, null, utf16Position);
                   if (manager != null && manager.controller() != null) {
                     getMessageWithProperties(messageWithProps -> {
                       manager.controller().showReply(messageWithProps, quote, 0, "", true, true);
@@ -791,7 +791,7 @@ public class TGMessageText extends TGMessage {
 
               @Override
               public void onQuoteInOtherChatCreated(TdApi.FormattedText text, int utf16Position) {
-                TdApi.InputTextQuote quote = new TdApi.InputTextQuote(text, utf16Position);
+                TdApi.InputTextQuote quote = new TdApi.InputTextQuote(text, null, utf16Position);
                 if (manager != null && manager.controller() != null) {
                   manager.controller().replyMessageInOtherChat(msg, quote);
                 }

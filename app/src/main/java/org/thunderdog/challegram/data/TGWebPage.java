@@ -279,7 +279,7 @@ public class TGWebPage implements FileProgressComponent.SimpleListener, MediaWra
           break;
 
         default: {
-          Td.assertLinkPreviewType_883de866();
+          Td.assertLinkPreviewType_821de27a();
           if (BuildConfig.DEBUG) {
             Tracer.onTdlibHandlerError(new UnsupportedOperationException(type.toString()));
           }

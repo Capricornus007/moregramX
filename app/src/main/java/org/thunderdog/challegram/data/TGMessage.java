@@ -8587,7 +8587,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
           break;
         }
         default: {
-          Td.assertMessageContent_cc875c63();
+          Td.assertMessageContent_e4738066();
           throw Td.unsupported(msg.content);
         }
       }

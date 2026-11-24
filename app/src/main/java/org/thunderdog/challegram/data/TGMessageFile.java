@@ -289,7 +289,7 @@ public class TGMessageFile extends TGMessage {
       textSelectionHelper.showActionMode(view, new TextSelectionHelper.QuoteCallback() {
                 @Override
                 public void onQuoteCreated(TdApi.FormattedText text, int utf16Position) {
-                    TdApi.InputTextQuote quote = new TdApi.InputTextQuote(text, utf16Position);
+                    TdApi.InputTextQuote quote = new TdApi.InputTextQuote(text, null, utf16Position);
                     if (manager != null && manager.controller() != null) {
                       TdApi.Message message = getMessage(messageId);
                       if (message != null) {
@@ -304,7 +304,7 @@ public class TGMessageFile extends TGMessage {
 
                 @Override
                 public void onQuoteInOtherChatCreated(TdApi.FormattedText text, int utf16Position) {
-                    TdApi.InputTextQuote quote = new TdApi.InputTextQuote(text, utf16Position);
+                    TdApi.InputTextQuote quote = new TdApi.InputTextQuote(text, null, utf16Position);
                     if (manager != null && manager.controller() != null) {
                       TdApi.Message message = getMessage(messageId);
                       if (message != null) {

@@ -813,7 +813,7 @@ public class ContentPreview {
       case TdApi.MessagePassportDataReceived.CONSTRUCTOR:
       case TdApi.MessageWebAppDataReceived.CONSTRUCTOR:
       default:
-        Td.assertMessageContent_cc875c63();
+        Td.assertMessageContent_e4738066();
         throw Td.unsupported(message.content);
     }
     Refresher refresher = null;
@@ -1682,7 +1682,7 @@ public class ContentPreview {
       case TdApi.MessagePassportDataReceived.CONSTRUCTOR:
       case TdApi.MessageWebAppDataReceived.CONSTRUCTOR:
       default:
-        Td.assertMessageContent_cc875c63();
+        Td.assertMessageContent_e4738066();
         throw new UnsupportedOperationException(Integer.toString(type));
     }
   }

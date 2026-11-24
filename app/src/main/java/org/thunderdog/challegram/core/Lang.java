@@ -1426,7 +1426,7 @@ public class Lang {
       case TdApi.MessageUnpaidMessagesAllowedByLink.CONSTRUCTOR:
         break;
       default:
-        Td.assertMessageContent_cc875c63();
+        Td.assertMessageContent_e4738066();
         throw Td.unsupported(message.content);
     }
     if (format == null) {

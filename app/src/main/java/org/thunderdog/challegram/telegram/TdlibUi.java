@@ -4335,7 +4335,7 @@ public class TdlibUi extends Handler {
         return; // async
       }
       default: {
-        Td.assertInternalLinkType_c232a5d5();
+        Td.assertInternalLinkType_166bd314();
         throw Td.unsupported(linkType);
       }
     }
