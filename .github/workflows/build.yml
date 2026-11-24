@@ -111,6 +111,9 @@ jobs:
           app.experimental=false
           EOF
           echo "sdk.dir=$ANDROID_HOME" >> local.properties
+          # setup.sh 看到 local.properties 已存在會跳過 setup-properties.sh（那支才寫 rust.dir），
+          # 所以這裡必須自己寫 rust.dir，否則 config.rustDir 空串 → TlottieCargo 找不到 toolchain。
+          echo "rust.dir=$(rustup show home)" >> local.properties
 
       - name: Run Project Setup Script
         env:
