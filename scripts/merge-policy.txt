@@ -118,7 +118,7 @@ branch|app/jni/third_party/ffmpeg|release/6.1|-|FFmpeg 穩定分支
 # 而 td@a94b83d→9d92b49 這 113 筆動過 td/generate/scheme/td_api.tl（layer 232、
 # oauthLinkInfo 等新欄位）⇒ 綁定層沒重生之前，單抬 tdlib 一定紅。
 # 正確時機：跟 tgx 合併（#34）時把兩條 gitlink 连同 app 端一起收。
-gitlink|tdlib|32705fd5b|13b78057835cd9441aa49646f26d003178432897|url 指 Capricornus007/tdlib；32705fd5 = c904ea8(td@1b9efe8+TdApi新API) 再補回 44 個 OpenSSL libsslx.so/libcryptox.so，修 Android CI「libsslx.so missing / libsrtp.a」。舊值 13b7805 列為 bad 防退回
+gitlink|tdlib|32705fd5b04722323fa7e64d40cabc11639b5fe6|13b78057835cd9441aa49646f26d003178432897|url 指 Capricornus007/tdlib；32705fd5 = c904ea8(td@1b9efe8+TdApi新API) 再補回 44 個 OpenSSL libsslx.so/libcryptox.so，修 Android CI「libsslx.so missing / libsrtp.a」。舊值 13b7805 列為 bad 防退回
 gitlink|vkryl/td|885e9eeca47ddc8b13248d5ad36ec75773937cc2|595dee3e06bd35e73e9974d93326c351829d4587|綁定層跟 tdlib 成套：tdlib 已抬 c904ea8(td@1b9efe8)，vkryl/td 595dee3 配舊 payload 會出現 14 個 Kotlin assert/構造報錯；885e9ee 配 f10611e 新 API 形態，舊值 595dee3 列為 bad 防退回
 # tgx/main aa687c67c 把 me.vkryl.annotation 從 X-Core 拆成獨立倉 X-Annotation：
 # core c1179615 → a3e94a40（"Move Annotations.kt to separate module"），同一筆新增
