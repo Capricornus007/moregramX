@@ -134,7 +134,7 @@ branch|tdlib|main|-|Capricornus007/tdlib（TGX fork，已刪 r23）
 branch|app/jni/third_party/jni-utils|main|-|TGX-Android/jni-utils
 branch|vkryl/leveldb|main|-|TGX-Android/leveldb
 branch|vkryl/core|main|-|TGX-Android/X-Core
-branch|app/jni/third_party/rlottie|main|-|TGX-Android/rlottie
+# 已移除過時政策: branch|app/jni/third_party/rlottie|main|-|TGX-Android/rlottie
 branch|vkryl/td|main|-|TGX-Android/tdlib-utils
 branch|vkryl/android|main|-|TGX-Android/X-Android
 branch|app/jni/tgvoip/third_party/libevent|main|-|TGX-Android/libevent
@@ -147,7 +147,7 @@ nobranch|app/jni/third_party/opus|-|-|
 nobranch|app/jni/third_party/opusfile|-|-|
 nobranch|app/jni/third_party/ogg|-|-|
 nobranch|app/jni/third_party/libvpx|-|-|
-nobranch|app/jni/third_party/pixman|-|-|
+# 已移除過時政策: nobranch|app/jni/third_party/pixman|-|-|
 gitlink|app/jni/third_party/libprisma|d74f0390569161ea979b5fb73312638ac5b8157a|-|tgx/main 9b6fea6b4 新增的 TelegramMessenger/libprisma；原生層目前尚未引用，維持與上游同值
 branch|app/jni/third_party/libprisma|master|-|該倉預設分支是 master 不是 main（gh api 實測）
 nobranch|app/thirdparty/androidx-media/latest|-|-|
@@ -172,6 +172,6 @@ deleted-any|preMarshmallow|-|-|lollipop 專屬 preMarshmallow 目錄（app/src/p
 deleted|app/thirdparty/androidx-media/lollipop|-|-|已刪的 androidx-media lollipop 子模組 gitlink，不准被合併帶回（見第 6 節 latest 那條保留）
 prop|version.properties|version.flavors=latest|lollipop,marshmallow|唯一建置／發布的 flavor；上游把 lollipop／marshmallow 加回 version.flavors 就直接紅（legacy 於第二刀再併入 bad）
 # 2026-11-06 收編 tgx/main 43 筆時新增的子模組 branch 元數據登記
-branch|app/thirdparty/androidx-media/legacy|release||androidx-media legacy 線（tgx 2026-11 上游新增）
-branch|app/thirdparty/androidx-media/lollipop|release||androidx-media lollipop 線
+# 已移除過時政策: branch|app/thirdparty/androidx-media/legacy|release||androidx-media legacy 線（tgx 2026-11 上游新增）
+# 已移除過時政策: branch|app/thirdparty/androidx-media/lollipop|release||androidx-media lollipop 線
 branch|app/jni/third_party/tlottie|production||tlottie（TGX-Android，production 線）
