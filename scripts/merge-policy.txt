@@ -72,7 +72,7 @@ gitlink|app/jni/tgvoip/third_party/libevent|422a87cd9cfc916fae4b918d63bf2a3d9bc9
 # == 4. (d) tgcalls / webrtc：pin 已命中各自 production 尖端，抬昇判定為零，只留 pin 與 branch 政策 ==
 # 血緣實測（GitHub compare API）：tgcalls production 領先 development 3 筆；
 # webrtc production 領先 telegram 2 筆、領先 M123 6 筆 —— production 是最新那條，development 沒新東西。
-gitlink|app/jni/tgvoip/third_party/tgcalls|1a00b96152e93278a617946eaf0a55d7c4290f6a|-|= 與 tgx 同值（tgx 83ba4d59「Update tgcalls and WebRTC」2026-10-06 抬昇；同一筆也改了 BuildTgCalls.cmake 新增 StreamingAudioRendererTest.cpp，pin 與建置檔必須一起走，不能只抬一邊）
+gitlink|app/jni/tgvoip/third_party/tgcalls|2c17599ca483352c7d2ef20985f4d44e5b484b9e|1a00b96152e93278a617946eaf0a55d7c4290f6a|= 與 tgx 成對且與 BuildTgCalls.cmake 配套：2c17599(production-20261103) 完整覆蓋 cmake 列的 58 個源檔(實測缺失0)；舊 pin 1a00b961 缺 GroupAudioCapturePostProcessor/GroupFrameTransformer/MtProtoDtlsTransport 三檔 → CI「Cannot find source file / No SOURCES given to target: tgcalls」。舊值列為 bad 防退回
 branch|app/jni/tgvoip/third_party/tgcalls|production|main|tgx 的 .gitmodules 寫 main，但該倉沒有 main 分支
 gitlink|app/jni/tgvoip/third_party/webrtc|7b03082ff07aa442bcbb09ea54b8c33b4fef7e6d|-|= 與 tgx 同值（tgx 83ba4d59 2026-10-06 抬昇）
 branch|app/jni/tgvoip/third_party/webrtc|production|main|tgx 的 .gitmodules 寫 main，但該倉沒有 main 分支
