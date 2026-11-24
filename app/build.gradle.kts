@@ -312,6 +312,31 @@ val buildTlottieTask = tasks.register("buildTlottie") {
   dependsOn(buildTlottieTasks.values)
 }
 
+// PGO drawing profile of tlottie, made by hand on a device of the ABI after updates of tlottie
+// or Rust. Usage: ANDROID_SERIAL=<device> ./gradlew ":app:generateTlottieProfile[arm64-v8a]" \
+//   -Ptlottie.samples=<folder with emoji, sticker and effect>
+// 2026-11-24 補回（11-06 連 Rust 鏈一起被移除）。只用 arm64-v8a：CI 的 PGO profile 只這組，
+// 且目前連接的實機（RE546F, Android 16）支援 arm64-v8a。
+val tlottieSamples = providers.gradleProperty("tlottie.samples").map { File(it) }
+listOf("arm64-v8a").forEach { abiFilter ->
+  tasks.register<GenerateTlottieProfileTask>("generateTlottieProfile[$abiFilter]") {
+    group = "Setup"
+    description = "Makes the profile of drawing of tlottie for $abiFilter on a connected device"
+    sdkDir.set(File(config.sdkDir))
+    ndkVersion.set(config.build.primaryNdkVersion)
+    hostTag.set(findHostTag())
+    rustDir.set(File(config.rustDir))
+    rustVersion.set(config.build.rustVersion)
+    abi.set(abiFilter)
+    inputDir.set(layout.projectDirectory.dir("jni/third_party/tlottie"))
+    runner.set(layout.projectDirectory.file("jni/tlottie/profile.c"))
+    samples.fileProvider(tlottieSamples)
+    profile.set(layout.projectDirectory.file("jni/tlottie/$abiFilter.profdata"))
+    profiles.set(layout.projectDirectory.file("jni/tlottie/profiles.properties"))
+    buildDir.set(layout.buildDirectory.dir("generated/tgx/tlottie-profile/$abiFilter"))
+  }
+}
+
 val buildFfmpegTasks = Sdk.VARIANTS.values.flatMap { sdkVariant ->
   val abiVariants = if (sdkVariant.minSdk >= 21) {
     arrayOf("arm64", "arm32", "x86", "x64")
