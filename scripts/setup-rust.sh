@@ -23,7 +23,14 @@ if [ -z "$TOOLCHAIN" ]; then
   exit 1
 fi
 INSTALLED=$("$TOOLCHAIN/bin/rustc" --version | cut -d ' ' -f 2)
-if [ "$INSTALLED" != "$RUST_VERSION" ]; then
+# 日期鎖定的 nightly（如 nightly-2026-11-24）裝出來的 rustc 版本是 1.102.0-nightly，
+# 與 RUST_VERSION 字串不同——rustup 與 toolchain 目錄名已保證精確版本，這裡只確認是 nightly。
+if [[ "$RUST_VERSION" == nightly-* ]]; then
+  if [[ "$INSTALLED" != *-nightly ]]; then
+    echo -e "${STYLE_ERROR}rustc $INSTALLED in $TOOLCHAIN isn't a nightly for $RUST_VERSION${STYLE_END}" >&2
+    exit 1
+  fi
+elif [ "$INSTALLED" != "$RUST_VERSION" ]; then
   echo -e "${STYLE_ERROR}rustc $INSTALLED in $TOOLCHAIN instead of $RUST_VERSION${STYLE_END}" >&2
   exit 1
 fi

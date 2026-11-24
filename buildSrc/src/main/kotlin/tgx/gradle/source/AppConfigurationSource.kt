@@ -77,8 +77,8 @@ abstract class AppConfigurationSource : ValueSource<ApplicationConfig, AppConfig
     }
 
     // rustup home with the version of Rust of version.properties, see scripts/setup-rust.sh
-    // 本 fork 無 rust 消費者（tgx 上游的 rust 編譯鏈未啟用），缺 rust.dir 不 fatal——
-    // 空串直接帶過，CI 的 local.properties 不需要 setup-rust。（2026-11-06）
+    // 2026-11-24: 合併 tgx 新源碼後 gif.cpp 已用 tlottie（Rust），rust.dir 由
+    // setup-properties.sh 寫入 local.properties；CI 會跑 setup-rust 安裝 toolchain。
     val rustDir = properties.getProperty("rust.dir").orEmpty()
 
     val msys2Dir = if (isWindowsHost()) {

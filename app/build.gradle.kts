@@ -252,6 +252,66 @@ val buildLibvpxTask = tasks.register("buildLibvpx") {
   dependsOn(buildLibvpxTasks.values)
 }
 
+// tlottie (Rust, PGO-profile-guided) — 2026-11-24 補回：合併 tgx 新源碼後 gif.cpp 使用 tlottie_*，
+// 需要 libtlottie.a。照 mgx 自己的 abiVariant 架構（同 buildLibvpxTasks），不用 tgx 已移除的
+// globalAbiFilters/useLegacyNdk。工具鏈版本走 version.properties 的 version.rust（最新 nightly）。
+val buildTlottieTasks = Sdk.VARIANTS.values.flatMap { sdkVariant ->
+  val abiVariants = if (sdkVariant.minSdk >= 21) {
+    arrayOf("arm64", "arm32", "x86", "x64")
+  } else {
+    arrayOf("arm32", "x86")
+  }
+  abiVariants.map { abiVariant ->
+    Pair(Pair(sdkVariant.flavor, abiVariant), tasks.register<BuildTlottieTask>(
+      "buildTlottie${sdkVariant.flavor.uppercaseFirstChar()}${abiVariant.uppercaseFirstChar()}"
+    ) {
+      group = "Setup"
+      description = "Builds tlottie for ${sdkVariant.flavor}, $abiVariant flavor"
+      // System
+      sdkDir.set(File(config.sdkDir))
+      msys2Dir.set(msys2Directory(config.msys2Dir))
+      ndkVersion.set(config.build.primaryNdkVersion)
+      hostTag.set(findHostTag())
+      rustDir.set(File(config.rustDir))
+      rustVersion.set(config.build.rustVersion)
+      // Input
+      inputDir.set(layout.projectDirectory.dir(
+        "jni/third_party/tlottie"
+      ))
+      inputSources.from(inputDir.asFileTree.matching {
+        exclude(
+          ".git",
+          "examples",
+          "tools",
+          "*.md"
+        )
+      })
+      sdkFlavor.set(sdkVariant.flavor)
+      abi.set(abiVariant.toAbiFilter())
+      // Optimizations guided by the profile of drawing on a device of the ABI, see
+      // generateTlottieProfile
+      val profileFile = layout.projectDirectory.file("jni/tlottie/${abiVariant.toAbiFilter()}.profdata")
+      if (profileFile.asFile.exists()) {
+        profile.set(profileFile)
+        profiles.set(layout.projectDirectory.file("jni/tlottie/profiles.properties"))
+      }
+      // Output
+      buildDir.set(layout.buildDirectory.dir(
+        "generated/tgx/tlottie-build/${sdkVariant.flavor}/${abiVariant.toAbiFilter()}"
+      ))
+      outputDir.set(layout.buildDirectory.dir(
+        "generated/tgx/tlottie/${sdkVariant.flavor}/${abiVariant.toAbiFilter()}"
+      ))
+      dependsOn(validateGitSetupTask)
+    })
+  }
+}.toMap()
+val buildTlottieTask = tasks.register("buildTlottie") {
+  group = "Setup"
+  description = "Builds tlottie for all flavors and abis (${buildTlottieTasks.size} total)"
+  dependsOn(buildTlottieTasks.values)
+}
+
 val buildFfmpegTasks = Sdk.VARIANTS.values.flatMap { sdkVariant ->
   val abiVariants = if (sdkVariant.minSdk >= 21) {
     arrayOf("arm64", "arm32", "x86", "x64")
@@ -613,6 +673,9 @@ android {
             ),
             "FFMPEG_DIR" to layout.buildDirectory.dir(
               "generated/tgx/ffmpeg/${variant.flavor}"
+            ),
+            "TLOTTIE_DIR" to layout.buildDirectory.dir(
+              "generated/tgx/tlottie/${variant.flavor}"
             )
           ).map {
             "-D${it.key}=${it.value.get().asFile.absoluteFile.invariantSeparatorsPath}"
@@ -780,8 +843,10 @@ android {
       }.forEach { key ->
         val buildLibvpxTask = buildLibvpxTasks[key] ?: error("libvpx task not found for $key")
         val buildFfmpegTask = buildFfmpegTasks[key] ?: error("ffmpeg task not found for $key")
+        val buildTlottieTask = buildTlottieTasks[key] ?: error("tlottie task not found for $key")
         nativeBuildTasks += buildLibvpxTask
         nativeBuildTasks += buildFfmpegTask
+        nativeBuildTasks += buildTlottieTask
       }
 
       val buildNativeTask = tasks.register<ValidateNativeBuildTask>("buildNativeDependencies${variant.name.uppercaseFirstChar()}") {

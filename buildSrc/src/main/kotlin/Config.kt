@@ -68,7 +68,9 @@ data class BuildVersions(
   val compileSdkVersion: Int,
   val targetSdkVersion: Int,
   val buildToolsVersion: String,
-  val primaryNdkVersion: String
+  val primaryNdkVersion: String,
+  // tlottie (Rust) 編譯鏈版本，對應 version.properties 的 version.rust（用戶 5最/6最：最新 nightly）。
+  val rustVersion: String
 ) {
   constructor(version: Properties) : this(
     compileSdkVersion =
@@ -78,7 +80,9 @@ data class BuildVersions(
     buildToolsVersion =
       version.getOrThrow("version.build_tools"),
     primaryNdkVersion =
-      version.getOrThrow("version.ndk_primary")
+      version.getOrThrow("version.ndk_primary"),
+    rustVersion =
+      version.getOrThrow("version.rust")
   )
 }
 

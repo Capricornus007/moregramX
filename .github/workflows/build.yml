@@ -87,6 +87,17 @@ jobs:
       - name: Keep JDK 27 as the default JVM for Gradle
         run: echo "JAVA_HOME=${{ steps.java27.outputs.path }}" >> "$GITHUB_ENV"
 
+      # tlottie (Rust) 編譯鏈 — 2026-11-24 補回。gif.cpp 呼叫 tlottie_* 需要 libtlottie.a，
+      # 由 :app:buildTlottie 用 Cargo 現場編譯。版本走 version.properties 的 version.rust
+      # （日期鎖定 nightly，最新尖端，不准回退舊 stable）。裝在 Setup Script 之前，因為
+      # setup-properties.sh 會寫 rust.dir=$(rustup show home) 到 local.properties。
+      - name: Set up Rust (tlottie, nightly)
+        run: |
+          RUST_VERSION=$(scripts/./read-property.sh version.properties version.rust)
+          rustup toolchain install "$RUST_VERSION" --profile minimal \
+            --target aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
+          rustup default "$RUST_VERSION"
+
       - name: Create local.properties
         run: |
           cat << 'EOF' > local.properties
